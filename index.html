@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字符串相似度比较工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>字符串相似度比较工具</h1>
+            <p>比较两列字符串，找到最相似的匹配项</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 输入区域 -->
+            <section class="input-section">
+                <h2>数据输入</h2>
+                <div class="input-group">
+                    <div class="input-column">
+                        <label for="source-column">源数据列（被比较）</label>
+                        <textarea id="source-column" placeholder="请输入源数据，每行一个字符串..."></textarea>
+                        <div class="input-info">行数: <span id="source-count">0</span></div>
+                    </div>
+                    <div class="input-column">
+                        <label for="target-column">目标数据列（比较对象）</label>
+                        <textarea id="target-column" placeholder="请输入目标数据，每行一个字符串..."></textarea>
+                        <div class="input-info">行数: <span id="target-count">0</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 设置选项 -->
+            <section class="settings-section">
+                <h2>比较设置</h2>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label for="similarity-threshold">相似度阈值</label>
+                        <input type="range" id="similarity-threshold" min="0" max="100" value="70">
+                        <span id="threshold-value">70%</span>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="ignore-punctuation" checked>
+                            忽略标点符号
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="fullwidth-to-halfwidth" checked>
+                            全角转半角
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="ignore-invisible-chars" checked>
+                            忽略不可见字符
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="whole-string-mode" checked>
+                            整体字符串比较
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label for="synonym-groups">同义词组（用逗号分隔）</label>
+                        <textarea id="synonym-groups" placeholder="例如: 公司,企业,集团"></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 控制按钮 -->
+            <section class="control-section">
+                <div class="control-buttons">
+                    <button id="load-sample" class="btn btn-secondary">加载示例数据</button>
+                    <button id="start-comparison" class="btn btn-primary">开始比较</button>
+                    <button id="stop-comparison" class="btn btn-danger" disabled>停止比较</button>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <div id="progress-text" class="progress-text">准备就绪</div>
+                </div>
+            </section>
+
+            <!-- 结果展示 -->
+            <section class="results-section">
+                <h2>比较结果</h2>
+                <div class="results-controls">
+                    <button id="export-results" class="btn btn-success">导出结果</button>
+                    <button id="export-simple" class="btn btn-info">导出简化结果</button>
+                    <button id="save-data" class="btn btn-warning">保存数据</button>
+                    <button id="load-data" class="btn btn-secondary">加载数据</button>
+                </div>
+                <div id="results-container" class="results-container">
+                    <div class="no-results">暂无比较结果</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="similarity.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
