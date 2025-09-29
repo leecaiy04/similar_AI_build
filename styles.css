@@ -497,6 +497,28 @@ section h2 {
     animation: fadeIn 0.3s ease;
 }
 
+/* 字符级差异标注 */
+.diff-added {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 1px 2px;
+    border-radius: 2px;
+    font-weight: 600;
+}
+
+.diff-removed {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    text-decoration: line-through;
+    padding: 1px 2px;
+    border-radius: 2px;
+    font-weight: 600;
+}
+
+.diff-unchanged {
+    color: #333;
+}
+
 /* 加载状态 */
 .loading {
     position: relative;

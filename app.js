@@ -8,6 +8,7 @@ class SimilarityApp {
         this.worker = null;
         this.results = [];
         this.lockedResults = new Map(); // 存储锁定的结果
+        this.calculator = new SimilarityCalculator(); // 用于字符级差异与相似度辅助
         this.isCalculating = false;
         
         this.initializeElements();
@@ -287,6 +288,14 @@ class SimilarityApp {
             // 按相似度排序
             matches.sort((a, b) => b.similarity - a.similarity);
 
+            // 如果最相似值相似度为100%，则直接锁定
+            if (matches.length > 0 && matches[0].similarity === 1) {
+                this.lockedResults.set(index, matches[0]);
+                if (this.tempSelections) {
+                    this.tempSelections.delete(index);
+                }
+            }
+
             results.push({
                 source: source,
                 matches: matches,
@@ -373,22 +382,33 @@ class SimilarityApp {
             let bestMatch = '';
             let bestSimilarity = '';
             let otherMatches = '';
+            let bestMatchDiffHtml = '';
 
             if (isLocked && lockedMatch) {
                 // 显示锁定的结果
                 bestMatch = lockedMatch.text;
                 bestSimilarity = Math.round(lockedMatch.similarity * 100) + '%';
                 otherMatches = '<span class="locked-indicator">已锁定</span>';
+                // 生成字符级差异（目标相对源：新增=红底，删除=绿删）
+                const diff = this.calculator.calculateCharDiff(result.source, lockedMatch.text, 'lcs');
+                bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
             } else if (tempMatch) {
                 // 显示临时选择的结果
                 bestMatch = tempMatch.text;
                 bestSimilarity = Math.round(tempMatch.similarity * 100) + '%';
-                
+                // 生成字符级差异
+                const diff = this.calculator.calculateCharDiff(result.source, tempMatch.text, 'lcs');
+                bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
                 // 显示其他相似值（包括原来的最相似值）
-                const otherMatchesList = result.matches.filter(match => match.text !== tempMatch.text).slice(0, 3).map(match => {
+                const otherMatchesList = result.matches
+                    .filter(match => match.text !== tempMatch.text)
+                    .slice(0, 5)
+                    .map(match => {
                     const percentage = Math.round(match.similarity * 100);
+                        const diff = this.calculator.calculateCharDiff(result.source, match.text, 'lcs');
+                        const diffHtml = this.calculator.generateDiffHTML(diff.diff);
                     return `<div class="other-match" data-match='${JSON.stringify(match)}' data-source-index="${index}">
-                        <span class="match-text">${this.escapeHtml(match.text)}</span>
+                        <span class="match-text">${diffHtml}</span>
                         <span class="match-similarity">${percentage}%</span>
                     </div>`;
                 }).join('');
@@ -399,12 +419,16 @@ class SimilarityApp {
                 const topMatch = result.matches[0];
                 bestMatch = topMatch.text;
                 bestSimilarity = Math.round(topMatch.similarity * 100) + '%';
-                
+                // 生成字符级差异
+                const diff = this.calculator.calculateCharDiff(result.source, topMatch.text, 'lcs');
+                bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
                 // 显示其他相似值（最多显示3个）
-                const otherMatchesList = result.matches.slice(1, 4).map(match => {
+                const otherMatchesList = result.matches.slice(1, 6).map(match => {
                     const percentage = Math.round(match.similarity * 100);
+                    const diff = this.calculator.calculateCharDiff(result.source, match.text, 'lcs');
+                    const diffHtml = this.calculator.generateDiffHTML(diff.diff);
                     return `<div class="other-match" data-match='${JSON.stringify(match)}' data-source-index="${index}">
-                        <span class="match-text">${this.escapeHtml(match.text)}</span>
+                        <span class="match-text">${diffHtml}</span>
                         <span class="match-similarity">${percentage}%</span>
                     </div>`;
                 }).join('');
@@ -414,6 +438,7 @@ class SimilarityApp {
                 bestMatch = '无匹配';
                 bestSimilarity = '0%';
                 otherMatches = '<span class="no-matches">无匹配结果</span>';
+                bestMatchDiffHtml = '<span class="diff-unchanged">无差异数据</span>';
             }
 
             html += `
@@ -421,7 +446,7 @@ class SimilarityApp {
                     <td class="source-cell">${this.escapeHtml(result.source)}</td>
                     <td class="best-match-cell">
                         <div class="best-match" data-source-index="${index}">
-                            ${this.escapeHtml(bestMatch)}
+                            ${bestMatchDiffHtml || this.escapeHtml(bestMatch)}
                         </div>
                     </td>
                     <td class="similarity-cell">

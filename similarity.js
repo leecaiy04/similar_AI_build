@@ -307,6 +307,188 @@ class SimilarityCalculator {
 
         return results;
     }
+
+    /**
+     * 计算字符级差异
+     * @param {string} str1 源字符串
+     * @param {string} str2 目标字符串
+     * @param {string} algorithm 差异算法: 'lcs' | 'levenshtein' | 'myers'
+     * @returns {{diff:Array<{type:string,char:string}>, added:number, removed:number, unchanged:number, similarity:number}}
+     */
+    calculateCharDiff(str1, str2, algorithm = 'lcs') {
+        if (!str1 && !str2) {
+            return { diff: [], added: 0, removed: 0, unchanged: 0, similarity: 1 };
+        }
+        if (!str1 || !str2) {
+            const only = (str1 || str2).split('');
+            const type = str1 ? 'removed' : 'added';
+            const diff = only.map(c => ({ type, char: c }));
+            return {
+                diff,
+                added: type === 'added' ? only.length : 0,
+                removed: type === 'removed' ? only.length : 0,
+                unchanged: 0,
+                similarity: 0
+            };
+        }
+
+        switch (algorithm) {
+            case 'levenshtein':
+                return this.levenshteinDiff(str1, str2);
+            case 'myers':
+                return this.myersDiff(str1, str2);
+            case 'lcs':
+            default:
+                return this.lcsDiff(str1, str2);
+        }
+    }
+
+    /**
+     * 基于LCS的差异
+     */
+    lcsDiff(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (str1[i - 1] === str2[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
+                else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+        const diff = [];
+        let i = m, j = n;
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && str1[i - 1] === str2[j - 1]) {
+                diff.unshift({ type: 'unchanged', char: str1[i - 1] });
+                i--; j--;
+            } else if (i > 0 && (j === 0 || dp[i - 1][j] >= dp[i][j - 1])) {
+                diff.unshift({ type: 'removed', char: str1[i - 1] });
+                i--;
+            } else if (j > 0) {
+                diff.unshift({ type: 'added', char: str2[j - 1] });
+                j--;
+            }
+        }
+        const added = diff.filter(d => d.type === 'added').length;
+        const removed = diff.filter(d => d.type === 'removed').length;
+        const unchanged = diff.filter(d => d.type === 'unchanged').length;
+        const denominator = added + removed + unchanged || 1;
+        return { diff, added, removed, unchanged, similarity: unchanged / denominator };
+    }
+
+    /**
+     * 基于Levenshtein的差异
+     */
+    levenshteinDiff(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (str1[i - 1] === str2[j - 1]) dp[i][j] = dp[i - 1][j - 1];
+                else dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1, // 删除
+                    dp[i][j - 1] + 1, // 插入
+                    dp[i - 1][j - 1] + 1 // 替换
+                );
+            }
+        }
+        const diff = [];
+        let i = m, j = n;
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && str1[i - 1] === str2[j - 1]) {
+                diff.unshift({ type: 'unchanged', char: str1[i - 1] });
+                i--; j--;
+            } else if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + 1) {
+                diff.unshift({ type: 'removed', char: str1[i - 1] });
+                diff.unshift({ type: 'added', char: str2[j - 1] });
+                i--; j--;
+            } else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
+                diff.unshift({ type: 'removed', char: str1[i - 1] });
+                i--;
+            } else {
+                diff.unshift({ type: 'added', char: str2[j - 1] });
+                j--;
+            }
+        }
+        const added = diff.filter(d => d.type === 'added').length;
+        const removed = diff.filter(d => d.type === 'removed').length;
+        const unchanged = diff.filter(d => d.type === 'unchanged').length;
+        const denominator = added + removed + unchanged || 1;
+        return { diff, added, removed, unchanged, similarity: unchanged / denominator };
+    }
+
+    /**
+     * 简化Myers差异
+     */
+    myersDiff(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const max = m + n;
+        const v = new Array(2 * max + 1).fill(0);
+        const trace = [];
+        for (let d = 0; d <= max; d++) {
+            trace.push(v.slice());
+            for (let k = -d; k <= d; k += 2) {
+                let x;
+                if (k === -d || (k !== d && v[k - 1 + max] < v[k + 1 + max])) x = v[k + 1 + max];
+                else x = v[k - 1 + max] + 1;
+                let y = x - k;
+                while (x < m && y < n && str1[x] === str2[y]) { x++; y++; }
+                v[k + max] = x;
+                if (x >= m && y >= n) return this.buildMyersDiff(str1, str2, trace, d);
+            }
+        }
+        return this.lcsDiff(str1, str2);
+    }
+
+    buildMyersDiff(str1, str2, trace, d) {
+        const diff = [];
+        let x = str1.length;
+        let y = str2.length;
+        for (let i = d; i >= 0; i--) {
+            const v = trace[i];
+            const k = x - y;
+            let prevK;
+            const offset = Math.floor(v.length / 2);
+            if (k === -i || (k !== i && v[k - 1 + offset] < v[k + 1 + offset])) prevK = k + 1;
+            else prevK = k - 1;
+            const prevX = v[prevK + offset];
+            const prevY = prevX - prevK;
+            while (x > prevX && y > prevY) {
+                diff.unshift({ type: 'unchanged', char: str1[x - 1] });
+                x--; y--;
+            }
+            if (i > 0) {
+                if (x === prevX) { diff.unshift({ type: 'added', char: str2[y - 1] }); y--; }
+                else { diff.unshift({ type: 'removed', char: str1[x - 1] }); x--; }
+            }
+        }
+        const added = diff.filter(d => d.type === 'added').length;
+        const removed = diff.filter(d => d.type === 'removed').length;
+        const unchanged = diff.filter(d => d.type === 'unchanged').length;
+        const denominator = added + removed + unchanged || 1;
+        return { diff, added, removed, unchanged, similarity: unchanged / denominator };
+    }
+
+    /**
+     * 生成差异HTML（用于内联渲染）
+     */
+    generateDiffHTML(diff) {
+        return diff.map(item => `<span class="diff-${item.type}">${this.escapeHtml(item.char)}</span>`).join('');
+    }
+
+    /**
+     * HTML转义
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 }
 
 // 导出到全局作用域
