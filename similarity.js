@@ -41,15 +41,30 @@ class SimilarityCalculator {
      */
     setSynonymGroups(synonymText) {
         this.synonymGroups.clear();
-        if (!synonymText.trim()) return;
+        if (!synonymText || !synonymText.trim()) return;
 
-        const groups = synonymText.split(',').map(group => group.trim()).filter(group => group);
-        groups.forEach(group => {
-            const words = group.split(/[,，\s]+/).map(word => word.trim()).filter(word => word);
+        // 先按“组”分割：支持 换行 / 分号 / 中文分号
+        let groupTexts = synonymText
+            .split(/[\n;；]+/)
+            .map(s => s.trim())
+            .filter(Boolean);
+
+        // 如果没有明确的组分隔符（仅一段文本），则将整段视为一个同义词组
+        if (groupTexts.length === 1) {
+            groupTexts = [synonymText.trim()];
+        }
+
+        groupTexts.forEach(groupStr => {
+            const words = groupStr
+                .split(/[,，\s]+/)
+                .map(w => w.trim())
+                .filter(Boolean);
             if (words.length > 1) {
-                const normalized = this.normalizeText(words[0]);
+                // 以组内第一个词作为代表词
+                const representative = this.normalizeText(words[0]);
                 words.forEach(word => {
-                    this.synonymGroups.set(this.normalizeText(word), normalized);
+                    const normalized = this.normalizeText(word);
+                    this.synonymGroups.set(normalized, representative);
                 });
             }
         });
@@ -94,6 +109,24 @@ class SimilarityCalculator {
      */
     normalizeText(text) {
         return text.toLowerCase().trim();
+    }
+
+    /**
+     * 在整段文本中应用同义词替换（将同组词替换为代表词）
+     * @param {string} text - 已预处理且小写的文本
+     * @returns {string}
+     */
+    applySynonyms(text) {
+        if (!text || this.synonymGroups.size === 0) return text;
+        let result = text;
+        // 逐个词替换为组代表词
+        this.synonymGroups.forEach((representative, key) => {
+            if (!key) return;
+            const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escaped, 'g');
+            result = result.replace(regex, representative);
+        });
+        return result;
     }
 
     /**
@@ -243,18 +276,16 @@ class SimilarityCalculator {
         const processed1 = this.preprocessText(str1, options);
         const processed2 = this.preprocessText(str2, options);
 
-        // 同义词处理
+        // 同义词处理（整段替换）
         const normalized1 = this.normalizeText(processed1);
         const normalized2 = this.normalizeText(processed2);
-        
-        const synonym1 = this.synonymGroups.get(normalized1) || normalized1;
-        const synonym2 = this.synonymGroups.get(normalized2) || normalized2;
-
-        if (synonym1 === synonym2) return 1.0;
+        const synonymApplied1 = this.applySynonyms(normalized1);
+        const synonymApplied2 = this.applySynonyms(normalized2);
+        if (synonymApplied1 === synonymApplied2) return 1.0;
 
         // 计算多种相似度
-        const editSim = this.editDistanceSimilarity(processed1, processed2);
-        const jaroSim = this.jaroWinklerSimilarity(processed1, processed2);
+        const editSim = this.editDistanceSimilarity(synonymApplied1, synonymApplied2);
+        const jaroSim = this.jaroWinklerSimilarity(synonymApplied1, synonymApplied2);
         
         // 加权平均
         const weights = options.weights || { edit: 0.6, jaro: 0.4 };

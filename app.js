@@ -19,7 +19,7 @@ class SimilarityApp {
         if (!localStorage.getItem('similarityAppData')) {
             this.loadSampleData();
             // 设置默认同义词组
-            this.synonymGroups.value = '腾讯控股有限公司,腾讯';
+            this.synonymGroups.value = '阿里巴巴集团,阿里';
         }
     }
 
@@ -32,6 +32,8 @@ class SimilarityApp {
         this.targetTextarea = document.getElementById('target-column');
         this.sourceCount = document.getElementById('source-count');
         this.targetCount = document.getElementById('target-count');
+        this.sourceHint = document.getElementById('source-hint');
+        this.targetHint = document.getElementById('target-hint');
 
         // 设置选项
         this.thresholdSlider = document.getElementById('similarity-threshold');
@@ -57,6 +59,7 @@ class SimilarityApp {
         this.exportSimpleBtn = document.getElementById('export-simple');
         this.saveDataBtn = document.getElementById('save-data');
         this.loadDataBtn = document.getElementById('load-data');
+        this.clearResultsBtn = document.getElementById('clear-results');
     }
 
     /**
@@ -64,8 +67,14 @@ class SimilarityApp {
      */
     bindEvents() {
         // 输入区域事件
-        this.sourceTextarea.addEventListener('input', () => this.updateCount('source'));
-        this.targetTextarea.addEventListener('input', () => this.updateCount('target'));
+        this.sourceTextarea.addEventListener('input', () => {
+            this.updateCount('source');
+            this.updateInputHint('source');
+        });
+        this.targetTextarea.addEventListener('input', () => {
+            this.updateCount('target');
+            this.updateInputHint('target');
+        });
 
         // 设置选项事件
         this.thresholdSlider.addEventListener('input', () => this.updateThresholdDisplay());
@@ -81,11 +90,26 @@ class SimilarityApp {
         this.exportSimpleBtn.addEventListener('click', () => this.exportSimpleResults());
         this.saveDataBtn.addEventListener('click', () => this.saveData());
         this.loadDataBtn.addEventListener('click', () => this.loadData());
+        this.clearResultsBtn.addEventListener('click', () => this.clearResults());
 
         // 初始化显示
         this.updateThresholdDisplay();
         this.updateCount('source');
         this.updateCount('target');
+        this.updateInputHint('source');
+        this.updateInputHint('target');
+    }
+
+    /**
+     * 清空结果
+     */
+    clearResults() {
+        this.results = [];
+        this.lockedResults.clear();
+        if (this.tempSelections) this.tempSelections.clear();
+        this.resultsContainer.innerHTML = '<div class="no-results">暂无比较结果</div>';
+        this.progressText.textContent = '已清空结果';
+        this.progressFill.style.width = '0%';
     }
 
     /**
@@ -192,6 +216,37 @@ class SimilarityApp {
         this.targetTextarea.value = sampleTarget;
         this.updateCount('source');
         this.updateCount('target');
+        // 示例同义词：演示“阿里巴巴集团”和“阿里”视为同义
+        this.synonymGroups.value = '阿里巴巴集团,阿里';
+        // 提示文案
+        if (this.sourceHint) {
+            this.sourceHint.textContent = '已填充示例数据：行业公司名称示例。您可直接开始比较或替换为自己的数据（每行一个）。';
+        }
+        if (this.targetHint) {
+            this.targetHint.textContent = '已填充示例数据：包含多种相似写法以展示匹配效果。可直接比较或覆盖输入。';
+        }
+        // 统一触发一次提示更新
+        this.updateInputHint('source');
+        this.updateInputHint('target');
+    }
+
+    /**
+     * 根据输入内容更新提示
+     * @param {('source'|'target')} type
+     */
+    updateInputHint(type) {
+        const textarea = type === 'source' ? this.sourceTextarea : this.targetTextarea;
+        const hintEl = type === 'source' ? this.sourceHint : this.targetHint;
+        if (!hintEl || !textarea) return;
+        const value = textarea.value.trim();
+        if (!value) {
+            hintEl.textContent = '提示：每行一个字符串，可从 Excel 粘贴';
+            return;
+        }
+        // 如果是示例数据，loadSampleData 会设置更详细的提示；否则给通用提示
+        if (!hintEl.textContent || !hintEl.textContent.startsWith('已填充示例数据')) {
+            hintEl.textContent = '已输入内容：可点击“开始比较”，或继续编辑/粘贴数据。';
+        }
     }
 
     /**
@@ -742,9 +797,8 @@ class SimilarityApp {
      * 保存数据到localStorage
      */
     saveData() {
+        // 仅保存“比较设置”
         const data = {
-            sourceText: this.sourceTextarea.value,
-            targetText: this.targetTextarea.value,
             settings: {
                 threshold: this.thresholdSlider.value,
                 ignorePunctuation: this.ignorePunctuation.checked,
@@ -752,17 +806,14 @@ class SimilarityApp {
                 ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
                 wholeStringMode: this.wholeStringMode.checked,
                 synonymGroups: this.synonymGroups.value
-            },
-            results: this.results,
-            lockedResults: Array.from(this.lockedResults.entries()),
-            tempSelections: this.tempSelections ? Array.from(this.tempSelections.entries()) : []
+            }
         };
 
         try {
             localStorage.setItem('similarityAppData', JSON.stringify(data));
-            alert('数据保存成功');
+            this.showToast('比较设置已保存', 'success');
         } catch (error) {
-            alert('保存失败: ' + error.message);
+            this.showToast('保存失败: ' + error.message, 'error');
         }
     }
 
@@ -778,14 +829,8 @@ class SimilarityApp {
             }
 
             const data = JSON.parse(dataStr);
-            
-            // 恢复输入数据
-            this.sourceTextarea.value = data.sourceText || '';
-            this.targetTextarea.value = data.targetText || '';
-            this.updateCount('source');
-            this.updateCount('target');
 
-            // 恢复设置
+            // 仅恢复“比较设置”，不修改输入数据与结果
             if (data.settings) {
                 this.thresholdSlider.value = data.settings.threshold || 70;
                 this.ignorePunctuation.checked = data.settings.ignorePunctuation !== false;
@@ -796,25 +841,9 @@ class SimilarityApp {
                 this.updateThresholdDisplay();
             }
 
-            // 恢复结果
-            if (data.results) {
-                this.results = data.results;
-                this.displayResults();
-            }
-
-            // 恢复锁定状态
-            if (data.lockedResults) {
-                this.lockedResults = new Map(data.lockedResults);
-            }
-
-            // 恢复临时选择状态
-            if (data.tempSelections) {
-                this.tempSelections = new Map(data.tempSelections);
-            }
-
-            alert('数据加载成功');
+            this.showToast('比较设置已加载', 'success');
         } catch (error) {
-            alert('加载失败: ' + error.message);
+            this.showToast('加载失败: ' + error.message, 'error');
         }
     }
 
@@ -843,6 +872,25 @@ class SimilarityApp {
         }
     }
 }
+
+// 轻量提示
+SimilarityApp.prototype.showToast = function(message, type = 'info', duration = 2000) {
+    const toast = document.createElement('div');
+    toast.className = `app-toast app-toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    // 强制回流以启动过渡
+    void toast.offsetWidth;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast && toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, duration);
+};
 
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', () => {

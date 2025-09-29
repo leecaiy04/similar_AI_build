@@ -22,11 +22,13 @@
                         <label for="source-column">源数据列（被比较）</label>
                         <textarea id="source-column" placeholder="请输入源数据，每行一个字符串..."></textarea>
                         <div class="input-info">行数: <span id="source-count">0</span></div>
+                        <div class="sample-hint" id="source-hint">提示：每行一个字符串，可从 Excel 粘贴</div>
                     </div>
                     <div class="input-column">
                         <label for="target-column">目标数据列（比较对象）</label>
                         <textarea id="target-column" placeholder="请输入目标数据，每行一个字符串..."></textarea>
                         <div class="input-info">行数: <span id="target-count">0</span></div>
+                        <div class="sample-hint" id="target-hint">提示：每行一个字符串，可从 Excel 粘贴</div>
                     </div>
                 </div>
             </section>
@@ -66,7 +68,8 @@
                     </div>
                     <div class="setting-item">
                         <label for="synonym-groups">同义词组（用逗号分隔）</label>
-                        <textarea id="synonym-groups" placeholder="例如: 公司,企业,集团"></textarea>
+                        <textarea id="synonym-groups" placeholder="例如：阿里巴巴集团,阿里（阿里巴巴集团的同义词）"></textarea>
+                        <div class="sample-hint" id="synonym-hint">提示：（XXXX 的同义词）例如：（阿里巴巴集团的同义词）阿里巴巴集团,阿里。多组可用换行/分号分隔。</div>
                     </div>
                 </div>
             </section>
@@ -94,6 +97,7 @@
                     <button id="export-simple" class="btn btn-info">导出简化结果</button>
                     <button id="save-data" class="btn btn-warning">保存数据</button>
                     <button id="load-data" class="btn btn-secondary">加载数据</button>
+                    <button id="clear-results" class="btn btn-secondary">清空结果</button>
                 </div>
                 <div id="results-container" class="results-container">
                     <div class="no-results">暂无比较结果</div>
