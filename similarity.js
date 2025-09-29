@@ -1,6 +1,17 @@
 /**
  * 字符串相似度计算工具
- * 支持多种相似度算法和文本预处理选项
+ *
+ * 作用：
+ * - 提供多种相似度算法（编辑距离、Jaro-Winkler）并支持加权融合
+ * - 支持文本预处理（忽略标点、全角转半角、忽略不可见字符、小写化等）
+ * - 支持“同义词组”参与计算：
+ *   1) 解析同义词组，将同组词映射到“代表词”（组内第一个词）
+ *   2) 在比较前对整段文本做同义词内联替换（把出现的同组词替换为代表词）
+ *   3) 若替换后两侧文本完全一致，则直接判定相似度=1.0（100%）
+ *
+ * 使用要点：
+ * - 将更完整/标准的词放在组内第一个，便于替换后文本完全一致
+ * - 多组同义词可用换行/分号/中文分号分隔；组内用逗号/中文逗号分隔
  */
 
 class SimilarityCalculator {
@@ -37,7 +48,16 @@ class SimilarityCalculator {
 
     /**
      * 设置同义词组
-     * @param {string} synonymText - 同义词组文本，用逗号分隔
+     *
+     * 解析规则：
+     * - 组分隔：按换行/分号/中文分号分组
+     * - 组内分隔：按逗号/中文逗号/空白分隔
+     * - 映射策略：组内第一个词为代表词，组内所有词都映射为该代表词
+     *
+     * 示例：
+     * 阿里巴巴集团,阿里\n腾讯控股有限公司,腾讯；百度在线网络技术公司,百度
+     *
+     * @param {string} synonymText 同义词组原始文本
      */
     setSynonymGroups(synonymText) {
         this.synonymGroups.clear();
@@ -113,8 +133,13 @@ class SimilarityCalculator {
 
     /**
      * 在整段文本中应用同义词替换（将同组词替换为代表词）
-     * @param {string} text - 已预处理且小写的文本
-     * @returns {string}
+     *
+     * 说明：
+     * - 输入应为已预处理且小写的文本（见 preprocessText → normalizeText）
+     * - 替换是直接字符串替换（非分词），适合公司名等专有词场景
+     *
+     * @param {string} text 已预处理的小写文本
+     * @returns {string} 替换后的文本
      */
     applySynonyms(text) {
         if (!text || this.synonymGroups.size === 0) return text;
@@ -263,10 +288,17 @@ class SimilarityCalculator {
 
     /**
      * 计算综合相似度
-     * @param {string} str1 - 字符串1
-     * @param {string} str2 - 字符串2
-     * @param {Object} options - 计算选项
-     * @returns {number} - 综合相似度 (0-1)
+     *
+     * 流程：
+     * 1) 预处理：大小写/空白/标点/全角/不可见字符
+     * 2) 同义词：将整段文本内联替换为代表词
+     * 3) 快速判断：若替换后完全一致，直接返回 1.0
+     * 4) 计算：使用编辑距离与 Jaro-Winkler，按权重融合
+     *
+     * @param {string} str1 字符串1
+     * @param {string} str2 字符串2
+     * @param {Object} options 计算选项（threshold/预处理开关/weights/synonymGroups）
+     * @returns {number} 综合相似度 (0-1)
      */
     calculateSimilarity(str1, str2, options = {}) {
         if (!str1 || !str2) return 0.0;
