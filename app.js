@@ -65,8 +65,8 @@ class SimilarityApp {
         this.resultsContainer = document.getElementById('results-container');
         this.exportResultsBtn = document.getElementById('export-results');
         this.exportSimpleBtn = document.getElementById('export-simple');
-        this.saveDataBtn = document.getElementById('save-data');
-        this.loadDataBtn = document.getElementById('load-data');
+        this.copySimpleBtn = document.getElementById('copy-simple');
+        this.copyResultsBtn = document.getElementById('copy-results');
         this.clearResultsBtn = document.getElementById('clear-results');
     }
 
@@ -94,11 +94,11 @@ class SimilarityApp {
         this.stopComparisonBtn.addEventListener('click', () => this.stopComparison());
 
         // 导出按钮事件
-        this.exportResultsBtn.addEventListener('click', () => this.exportResults());
-        this.exportSimpleBtn.addEventListener('click', () => this.exportSimpleResults());
-        this.saveDataBtn.addEventListener('click', () => this.saveData());
-        this.loadDataBtn.addEventListener('click', () => this.loadData());
-        this.clearResultsBtn.addEventListener('click', () => this.clearResults());
+        if (this.exportResultsBtn) this.exportResultsBtn.addEventListener('click', () => this.exportResults());
+        if (this.exportSimpleBtn) this.exportSimpleBtn.addEventListener('click', () => this.exportSimpleResults());
+        if (this.copySimpleBtn) this.copySimpleBtn.addEventListener('click', () => this.copySimpleResults());
+        if (this.copyResultsBtn) this.copyResultsBtn.addEventListener('click', () => this.copyFullResults());
+        if (this.clearResultsBtn) this.clearResultsBtn.addEventListener('click', () => this.clearResults());
 
         // 初始化显示
         this.updateThresholdDisplay();
@@ -696,8 +696,64 @@ class SimilarityApp {
             return;
         }
 
-        const csvContent = this.generateCSV(false);
+        const csvContent = this.generateSimpleCSVLockedOnly();
         this.downloadFile(csvContent, 'similarity_results_simple.csv', 'text/csv');
+    }
+
+    /**
+     * 复制简化结果到剪贴板（两列，最相似仅锁定）
+     */
+    copySimpleResults() {
+        if (this.results.length === 0) {
+            alert('û�пɵ����Ľ��');
+            return;
+        }
+        const tsv = this.buildSimpleTSV();
+        this.copyToClipboard(tsv).then(() => {
+            this.showToast('�򻯽����Ѹ��Ƶ�������', 'success');
+        }).catch(() => {
+            this.showToast('����ʧ��', 'error');
+        });
+    }
+
+    /**
+     * 复制完整结果到剪贴板（最相似仅锁定，后续五个候选+相似度）
+     */
+    copyFullResults() {
+        if (this.results.length === 0) {
+            alert('û�пɵ����Ľ��');
+            return;
+        }
+        const tsv = this.buildFullTSV();
+        this.copyToClipboard(tsv).then(() => {
+            this.showToast('���Ѹ��Ƶ�������', 'success');
+        }).catch(() => {
+            this.showToast('����ʧ��', 'error');
+        });
+    }
+
+    /**
+     * 简化导出：仅导出 源文本, 最相似值（仅锁定的填写，未锁定留空）
+     */
+    generateSimpleCSVLockedOnly() {
+        const headers = ['源文本', '最相似值'];
+        const rows = [headers.join(',')];
+
+        this.results.forEach((result, index) => {
+            const isLocked = this.lockedResults.has(index);
+            let bestMatch = '';
+            if (isLocked) {
+                const lockedMatch = this.lockedResults.get(index);
+                bestMatch = lockedMatch && lockedMatch.text ? lockedMatch.text : '';
+            }
+            const row = [
+                this.escapeCSV(result.source),
+                this.escapeCSV(bestMatch)
+            ];
+            rows.push(row.join(','));
+        });
+
+        return rows.join('\n');
     }
 
     /**
@@ -877,7 +933,74 @@ SimilarityApp.prototype.showToast = function(message, type = 'info', duration = 
     }, duration);
 };
 
+// 复制与TSV构建工具
+SimilarityApp.prototype.buildSimpleTSV = function() {
+    const headers = ['源文本', '最相似值'];
+    const lines = [headers.join('\t')];
+    this.results.forEach((result, index) => {
+        const isLocked = this.lockedResults.has(index);
+        let best = '';
+        if (isLocked) {
+            const locked = this.lockedResults.get(index);
+            best = locked && locked.text ? locked.text : '';
+        }
+        lines.push([this.escapeTSV(result.source), this.escapeTSV(best)].join('\t'));
+    });
+    return lines.join('\n');
+};
+
+SimilarityApp.prototype.buildFullTSV = function() {
+    const headers = ['源文本', '最相似值'];
+    for (let i = 1; i <= 5; i++) { headers.push(`第${i}相似`, `第${i}相似度`); }
+    const lines = [headers.join('\t')];
+    this.results.forEach((result, index) => {
+        const isLocked = this.lockedResults.has(index);
+        let bestText = '';
+        if (isLocked) {
+            const locked = this.lockedResults.get(index);
+            bestText = locked && locked.text ? locked.text : '';
+        }
+        const row = [this.escapeTSV(result.source), this.escapeTSV(bestText)];
+        const top = (result.matches || []).slice(0, 5);
+        while (top.length < 5) top.push(null);
+        top.forEach(m => {
+            if (m) {
+                row.push(this.escapeTSV(m.text), Math.round(m.similarity * 100) + '%');
+            } else {
+                row.push('', '');
+            }
+        });
+        lines.push(row.join('\t'));
+    });
+    return lines.join('\n');
+};
+
+SimilarityApp.prototype.escapeTSV = function(field) {
+    if (field == null) return '';
+    return String(field).replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+};
+
+SimilarityApp.prototype.copyToClipboard = async function(text) {
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+    } catch (e) { }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+};
+
 // 页面加载完成后初始化应用
+window.SimilarityApp = SimilarityApp;
 document.addEventListener('DOMContentLoaded', () => {
     new SimilarityApp();
 });
+
