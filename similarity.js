@@ -18,6 +18,7 @@ class SimilarityCalculator {
     constructor() {
         this.synonymGroups = new Map();
         this.fullwidthToHalfwidthMap = this.createFullwidthMap();
+        this.ignoreTerms = [];
     }
 
     /**
@@ -118,7 +119,16 @@ class SimilarityCalculator {
 
         // 转换为小写并去除多余空格
         processed = processed.toLowerCase().replace(/\s+/g, ' ').trim();
-
+        if (this.ignoreTerms && this.ignoreTerms.length) {
+            let _out = processed;
+            this.ignoreTerms.forEach(term => {
+                if (!term) return;
+                const _esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const _re = new RegExp(_esc, 'g');
+                _out = _out.replace(_re, '');
+            });
+            processed = _out.replace(/\s+/g, ' ').trim();
+        }
         return processed;
     }
 

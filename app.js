@@ -51,6 +51,7 @@ class SimilarityApp {
         this.ignoreInvisibleChars = document.getElementById('ignore-invisible-chars');
         this.wholeStringMode = document.getElementById('whole-string-mode');
         this.synonymGroups = document.getElementById('synonym-groups');
+        this.ignoreTermsEl = document.getElementById('ignore-terms');
 
         // 控制按钮
         this.loadSampleBtn = document.getElementById('load-sample');
@@ -87,6 +88,11 @@ class SimilarityApp {
         // 设置选项事件
         this.thresholdSlider.addEventListener('input', () => this.updateThresholdDisplay());
         this.synonymGroups.addEventListener('input', () => this.updateSynonymGroups());
+        if (this.ignoreTermsEl) {
+            this.ignoreTermsEl.addEventListener('input', () => {
+                // 仅用于会话保存由 settings_session_patch 处理
+            });
+        }
 
         // 控制按钮事件
         this.loadSampleBtn.addEventListener('click', () => this.loadSampleData());
@@ -262,6 +268,7 @@ class SimilarityApp {
             ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
             wholeStringMode: this.wholeStringMode.checked,
             synonymGroups: this.synonymGroups.value,
+            ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : '',
             weights: {
                 edit: 0.6,
                 jaro: 0.4
@@ -290,6 +297,9 @@ class SimilarityApp {
         // 设置同义词组
         if (options.synonymGroups) {
             calculator.setSynonymGroups(options.synonymGroups);
+        }
+        if (options.ignoreTerms) {
+            calculator.setIgnoreTerms(options.ignoreTerms);
         }
 
         const results = [];
@@ -846,7 +856,8 @@ class SimilarityApp {
                 fullwidthToHalfwidth: this.fullwidthToHalfwidth.checked,
                 ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
                 wholeStringMode: this.wholeStringMode.checked,
-                synonymGroups: this.synonymGroups.value
+                synonymGroups: this.synonymGroups.value,
+                ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : ''
             }
         };
 
@@ -879,6 +890,7 @@ class SimilarityApp {
                 this.ignoreInvisibleChars.checked = data.settings.ignoreInvisibleChars !== false;
                 this.wholeStringMode.checked = data.settings.wholeStringMode !== false;
                 this.synonymGroups.value = data.settings.synonymGroups || '';
+                if (this.ignoreTermsEl) this.ignoreTermsEl.value = data.settings.ignoreTerms || '';
                 this.updateThresholdDisplay();
             }
 
@@ -905,6 +917,7 @@ class SimilarityApp {
                     this.ignoreInvisibleChars.checked = data.settings.ignoreInvisibleChars !== false;
                     this.wholeStringMode.checked = data.settings.wholeStringMode !== false;
                     this.synonymGroups.value = data.settings.synonymGroups || '';
+                    if (this.ignoreTermsEl) this.ignoreTermsEl.value = data.settings.ignoreTerms || '';
                     this.updateThresholdDisplay();
                 }
             }
@@ -1001,6 +1014,22 @@ SimilarityApp.prototype.copyToClipboard = async function(text) {
 // 页面加载完成后初始化应用
 window.SimilarityApp = SimilarityApp;
 document.addEventListener('DOMContentLoaded', () => {
-    new SimilarityApp();
+    // 恢复主题
+    try {
+        const savedTheme = localStorage.getItem('similarityTheme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('theme-dark');
+        }
+    } catch(_) {}
+    const app = new SimilarityApp();
+    const themeBtn = document.getElementById('toggle-theme');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('theme-dark');
+            const isDark = document.body.classList.contains('theme-dark');
+            try { localStorage.setItem('similarityTheme', isDark ? 'dark' : 'light'); } catch(_) {}
+        });
+    }
 });
+
 
