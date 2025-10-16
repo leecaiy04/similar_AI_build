@@ -92,6 +92,21 @@ class SimilarityCalculator {
     }
 
     /**
+     * 设置忽略对比的词（分隔符：换行/逗号/空格/顿号/分号）
+     * 规范化为小写，去重，并按长度降序，避免短词先替换影响长词
+     * @param {string} text
+     */
+    setIgnoreTerms(text) {
+        this.ignoreTerms = [];
+        if (!text || !text.trim()) return;
+        const terms = text
+            .split(/[\n,，、;；\s]+/)
+            .map(s => this.normalizeText(s))
+            .filter(Boolean);
+        this.ignoreTerms = Array.from(new Set(terms)).sort((a, b) => b.length - a.length);
+    }
+
+    /**
      * 文本预处理
      * @param {string} text - 原始文本
      * @param {Object} options - 预处理选项
