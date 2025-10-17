@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字符串相似度比对工具</title>
+    <style>
+/* 全局与主题变量 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f5f5;
+  --card-bg: #ffffff;
+  --text: #333333;
+  --muted: #7f8c8d;
+  --border: #ecf0f1;
+  --primary: #3498db;
+  --primary-600: #2980b9;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --info: #17a2b8;
+  --table-head: #34495e;
+}
+
+body.theme-dark {
+  --bg: #0f172a;
+  --card-bg: #111827;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #1f2937;
+  --primary: #60a5fa;
+  --primary-600: #3b82f6;
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --info: #22d3ee;
+  --table-head: #1f2937;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.45;
+  color: var(--text);
+  background-color: var(--bg);
+  font-size: 14px;
+}
+
+.container { max-width: 1280px; margin: 0 auto; padding: 12px; }
+
+/* 头部 */
+header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; background: var(--card-bg); padding: 10px 14px; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+header h1 { color: var(--text); font-size: 1.3em; }
+header p { color: var(--muted); font-size: 0.9em; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.theme-toggle { padding: 6px 10px; border: 1px solid var(--border); background: transparent; color: var(--text); border-radius: 6px; cursor: pointer; font-size: 12px; }
+.theme-toggle:hover { background: var(--border); }
+
+/* 主体布局：桌面双栏 */
+.main-content { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 1100px) {
+  .main-content { grid-template-columns: 1fr 1.25fr; align-items: start; }
+  .main-content > .results-section { grid-column: 2; grid-row: 1 / span 3; }
+}
+
+section { background: var(--card-bg); padding: 12px; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+section h2 { color: var(--text); margin-bottom: 10px; font-size: 1.05em; border-bottom: 2px solid var(--primary); padding-bottom: 6px; }
+
+/* 输入区 */
+.input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.input-column label { font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.input-column textarea { width: 100%; height: 120px; padding: 10px; border: 2px solid var(--border); background: transparent; color: var(--text); border-radius: 6px; font-size: 12px; font-family: 'Courier New', monospace; resize: vertical; transition: border-color 0.2s ease; }
+.input-column textarea:focus { outline: none; border-color: var(--primary); }
+.input-info { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.sample-hint { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+/* 设置区 */
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.setting-item { display: flex; flex-direction: column; gap: 6px; }
+.setting-item label { font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.setting-item input[type="checkbox"] { width: 18px; height: 18px; }
+.setting-item input[type="range"] { width: 100%; margin: 8px 0; }
+.setting-item textarea { width: 100%; height: 56px; padding: 8px; border: 2px solid var(--border); background: transparent; color: var(--text); border-radius: 5px; font-size: 13px; resize: vertical; }
+#threshold-value { font-weight: bold; color: var(--primary); font-size: 14px; }
+
+/* 控制区 */
+.control-buttons { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.control-head { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.control-head .threshold-inline { display: flex; align-items: center; gap: 8px; flex: 0 0 360px; }
+.control-head .threshold-inline label { font-weight: 600; color: var(--text); white-space: nowrap; }
+.control-head .progress-wrap { display: flex; align-items: center; gap: 8px; flex: 1; }
+.control-head .progress-wrap .progress-bar { flex: 1; margin: 0; }
+.control-head .progress-wrap .progress-text { min-width: 96px; text-align: right; }
+.btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.3px; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover:not(:disabled) { background: var(--primary-600); transform: translateY(-2px); }
+.btn-secondary { background: #95a5a6; color: white; }
+.btn-secondary:hover:not(:disabled) { background: #7f8c8d; transform: translateY(-2px); }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
+.btn-info { background: var(--info); color: white; }
+.btn-info:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
+.btn-warning { background: var(--warning); color: white; }
+.btn-warning:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.progress-section { margin-top: 10px; }
+.progress-bar { width: 100%; height: 12px; background: var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); width: 0%; transition: width 0.3s ease; border-radius: 10px; }
+.progress-text { text-align: center; font-weight: 600; color: var(--text); font-size: 12px; }
+
+/* 结果区 */
+.results-controls { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.results-container { max-height: 520px; overflow-y: auto; border: 2px solid var(--border); border-radius: 8px; background: transparent; }
+.no-results { text-align: center; padding: 40px; color: var(--muted); font-style: italic; }
+
+.results-table-container { overflow-x: auto; }
+.results-table { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--text); }
+.results-table th { background: var(--table-head); color: white; padding: 8px 6px; text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 10; }
+.results-table td { padding: 6px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.result-row:hover { background-color: rgba(52, 152, 219, 0.08); }
+.result-row.locked { background-color: rgba(39, 174, 96, 0.08); }
+.source-cell { font-weight: 600; color: var(--text); min-width: 150px; }
+.best-match-cell { min-width: 200px; }
+.best-match { cursor: pointer; padding: 3px 6px; border-radius: 4px; transition: background-color 0.3s ease; font-family: 'Courier New', monospace; }
+.best-match:hover { background-color: rgba(52, 152, 219, 0.08); }
+.similarity-cell { text-align: center; min-width: 80px; }
+.similarity-value { font-weight: 600; font-size: 14px; padding: 3px 6px; border-radius: 4px; }
+.similarity-value.exact { color: var(--success); background-color: rgba(39, 174, 96, 0.15); }
+.similarity-value.similar { color: var(--warning); background-color: rgba(243, 156, 18, 0.12); }
+.similarity-value.medium { color: #e67e22; background-color: rgba(230, 126, 34, 0.12); }
+.similarity-value.low { color: var(--danger); background-color: rgba(231, 76, 60, 0.12); }
+.other-matches-cell { min-width: 250px; }
+.other-match { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; margin: 2px 0; background: rgba(0,0,0,0.03); border-radius: 4px; border-left: 3px solid var(--primary); cursor: pointer; transition: all 0.2s ease; font-family: 'Courier New', monospace; }
+.other-match:hover { background: rgba(52, 152, 219, 0.12); border-left-color: var(--primary-600); transform: translateX(2px); }
+.other-match .match-text { flex: 1; font-size: 12px; }
+.other-match .match-similarity { font-weight: 600; font-size: 11px; color: var(--muted); margin-left: 8px; }
+.no-matches { color: var(--muted); font-style: italic; font-size: 12px; }
+.locked-indicator { color: var(--success); font-weight: 600; font-size: 12px; }
+.action-cell { text-align: center; min-width: 72px; }
+
+/* diff 样式 */
+.diff-added { background-color: #ffebee; color: #c62828; padding: 1px 2px; border-radius: 2px; font-weight: 600; }
+.diff-removed { background-color: #e8f5e8; color: #2e7d32; text-decoration: line-through; padding: 1px 2px; border-radius: 2px; font-weight: 600; }
+.diff-unchanged { color: var(--text); }
+
+/* 滚动条 */
+.results-container::-webkit-scrollbar { width: 8px; }
+.results-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+.results-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+.results-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+/* 响应式 */
+@media (max-width: 1024px) {
+  .container { padding: 10px; }
+  .main-content { display: flex; flex-direction: column; }
+  .input-group { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
+  .control-buttons, .results-controls { flex-direction: column; }
+  .btn { width: 100%; }
+}
+
+</style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>字符串相似度比对工具</h1>
+                <p>对比两列文本，查找最相似候选并高亮差异</p>
+            </div>
+            <div class="header-actions">
+                <button id="toggle-theme" class="theme-toggle" title="切换主题">切换主题</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- 输入区域 -->
+            <section class="input-section">
+                <h2>输入数据</h2>
+                <div class="input-group">
+                    <div class="input-column">
+                        <label for="source-column">源数据列（待比对）</label>
+                        <textarea id="source-column" placeholder="粘贴源数据，每行一条..."></textarea>
+                        <div class="input-info">条数：<span id="source-count">0</span></div>
+                        <div class="sample-hint" id="source-hint">提示：每行一条文本，支持从 Excel 粘贴</div>
+                    </div>
+                    <div class="input-column">
+                        <label for="target-column">目标数据列（候选）</label>
+                        <textarea id="target-column" placeholder="粘贴候选数据，每行一条..."></textarea>
+                        <div class="input-info">条数：<span id="target-count">0</span></div>
+                        <div class="sample-hint" id="target-hint">提示：每行一条文本，支持从 Excel 粘贴</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 比较设置 -->
+            <section class="settings-section">
+                <h2>比较设置</h2>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="ignore-punctuation" checked>
+                            忽略标点
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="fullwidth-to-halfwidth" checked>
+                            全角转半角
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="ignore-invisible-chars" checked>
+                            忽略不可见字符
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="whole-string-mode" checked>
+                            整串对比
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label for="synonym-groups">同义词组（用逗号分隔）</label>
+                        <textarea id="synonym-groups" placeholder="例如：阿里巴巴, 阿里"></textarea>
+                        <div class="sample-hint" id="synonym-hint">同组第一个词作为代表词。多组可用换行/分号/顿号分隔。</div>
+                    </div>
+                    <div class="setting-item">
+                        <label for="ignore-terms">忽略对比词（逗号/空格/换行分隔）</label>
+                        <textarea id="ignore-terms" placeholder="例如：股份有限公司, 有限公司, 科技, 信息"></textarea>
+                        <div class="sample-hint">这些词将被直接忽略，不参与相似度对比</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 控制按钮 -->
+            <section class="control-section">
+                <div class="control-head">
+                    <div class="threshold-inline">
+                        <label for="similarity-threshold">相似度阈值</label>
+                        <input type="range" id="similarity-threshold" min="0" max="100" value="70">
+                        <span id="threshold-value">70%</span>
+                    </div>
+                    <div class="progress-wrap">
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <div id="progress-text" class="progress-text">准备就绪</div>
+                    </div>
+                </div>
+
+                <div class="control-buttons">
+                    <button id="load-sample" class="btn btn-secondary">加载示例数据</button>
+                    <button id="start-comparison" class="btn btn-primary">开始比对</button>
+                    <button id="stop-comparison" class="btn btn-danger" disabled>停止比对</button>
+                </div>
+            </section>
+
+            <!-- 结果展示 -->
+            <section class="results-section">
+                <h2>对比结果</h2>
+                <div class="results-controls">
+                    <button id="export-simple" class="btn btn-info">导出简化结果</button>
+                    <button id="export-results" class="btn btn-success">导出结果</button>
+                    <button id="copy-simple" class="btn btn-warning">复制简单结果</button>
+                    <button id="copy-results" class="btn btn-secondary">复制结果</button>
+                    <button id="clear-results" class="btn btn-secondary">清空结果</button>
+                </div>
+                <div id="results-container" class="results-container">
+                    <div class="no-results">暂无比对结果</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+/**
+ * 字符串相似度计算工具
+ *
+ * 作用：
+ * - 提供多种相似度算法（编辑距离、Jaro-Winkler）并支持加权融合
+ * - 支持文本预处理（忽略标点、全角转半角、忽略不可见字符、小写化等）
+ * - 支持“同义词组”参与计算：
+ *   1) 解析同义词组，将同组词映射到“代表词”（组内第一个词）
+ *   2) 在比较前对整段文本做同义词内联替换（把出现的同组词替换为代表词）
+ *   3) 若替换后两侧文本完全一致，则直接判定相似度=1.0（100%）
+ *
+ * 使用要点：
+ * - 将更完整/标准的词放在组内第一个，便于替换后文本完全一致
+ * - 多组同义词可用换行/分号/中文分号分隔；组内用逗号/中文逗号分隔
+ */
+
+class SimilarityCalculator {
+    constructor() {
+        this.synonymGroups = new Map();
+        this.fullwidthToHalfwidthMap = this.createFullwidthMap();
+        this.ignoreTerms = [];
+    }
+
+    /**
+     * 创建全角到半角的映射表
+     */
+    createFullwidthMap() {
+        const map = new Map();
+        // 数字
+        for (let i = 0; i < 10; i++) {
+            map.set(String.fromCharCode(0xFF10 + i), String(i));
+        }
+        // 英文字母
+        for (let i = 0; i < 26; i++) {
+            map.set(String.fromCharCode(0xFF21 + i), String.fromCharCode(0x41 + i)); // A-Z
+            map.set(String.fromCharCode(0xFF41 + i), String.fromCharCode(0x61 + i)); // a-z
+        }
+        // 标点符号
+        const punctuation = [
+            ['！', '!'], ['＂', '"'], ['＃', '#'], ['＄', '$'], ['％', '%'], ['＆', '&'], ['＇', "'"],
+            ['（', '('], ['）', ')'], ['＊', '*'], ['＋', '+'], ['，', ','], ['－', '-'], ['．', '.'],
+            ['／', '/'], ['：', ':'], ['；', ';'], ['＜', '<'], ['＝', '='], ['＞', '>'], ['？', '?'],
+            ['＠', '@'], ['［', '['], ['＼', '\\'], ['］', ']'], ['＾', '^'], ['＿', '_'], ['｀', '`'],
+            ['｛', '{'], ['｜', '|'], ['｝', '}'], ['～', '~'], ['　', ' ']
+        ];
+        punctuation.forEach(([full, half]) => map.set(full, half));
+        return map;
+    }
+
+    /**
+     * 设置同义词组
+     *
+     * 解析规则：
+     * - 组分隔：按换行/分号/中文分号分组
+     * - 组内分隔：按逗号/中文逗号/空白分隔
+     * - 映射策略：组内第一个词为代表词，组内所有词都映射为该代表词
+     *
+     * 示例：
+     * 阿里巴巴集团,阿里\n腾讯控股有限公司,腾讯；百度在线网络技术公司,百度
+     *
+     * @param {string} synonymText 同义词组原始文本
+     */
+    setSynonymGroups(synonymText) {
+        this.synonymGroups.clear();
+        if (!synonymText || !synonymText.trim()) return;
+
+        // 先按“组”分割：支持 换行 / 分号 / 中文分号
+        let groupTexts = synonymText
+            .split(/[\n;；]+/)
+            .map(s => s.trim())
+            .filter(Boolean);
+
+        // 如果没有明确的组分隔符（仅一段文本），则将整段视为一个同义词组
+        if (groupTexts.length === 1) {
+            groupTexts = [synonymText.trim()];
+        }
+
+        groupTexts.forEach(groupStr => {
+            const words = groupStr
+                .split(/[,，\s]+/)
+                .map(w => w.trim())
+                .filter(Boolean);
+            if (words.length > 1) {
+                // 以组内第一个词作为代表词
+                const representative = this.normalizeText(words[0]);
+                words.forEach(word => {
+                    const normalized = this.normalizeText(word);
+                    this.synonymGroups.set(normalized, representative);
+                });
+            }
+        });
+    }
+
+    /**
+     * 设置忽略对比的词（分隔符：换行/逗号/空格/顿号/分号）
+     * 规范化为小写，去重，并按长度降序，避免短词先替换影响长词
+     * @param {string} text
+     */
+    setIgnoreTerms(text) {
+        this.ignoreTerms = [];
+        if (!text || !text.trim()) return;
+        const terms = text
+            .split(/[\n,，、;；\s]+/)
+            .map(s => this.normalizeText(s))
+            .filter(Boolean);
+        this.ignoreTerms = Array.from(new Set(terms)).sort((a, b) => b.length - a.length);
+    }
+
+    /**
+     * 文本预处理
+     * @param {string} text - 原始文本
+     * @param {Object} options - 预处理选项
+     * @returns {string} - 处理后的文本
+     */
+    preprocessText(text, options = {}) {
+        if (!text) return '';
+
+        let processed = text.toString();
+
+        // 忽略不可见字符
+        if (options.ignoreInvisibleChars) {
+            processed = processed.replace(/[\u0000-\u001F\u007F-\u009F\u2000-\u200F\u2028-\u202F\u205F-\u206F\u3000\uFEFF]/g, '');
+        }
+
+        // 全角转半角
+        if (options.fullwidthToHalfwidth) {
+            processed = processed.split('').map(char => this.fullwidthToHalfwidthMap.get(char) || char).join('');
+        }
+
+        // 忽略标点符号
+        if (options.ignorePunctuation) {
+            processed = processed.replace(/[^\w\u4e00-\u9fff\s]/g, '');
+        }
+
+        // 转换为小写并去除多余空格
+        processed = processed.toLowerCase().replace(/\s+/g, ' ').trim();
+        if (this.ignoreTerms && this.ignoreTerms.length) {
+            let _out = processed;
+            this.ignoreTerms.forEach(term => {
+                if (!term) return;
+                const _esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const _re = new RegExp(_esc, 'g');
+                _out = _out.replace(_re, '');
+            });
+            processed = _out.replace(/\s+/g, ' ').trim();
+        }
+        return processed;
+    }
+
+    /**
+     * 标准化文本（用于同义词处理）
+     * @param {string} text - 文本
+     * @returns {string} - 标准化后的文本
+     */
+    normalizeText(text) {
+        return text.toLowerCase().trim();
+    }
+
+    /**
+     * 在整段文本中应用同义词替换（将同组词替换为代表词）
+     *
+     * 说明：
+     * - 输入应为已预处理且小写的文本（见 preprocessText → normalizeText）
+     * - 替换是直接字符串替换（非分词），适合公司名等专有词场景
+     *
+     * @param {string} text 已预处理的小写文本
+     * @returns {string} 替换后的文本
+     */
+    applySynonyms(text) {
+        if (!text || this.synonymGroups.size === 0) return text;
+        let result = text;
+        // 逐个词替换为组代表词
+        this.synonymGroups.forEach((representative, key) => {
+            if (!key) return;
+            const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escaped, 'g');
+            result = result.replace(regex, representative);
+        });
+        return result;
+    }
+
+    /**
+     * 计算编辑距离（Levenshtein距离）
+     * @param {string} str1 - 字符串1
+     * @param {string} str2 - 字符串2
+     * @returns {number} - 编辑距离
+     */
+    levenshteinDistance(str1, str2) {
+        const len1 = str1.length;
+        const len2 = str2.length;
+        
+        if (len1 === 0) return len2;
+        if (len2 === 0) return len1;
+
+        const matrix = Array(len2 + 1).fill(null).map(() => Array(len1 + 1).fill(null));
+
+        for (let i = 0; i <= len1; i++) matrix[0][i] = i;
+        for (let j = 0; j <= len2; j++) matrix[j][0] = j;
+
+        for (let j = 1; j <= len2; j++) {
+            for (let i = 1; i <= len1; i++) {
+                const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+                matrix[j][i] = Math.min(
+                    matrix[j][i - 1] + 1,     // 删除
+                    matrix[j - 1][i] + 1,     // 插入
+                    matrix[j - 1][i - 1] + cost // 替换
+                );
+            }
+        }
+
+        return matrix[len2][len1];
+    }
+
+    /**
+     * 计算Jaro-Winkler相似度
+     * @param {string} str1 - 字符串1
+     * @param {string} str2 - 字符串2
+     * @returns {number} - 相似度 (0-1)
+     */
+    jaroWinklerSimilarity(str1, str2) {
+        if (str1 === str2) return 1.0;
+        if (!str1 || !str2) return 0.0;
+
+        const len1 = str1.length;
+        const len2 = str2.length;
+        const matchWindow = Math.floor(Math.max(len1, len2) / 2) - 1;
+        
+        if (matchWindow < 0) return 0.0;
+
+        const str1Matches = new Array(len1).fill(false);
+        const str2Matches = new Array(len2).fill(false);
+
+        let matches = 0;
+        let transpositions = 0;
+
+        // 查找匹配字符
+        for (let i = 0; i < len1; i++) {
+            const start = Math.max(0, i - matchWindow);
+            const end = Math.min(i + matchWindow + 1, len2);
+            
+            for (let j = start; j < end; j++) {
+                if (str2Matches[j] || str1[i] !== str2[j]) continue;
+                str1Matches[i] = true;
+                str2Matches[j] = true;
+                matches++;
+                break;
+            }
+        }
+
+        if (matches === 0) return 0.0;
+
+        // 计算转置
+        let k = 0;
+        for (let i = 0; i < len1; i++) {
+            if (!str1Matches[i]) continue;
+            while (!str2Matches[k]) k++;
+            if (str1[i] !== str2[k]) transpositions++;
+            k++;
+        }
+
+        const jaro = (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3;
+        
+        // Winkler修正
+        if (jaro < 0.7) return jaro;
+        
+        let prefix = 0;
+        for (let i = 0; i < Math.min(len1, len2, 4); i++) {
+            if (str1[i] === str2[i]) prefix++;
+            else break;
+        }
+
+        return jaro + 0.1 * prefix * (1 - jaro);
+    }
+
+    /**
+     * 计算最长公共子序列长度
+     * @param {string} str1 - 字符串1
+     * @param {string} str2 - 字符串2
+     * @returns {number} - LCS长度
+     */
+    longestCommonSubsequence(str1, str2) {
+        const len1 = str1.length;
+        const len2 = str2.length;
+        const dp = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+
+        for (let i = 1; i <= len1; i++) {
+            for (let j = 1; j <= len2; j++) {
+                if (str1[i - 1] === str2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+
+        return dp[len1][len2];
+    }
+
+    /**
+     * 计算基于编辑距离的相似度
+     * @param {string} str1 - 字符串1
+     * @param {string} str2 - 字符串2
+     * @returns {number} - 相似度 (0-1)
+     */
+    editDistanceSimilarity(str1, str2) {
+        if (str1 === str2) return 1.0;
+        if (!str1 || !str2) return 0.0;
+
+        const maxLen = Math.max(str1.length, str2.length);
+        const distance = this.levenshteinDistance(str1, str2);
+        return 1 - (distance / maxLen);
+    }
+
+    /**
+     * 计算综合相似度
+     *
+     * 流程：
+     * 1) 预处理：大小写/空白/标点/全角/不可见字符
+     * 2) 同义词：将整段文本内联替换为代表词
+     * 3) 快速判断：若替换后完全一致，直接返回 1.0
+     * 4) 计算：使用编辑距离与 Jaro-Winkler，按权重融合
+     *
+     * @param {string} str1 字符串1
+     * @param {string} str2 字符串2
+     * @param {Object} options 计算选项（threshold/预处理开关/weights/synonymGroups）
+     * @returns {number} 综合相似度 (0-1)
+     */
+    calculateSimilarity(str1, str2, options = {}) {
+        if (!str1 || !str2) return 0.0;
+        if (str1 === str2) return 1.0;
+
+        // 预处理文本
+        const processed1 = this.preprocessText(str1, options);
+        const processed2 = this.preprocessText(str2, options);
+
+        // 同义词处理（整段替换）
+        const normalized1 = this.normalizeText(processed1);
+        const normalized2 = this.normalizeText(processed2);
+        const synonymApplied1 = this.applySynonyms(normalized1);
+        const synonymApplied2 = this.applySynonyms(normalized2);
+        if (synonymApplied1 === synonymApplied2) return 1.0;
+
+        // 计算多种相似度
+        const editSim = this.editDistanceSimilarity(synonymApplied1, synonymApplied2);
+        const jaroSim = this.jaroWinklerSimilarity(synonymApplied1, synonymApplied2);
+        
+        // 加权平均
+        const weights = options.weights || { edit: 0.6, jaro: 0.4 };
+        return editSim * weights.edit + jaroSim * weights.jaro;
+    }
+
+    /**
+     * 批量计算相似度
+     * @param {Array<string>} sourceList - 源字符串列表
+     * @param {Array<string>} targetList - 目标字符串列表
+     * @param {Object} options - 计算选项
+     * @param {Function} progressCallback - 进度回调函数
+     * @returns {Array} - 相似度结果
+     */
+    batchCalculate(sourceList, targetList, options = {}, progressCallback = null) {
+        const results = [];
+        const total = sourceList.length;
+
+        for (let i = 0; i < sourceList.length; i++) {
+            const source = sourceList[i];
+            const matches = [];
+
+            for (let j = 0; j < targetList.length; j++) {
+                const target = targetList[j];
+                const similarity = this.calculateSimilarity(source, target, options);
+                
+                if (similarity >= (options.threshold || 0)) {
+                    matches.push({
+                        text: target,
+                        similarity: similarity,
+                        index: j
+                    });
+                }
+            }
+
+            // 按相似度排序
+            matches.sort((a, b) => b.similarity - a.similarity);
+
+            results.push({
+                source: source,
+                matches: matches,
+                index: i
+            });
+
+            // 调用进度回调
+            if (progressCallback) {
+                progressCallback(i + 1, total, source);
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * 计算字符级差异
+     * @param {string} str1 源字符串
+     * @param {string} str2 目标字符串
+     * @param {string} algorithm 差异算法: 'lcs' | 'levenshtein' | 'myers'
+     * @returns {{diff:Array<{type:string,char:string}>, added:number, removed:number, unchanged:number, similarity:number}}
+     */
+    calculateCharDiff(str1, str2, algorithm = 'lcs') {
+        if (!str1 && !str2) {
+            return { diff: [], added: 0, removed: 0, unchanged: 0, similarity: 1 };
+        }
+        if (!str1 || !str2) {
+            const only = (str1 || str2).split('');
+            const type = str1 ? 'removed' : 'added';
+            const diff = only.map(c => ({ type, char: c }));
+            return {
+                diff,
+                added: type === 'added' ? only.length : 0,
+                removed: type === 'removed' ? only.length : 0,
+                unchanged: 0,
+                similarity: 0
+            };
+        }
+
+        switch (algorithm) {
+            case 'levenshtein':
+                return this.levenshteinDiff(str1, str2);
+            case 'myers':
+                return this.myersDiff(str1, str2);
+            case 'lcs':
+            default:
+                return this.lcsDiff(str1, str2);
+        }
+    }
+
+    /**
+     * 基于LCS的差异
+     */
+    lcsDiff(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (str1[i - 1] === str2[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
+                else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+        const diff = [];
+        let i = m, j = n;
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && str1[i - 1] === str2[j - 1]) {
+                diff.unshift({ type: 'unchanged', char: str1[i - 1] });
+                i--; j--;
+            } else if (i > 0 && (j === 0 || dp[i - 1][j] >= dp[i][j - 1])) {
+                diff.unshift({ type: 'removed', char: str1[i - 1] });
+                i--;
+            } else if (j > 0) {
+                diff.unshift({ type: 'added', char: str2[j - 1] });
+                j--;
+            }
+        }
+        const added = diff.filter(d => d.type === 'added').length;
+        const removed = diff.filter(d => d.type === 'removed').length;
+        const unchanged = diff.filter(d => d.type === 'unchanged').length;
+        const denominator = added + removed + unchanged || 1;
+        return { diff, added, removed, unchanged, similarity: unchanged / denominator };
+    }
+
+    /**
+     * 基于Levenshtein的差异
+     */
+    levenshteinDiff(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (str1[i - 1] === str2[j - 1]) dp[i][j] = dp[i - 1][j - 1];
+                else dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1, // 删除
+                    dp[i][j - 1] + 1, // 插入
+                    dp[i - 1][j - 1] + 1 // 替换
+                );
+            }
+        }
+        const diff = [];
+        let i = m, j = n;
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && str1[i - 1] === str2[j - 1]) {
+                diff.unshift({ type: 'unchanged', char: str1[i - 1] });
+                i--; j--;
+            } else if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + 1) {
+                diff.unshift({ type: 'removed', char: str1[i - 1] });
+                diff.unshift({ type: 'added', char: str2[j - 1] });
+                i--; j--;
+            } else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
+                diff.unshift({ type: 'removed', char: str1[i - 1] });
+                i--;
+            } else {
+                diff.unshift({ type: 'added', char: str2[j - 1] });
+                j--;
+            }
+        }
+        const added = diff.filter(d => d.type === 'added').length;
+        const removed = diff.filter(d => d.type === 'removed').length;
+        const unchanged = diff.filter(d => d.type === 'unchanged').length;
+        const denominator = added + removed + unchanged || 1;
+        return { diff, added, removed, unchanged, similarity: unchanged / denominator };
+    }
+
+    /**
+     * 简化Myers差异
+     */
+    myersDiff(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const max = m + n;
+        const v = new Array(2 * max + 1).fill(0);
+        const trace = [];
+        for (let d = 0; d <= max; d++) {
+            trace.push(v.slice());
+            for (let k = -d; k <= d; k += 2) {
+                let x;
+                if (k === -d || (k !== d && v[k - 1 + max] < v[k + 1 + max])) x = v[k + 1 + max];
+                else x = v[k - 1 + max] + 1;
+                let y = x - k;
+                while (x < m && y < n && str1[x] === str2[y]) { x++; y++; }
+                v[k + max] = x;
+                if (x >= m && y >= n) return this.buildMyersDiff(str1, str2, trace, d);
+            }
+        }
+        return this.lcsDiff(str1, str2);
+    }
+
+    buildMyersDiff(str1, str2, trace, d) {
+        const diff = [];
+        let x = str1.length;
+        let y = str2.length;
+        for (let i = d; i >= 0; i--) {
+            const v = trace[i];
+            const k = x - y;
+            let prevK;
+            const offset = Math.floor(v.length / 2);
+            if (k === -i || (k !== i && v[k - 1 + offset] < v[k + 1 + offset])) prevK = k + 1;
+            else prevK = k - 1;
+            const prevX = v[prevK + offset];
+            const prevY = prevX - prevK;
+            while (x > prevX && y > prevY) {
+                diff.unshift({ type: 'unchanged', char: str1[x - 1] });
+                x--; y--;
+            }
+            if (i > 0) {
+                if (x === prevX) { diff.unshift({ type: 'added', char: str2[y - 1] }); y--; }
+                else { diff.unshift({ type: 'removed', char: str1[x - 1] }); x--; }
+            }
+        }
+        const added = diff.filter(d => d.type === 'added').length;
+        const removed = diff.filter(d => d.type === 'removed').length;
+        const unchanged = diff.filter(d => d.type === 'unchanged').length;
+        const denominator = added + removed + unchanged || 1;
+        return { diff, added, removed, unchanged, similarity: unchanged / denominator };
+    }
+
+    /**
+     * 生成差异HTML（用于内联渲染）
+     */
+    generateDiffHTML(diff) {
+        return diff.map(item => `<span class="diff-${item.type}">${this.escapeHtml(item.char)}</span>`).join('');
+    }
+
+    /**
+     * HTML转义
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
+// 导出到全局作用域
+window.SimilarityCalculator = SimilarityCalculator;
+
+</script>
+    <script>
+(function() {
+  try {
+    var Calculator = window.SimilarityCalculator;
+    if (!Calculator || !Calculator.prototype) return;
+    var proto = Calculator.prototype;
+
+    // 覆盖：同义词分组 -> 每组最短项为代表词
+    proto.setSynonymGroups = function(synonymText) {
+      this.synonymGroups.clear();
+      if (!synonymText || !synonymText.trim()) return;
+
+      // 组分隔：换行 / 分号 / 顿号
+      var groups = synonymText
+        .split(/[\n；;、]+/)
+        .map(function(s){ return s.trim(); })
+        .filter(Boolean);
+
+      for (var gi = 0; gi < groups.length; gi++) {
+        var g = groups[gi];
+        // 组内分隔：逗号 / 空格 / 顿号
+        var raw = g.split(/[，,、\s]+/).map(function(w){ return w.trim(); }).filter(Boolean);
+        if (raw.length <= 1) continue;
+
+        // 归一化去重（与现有 normalizeText 对齐）
+        var words = Array.from(new Set(raw.map(this.normalizeText).filter(Boolean)));
+        if (words.length <= 1) continue;
+
+        // 选“最短”的作为代表词（长度相同取先出现的）
+        var representative = words[0];
+        for (var i = 1; i < words.length; i++) {
+          if (words[i].length < representative.length) representative = words[i];
+        }
+
+        // 建立映射
+        for (var j = 0; j < words.length; j++) {
+          this.synonymGroups.set(words[j], representative);
+        }
+      }
+    };
+
+    // 覆盖：同义词替换，按 key 长度降序避免重叠替换
+    proto.applySynonyms = function(text) {
+      if (!text || this.synonymGroups.size === 0) return text;
+      var result = text;
+      var entries = Array.from(this.synonymGroups.entries()).sort(function(a, b) {
+        return b[0].length - a[0].length;
+      });
+      for (var k = 0; k < entries.length; k++) {
+        var key = entries[k][0];
+        var rep = entries[k][1];
+        if (!key) continue;
+        var escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var regex = new RegExp(escaped, 'g');
+        result = result.replace(regex, rep);
+      }
+      return result;
+    };
+  } catch (e) {
+    // 安静失败，避免影响页面
+    console && console.warn && console.warn('synonyms_patch init failed:', e);
+  }
+})();
+
+
+</script>
+    <script>
+/**
+ * 字符串相似度比较工具主应用程序
+ *
+ * 作用：
+ * - 管理 UI 与交互（输入、设置、按钮、进度、结果展示）
+ * - 调用相似度计算器执行比对与字符级差异分析
+ * - 负责结果锁定、导出与本地持久化（仅保存“比较设置”）
+ *
+ * 关键点：
+ * - 初始化时若无本地配置，则加载示例数据与同义词
+ * - “同义词组”仅参与计算，不改变展示文本；字符差异按原文高亮
+ */
+
+class SimilarityApp {
+    constructor() {
+        this.worker = null;
+        this.results = [];
+        this.lockedResults = new Map(); // 存储锁定的结果
+        this.calculator = new SimilarityCalculator(); // 用于字符级差异与相似度辅助
+        this.isCalculating = false;
+        
+        this.initializeElements();
+        this.bindEvents();
+        this.loadStoredData();
+        
+        // 如果没有存储的数据，默认加载示例数据
+        if (!localStorage.getItem('similarityAppData')) {
+            this.loadSampleData();
+            // 设置默认同义词组
+            this.synonymGroups.value = '阿里巴巴集团,阿里';
+        }
+    }
+
+    /**
+     * 初始化DOM元素引用
+     */
+    initializeElements() {
+        // 输入区域
+        this.sourceTextarea = document.getElementById('source-column');
+        this.targetTextarea = document.getElementById('target-column');
+        this.sourceCount = document.getElementById('source-count');
+        this.targetCount = document.getElementById('target-count');
+        this.sourceHint = document.getElementById('source-hint');
+        this.targetHint = document.getElementById('target-hint');
+
+        // 设置选项
+        this.thresholdSlider = document.getElementById('similarity-threshold');
+        this.thresholdValue = document.getElementById('threshold-value');
+        this.ignorePunctuation = document.getElementById('ignore-punctuation');
+        this.fullwidthToHalfwidth = document.getElementById('fullwidth-to-halfwidth');
+        this.ignoreInvisibleChars = document.getElementById('ignore-invisible-chars');
+        this.wholeStringMode = document.getElementById('whole-string-mode');
+        this.synonymGroups = document.getElementById('synonym-groups');
+        this.ignoreTermsEl = document.getElementById('ignore-terms');
+
+        // 控制按钮
+        this.loadSampleBtn = document.getElementById('load-sample');
+        this.startComparisonBtn = document.getElementById('start-comparison');
+        this.stopComparisonBtn = document.getElementById('stop-comparison');
+
+        // 进度条
+        this.progressFill = document.getElementById('progress-fill');
+        this.progressText = document.getElementById('progress-text');
+
+        // 结果区域
+        this.resultsContainer = document.getElementById('results-container');
+        this.exportResultsBtn = document.getElementById('export-results');
+        this.exportSimpleBtn = document.getElementById('export-simple');
+        this.copySimpleBtn = document.getElementById('copy-simple');
+        this.copyResultsBtn = document.getElementById('copy-results');
+        this.clearResultsBtn = document.getElementById('clear-results');
+    }
+
+    /**
+     * 绑定事件监听器
+     */
+    bindEvents() {
+        // 输入区域事件
+        this.sourceTextarea.addEventListener('input', () => {
+            this.updateCount('source');
+            this.updateInputHint('source');
+        });
+        this.targetTextarea.addEventListener('input', () => {
+            this.updateCount('target');
+            this.updateInputHint('target');
+        });
+
+        // 设置选项事件
+        this.thresholdSlider.addEventListener('input', () => this.updateThresholdDisplay());
+        this.synonymGroups.addEventListener('input', () => this.updateSynonymGroups());
+        if (this.ignoreTermsEl) {
+            this.ignoreTermsEl.addEventListener('input', () => {
+                // 仅用于会话保存由 settings_session_patch 处理
+            });
+        }
+
+        // 控制按钮事件
+        this.loadSampleBtn.addEventListener('click', () => this.loadSampleData());
+        this.startComparisonBtn.addEventListener('click', () => this.startComparison());
+        this.stopComparisonBtn.addEventListener('click', () => this.stopComparison());
+
+        // 导出按钮事件
+        if (this.exportResultsBtn) this.exportResultsBtn.addEventListener('click', () => this.exportResults());
+        if (this.exportSimpleBtn) this.exportSimpleBtn.addEventListener('click', () => this.exportSimpleResults());
+        if (this.copySimpleBtn) this.copySimpleBtn.addEventListener('click', () => this.copySimpleResults());
+        if (this.copyResultsBtn) this.copyResultsBtn.addEventListener('click', () => this.copyFullResults());
+        if (this.clearResultsBtn) this.clearResultsBtn.addEventListener('click', () => this.clearResults());
+
+        // 初始化显示
+        this.updateThresholdDisplay();
+        this.updateCount('source');
+        this.updateCount('target');
+        this.updateInputHint('source');
+        this.updateInputHint('target');
+    }
+
+    /**
+     * 清空结果
+     */
+    clearResults() {
+        this.results = [];
+        this.lockedResults.clear();
+        if (this.tempSelections) this.tempSelections.clear();
+        this.resultsContainer.innerHTML = '<div class="no-results">暂无比较结果</div>';
+        this.progressText.textContent = '已清空结果';
+        this.progressFill.style.width = '0%';
+    }
+
+    /**
+     * 更新行数显示
+     * @param {string} type - 'source' 或 'target'
+     */
+    updateCount(type) {
+        const textarea = type === 'source' ? this.sourceTextarea : this.targetTextarea;
+        const countElement = type === 'source' ? this.sourceCount : this.targetCount;
+        const lines = textarea.value.split('\n').filter(line => line.trim()).length;
+        countElement.textContent = lines;
+    }
+
+    /**
+     * 更新阈值显示
+     */
+    updateThresholdDisplay() {
+        this.thresholdValue.textContent = this.thresholdSlider.value + '%';
+    }
+
+    /**
+     * 更新同义词组
+     */
+    updateSynonymGroups() {
+        // 同义词组会在计算时更新
+    }
+
+    /**
+     * 加载示例数据
+     */
+    loadSampleData() {
+        const sampleSource = [
+            '阿里巴巴集团',
+            '腾讯控股有限公司',
+            '百度在线网络技术公司',
+            '字节跳动科技有限公司'
+        ].join('\n');
+
+        const sampleTarget = [
+            // 阿里巴巴相关 - 各种相似度
+            '阿里',
+            '阿里巴巴网络技术有限公司',
+            '阿里巴巴',
+            
+            // 腾讯相关 - 各种相似度
+            '腾讯控股',
+            '腾讯',
+            '腾讯科技（深圳）有限公司',
+            '腾讯游戏',
+            '腾讯音乐',
+            '腾讯视频',
+            '腾讯公司',
+            '深圳市腾讯计算机系统有限公司',
+            
+            // 百度相关 - 各种相似度
+            'Baidu Inc.',
+            '百度在线网络技术（北京）有限公司',
+            '百度',
+            '百度搜索',
+            '百度地图',
+            '百度公司',
+            
+            // 字节跳动相关 - 各种相似度
+            'ByteDance Ltd.',
+            '字节跳动',
+            '抖音',
+            '字节跳动科技有限公司',
+            'ByteDance Technology',
+            '北京字节跳动科技有限公司',
+            
+            // 其他公司 - 增加对比难度
+            '华为技术有限公司',
+            '小米科技有限责任公司',
+            '新浪',
+            '搜狐',
+            '360',
+            '滴滴出行'
+        ].join('\n');
+
+        this.sourceTextarea.value = sampleSource;
+        this.targetTextarea.value = sampleTarget;
+        this.updateCount('source');
+        this.updateCount('target');
+        // 示例同义词：演示“阿里巴巴集团”和“阿里”视为同义
+        this.synonymGroups.value = '阿里巴巴集团,阿里';
+        // 提示文案
+        if (this.sourceHint) {
+            this.sourceHint.textContent = '已填充示例数据：行业公司名称示例。您可直接开始比较或替换为自己的数据（每行一个）。';
+        }
+        if (this.targetHint) {
+            this.targetHint.textContent = '已填充示例数据：包含多种相似写法以展示匹配效果。可直接比较或覆盖输入。';
+        }
+        // 统一触发一次提示更新
+        this.updateInputHint('source');
+        this.updateInputHint('target');
+    }
+
+    /**
+     * 根据输入内容更新提示
+     * @param {('source'|'target')} type
+     */
+    updateInputHint(type) {
+        const textarea = type === 'source' ? this.sourceTextarea : this.targetTextarea;
+        const hintEl = type === 'source' ? this.sourceHint : this.targetHint;
+        if (!hintEl || !textarea) return;
+        const value = textarea.value.trim();
+        if (!value) {
+            hintEl.textContent = '提示：每行一个字符串，可从 Excel 粘贴';
+            return;
+        }
+        // 如果是示例数据，loadSampleData 会设置更详细的提示；否则给通用提示
+        if (!hintEl.textContent || !hintEl.textContent.startsWith('已填充示例数据')) {
+            hintEl.textContent = '已输入内容：可点击“开始比较”，或继续编辑/粘贴数据。';
+        }
+    }
+
+    /**
+     * 开始比较
+     */
+    startComparison() {
+        const sourceText = this.sourceTextarea.value.trim();
+        const targetText = this.targetTextarea.value.trim();
+
+        if (!sourceText || !targetText) {
+            alert('请输入源数据和目标数据');
+            return;
+        }
+
+        const sourceList = sourceText.split('\n').map(line => line.trim()).filter(line => line);
+        const targetList = targetText.split('\n').map(line => line.trim()).filter(line => line);
+
+        if (sourceList.length === 0 || targetList.length === 0) {
+            alert('数据不能为空');
+            return;
+        }
+
+        // 准备计算选项
+        const options = {
+            threshold: parseInt(this.thresholdSlider.value) / 100,
+            ignorePunctuation: this.ignorePunctuation.checked,
+            fullwidthToHalfwidth: this.fullwidthToHalfwidth.checked,
+            ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
+            wholeStringMode: this.wholeStringMode.checked,
+            synonymGroups: this.synonymGroups.value,
+            ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : '',
+            weights: {
+                edit: 0.6,
+                jaro: 0.4
+            }
+        };
+
+        // 开始计算
+        this.isCalculating = true;
+        this.updateUIState();
+        this.results = [];
+
+        // 使用同步计算（避免Worker的复杂性）
+        this.performCalculation(sourceList, targetList, options);
+    }
+
+    /**
+     * 执行同步计算
+     * @param {Array} sourceList - 源数据列表
+     * @param {Array} targetList - 目标数据列表
+     * @param {Object} options - 计算选项
+     */
+    performCalculation(sourceList, targetList, options) {
+        // 创建相似度计算器
+        const calculator = new SimilarityCalculator();
+        
+        // 设置同义词组
+        if (options.synonymGroups) {
+            calculator.setSynonymGroups(options.synonymGroups);
+        }
+        if (options.ignoreTerms) {
+            calculator.setIgnoreTerms(options.ignoreTerms);
+        }
+
+        const results = [];
+        const total = sourceList.length;
+
+        // 使用setTimeout来避免阻塞UI
+        const processNext = (index) => {
+            if (index >= sourceList.length) {
+                // 计算完成
+                this.results = results;
+                this.isCalculating = false;
+                this.updateUIState();
+                this.displayResults();
+                this.progressText.textContent = '计算完成';
+                this.progressFill.style.width = '100%';
+                return;
+            }
+
+            const source = sourceList[index];
+            const matches = [];
+
+            // 计算当前源字符串与所有目标字符串的相似度
+            for (let j = 0; j < targetList.length; j++) {
+                const target = targetList[j];
+                const similarity = calculator.calculateSimilarity(source, target, options);
+                
+                if (similarity >= (options.threshold || 0)) {
+                    matches.push({
+                        text: target,
+                        similarity: similarity,
+                        index: j
+                    });
+                }
+            }
+
+            // 按相似度排序
+            matches.sort((a, b) => b.similarity - a.similarity);
+
+            // 如果最相似值相似度为100%，则直接锁定
+            if (matches.length > 0 && matches[0].similarity === 1) {
+                this.lockedResults.set(index, matches[0]);
+                if (this.tempSelections) {
+                    this.tempSelections.delete(index);
+                }
+            }
+
+            results.push({
+                source: source,
+                matches: matches,
+                index: index
+            });
+
+            // 更新进度
+            const percentage = Math.round(((index + 1) / total) * 100);
+            this.progressFill.style.width = percentage + '%';
+            this.progressText.textContent = `正在处理: ${source} (${index + 1}/${total})`;
+
+            // 继续处理下一个
+            setTimeout(() => processNext(index + 1), 0);
+        };
+
+        // 开始处理
+        processNext(0);
+    }
+
+
+    /**
+     * 停止比较
+     */
+    stopComparison() {
+        if (this.isCalculating) {
+            this.isCalculating = false;
+            this.updateUIState();
+            this.progressText.textContent = '计算已停止';
+        }
+    }
+
+
+    /**
+     * 更新UI状态
+     */
+    updateUIState() {
+        this.startComparisonBtn.disabled = this.isCalculating;
+        this.stopComparisonBtn.disabled = !this.isCalculating;
+        this.loadSampleBtn.disabled = this.isCalculating;
+    }
+
+    /**
+     * 显示结果
+     */
+    displayResults() {
+        if (this.results.length === 0) {
+            this.resultsContainer.innerHTML = '<div class="no-results">暂无比较结果</div>';
+            return;
+        }
+
+        // 创建表格格式的结果
+        const html = this.createTableHTML();
+        this.resultsContainer.innerHTML = html;
+
+        // 绑定事件
+        this.bindTableEvents();
+    }
+
+    /**
+     * 创建表格HTML
+     * @returns {string} - 表格HTML字符串
+     */
+    createTableHTML() {
+        let html = `
+            <div class="results-table-container">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>源数据</th>
+                            <th>最相似值</th>
+                            <th>相似度</th>
+                            <th>其他相似值</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        this.results.forEach((result, index) => {
+            const isLocked = this.lockedResults.has(index);
+            const lockedMatch = isLocked ? this.lockedResults.get(index) : null;
+            const tempMatch = this.tempSelections && this.tempSelections.has(index) ? this.tempSelections.get(index) : null;
+            
+            let bestMatch = '';
+            let bestSimilarity = '';
+            let otherMatches = '';
+            let bestMatchDiffHtml = '';
+
+            if (isLocked && lockedMatch) {
+                // 显示锁定的结果
+                bestMatch = lockedMatch.text;
+                bestSimilarity = Math.round(lockedMatch.similarity * 100) + '%';
+                otherMatches = '<span class="locked-indicator">已锁定</span>';
+                // 生成字符级差异（目标相对源：新增=红底，删除=绿删）
+                const diff = this.calculator.calculateCharDiff(result.source, lockedMatch.text, 'lcs');
+                bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
+            } else if (tempMatch) {
+                // 显示临时选择的结果
+                bestMatch = tempMatch.text;
+                bestSimilarity = Math.round(tempMatch.similarity * 100) + '%';
+                // 生成字符级差异
+                const diff = this.calculator.calculateCharDiff(result.source, tempMatch.text, 'lcs');
+                bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
+                // 显示其他相似值（包括原来的最相似值）
+                const otherMatchesList = result.matches
+                    .filter(match => match.text !== tempMatch.text)
+                    .slice(0, 5)
+                    .map(match => {
+                    const percentage = Math.round(match.similarity * 100);
+                        const diff = this.calculator.calculateCharDiff(result.source, match.text, 'lcs');
+                        const diffHtml = this.calculator.generateDiffHTML(diff.diff);
+                    return `<div class="other-match" data-match='${JSON.stringify(match)}' data-source-index="${index}">
+                        <span class="match-text">${diffHtml}</span>
+                        <span class="match-similarity">${percentage}%</span>
+                    </div>`;
+                }).join('');
+                
+                otherMatches = otherMatchesList || '<span class="no-matches">无其他匹配</span>';
+            } else if (result.matches.length > 0) {
+                // 显示最相似的结果
+                const topMatch = result.matches[0];
+                bestMatch = topMatch.text;
+                bestSimilarity = Math.round(topMatch.similarity * 100) + '%';
+                // 生成字符级差异
+                const diff = this.calculator.calculateCharDiff(result.source, topMatch.text, 'lcs');
+                bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
+                // 显示其他相似值（最多显示3个）
+                const otherMatchesList = result.matches.slice(1, 6).map(match => {
+                    const percentage = Math.round(match.similarity * 100);
+                    const diff = this.calculator.calculateCharDiff(result.source, match.text, 'lcs');
+                    const diffHtml = this.calculator.generateDiffHTML(diff.diff);
+                    return `<div class="other-match" data-match='${JSON.stringify(match)}' data-source-index="${index}">
+                        <span class="match-text">${diffHtml}</span>
+                        <span class="match-similarity">${percentage}%</span>
+                    </div>`;
+                }).join('');
+                
+                otherMatches = otherMatchesList || '<span class="no-matches">无其他匹配</span>';
+            } else {
+                bestMatch = '无匹配';
+                bestSimilarity = '0%';
+                otherMatches = '<span class="no-matches">无匹配结果</span>';
+                bestMatchDiffHtml = '<span class="diff-unchanged">无差异数据</span>';
+            }
+
+            html += `
+                <tr class="result-row ${isLocked ? 'locked' : ''}" data-index="${index}">
+                    <td class="source-cell">${this.escapeHtml(result.source)}</td>
+                    <td class="best-match-cell">
+                        <div class="best-match" data-source-index="${index}">
+                            ${bestMatchDiffHtml || this.escapeHtml(bestMatch)}
+                        </div>
+                    </td>
+                    <td class="similarity-cell">
+                        <span class="similarity-value ${this.getSimilarityClass(lockedMatch ? lockedMatch.similarity : (tempMatch ? tempMatch.similarity : (result.matches[0]?.similarity || 0)))}">
+                            ${bestSimilarity}
+                        </span>
+                    </td>
+                    <td class="other-matches-cell">
+                        ${otherMatches}
+                    </td>
+                    <td class="action-cell">
+                        <button class="lock-btn ${isLocked ? 'locked' : 'unlocked'}" data-index="${index}">
+                            ${isLocked ? '已锁定' : '锁定'}
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        return html;
+    }
+
+    /**
+     * 获取相似度样式类
+     * @param {number} similarity - 相似度值
+     * @returns {string} - CSS类名
+     */
+    getSimilarityClass(similarity) {
+        if (similarity === 1.0) return 'exact';
+        if (similarity >= 0.8) return 'similar';
+        if (similarity >= 0.5) return 'medium';
+        return 'low';
+    }
+
+    /**
+     * 创建匹配项HTML
+     * @param {Object} match - 匹配对象
+     * @param {boolean} isLocked - 是否锁定
+     * @returns {string} - HTML字符串
+     */
+    createMatchHTML(match, isLocked) {
+        const { text, similarity } = match;
+        const percentage = Math.round(similarity * 100);
+        let className = 'match-item';
+        let similarityClass = 'match-similarity';
+
+        if (similarity === 1.0) {
+            className += ' exact';
+            similarityClass += ' exact';
+        } else if (similarity >= 0.8) {
+            className += ' similar';
+            similarityClass += ' similar';
+        } else {
+            className += ' low';
+            similarityClass += ' low';
+        }
+
+        return `
+            <div class="${className}">
+                <div class="match-text">${this.escapeHtml(text)}</div>
+                <div class="${similarityClass}">${percentage}%</div>
+            </div>
+        `;
+    }
+
+    /**
+     * 绑定表格事件
+     */
+    bindTableEvents() {
+        // 绑定锁定按钮事件
+        const lockButtons = this.resultsContainer.querySelectorAll('.lock-btn');
+        lockButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(e.target.dataset.index);
+                this.toggleLock(index);
+            });
+        });
+
+        // 绑定其他相似值点击事件
+        const otherMatches = this.resultsContainer.querySelectorAll('.other-match');
+        otherMatches.forEach(match => {
+            match.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const matchData = JSON.parse(e.currentTarget.dataset.match);
+                const sourceIndex = parseInt(e.currentTarget.dataset.sourceIndex);
+                this.selectMatch(sourceIndex, matchData);
+            });
+        });
+
+        // 绑定最相似值点击事件（用于取消选择）
+        const bestMatches = this.resultsContainer.querySelectorAll('.best-match');
+        bestMatches.forEach(match => {
+            match.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const sourceIndex = parseInt(e.currentTarget.dataset.sourceIndex);
+                this.clearSelection(sourceIndex);
+            });
+        });
+    }
+
+    /**
+     * 选择匹配项
+     * @param {number} sourceIndex - 源数据索引
+     * @param {Object} matchData - 匹配数据
+     */
+    selectMatch(sourceIndex, matchData) {
+        // 如果已经锁定，不允许更改
+        if (this.lockedResults.has(sourceIndex)) {
+            return;
+        }
+        
+        // 临时存储选择，但不锁定
+        this.tempSelections = this.tempSelections || new Map();
+        this.tempSelections.set(sourceIndex, matchData);
+        
+        // 重新显示结果
+        this.displayResults();
+    }
+
+    /**
+     * 清除选择
+     * @param {number} sourceIndex - 源数据索引
+     */
+    clearSelection(sourceIndex) {
+        // 如果已经锁定，不允许更改
+        if (this.lockedResults.has(sourceIndex)) {
+            return;
+        }
+        
+        // 清除临时选择
+        this.tempSelections = this.tempSelections || new Map();
+        this.tempSelections.delete(sourceIndex);
+        
+        // 重新显示结果
+        this.displayResults();
+    }
+
+    /**
+     * 切换锁定状态
+     * @param {number} index - 结果索引
+     */
+    toggleLock(index) {
+        if (this.lockedResults.has(index)) {
+            // 解锁
+            this.lockedResults.delete(index);
+        } else {
+            // 锁定当前选择的值
+            const result = this.results[index];
+            let matchToLock = null;
+            
+            // 优先使用临时选择的值
+            if (this.tempSelections && this.tempSelections.has(index)) {
+                matchToLock = this.tempSelections.get(index);
+            } else if (result && result.matches.length > 0) {
+                // 否则使用最相似的值
+                matchToLock = result.matches[0];
+            }
+            
+            if (matchToLock) {
+                this.lockedResults.set(index, matchToLock);
+                // 清除临时选择
+                if (this.tempSelections) {
+                    this.tempSelections.delete(index);
+                }
+            }
+        }
+        this.displayResults();
+    }
+
+    /**
+     * HTML转义
+     * @param {string} text - 原始文本
+     * @returns {string} - 转义后的文本
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * 导出结果
+     */
+    exportResults() {
+        if (this.results.length === 0) {
+            alert('没有可导出的结果');
+            return;
+        }
+
+        const csvContent = this.generateCSV(true);
+        this.downloadFile(csvContent, 'similarity_results.csv', 'text/csv');
+    }
+
+    /**
+     * 导出简化结果
+     */
+    exportSimpleResults() {
+        if (this.results.length === 0) {
+            alert('没有可导出的结果');
+            return;
+        }
+
+        const csvContent = this.generateSimpleCSVLockedOnly();
+        this.downloadFile(csvContent, 'similarity_results_simple.csv', 'text/csv');
+    }
+
+    /**
+     * 复制简化结果到剪贴板（两列，最相似仅锁定）
+     */
+    copySimpleResults() {
+        if (this.results.length === 0) {
+            alert('û�пɵ����Ľ��');
+            return;
+        }
+        const tsv = this.buildSimpleTSV();
+        this.copyToClipboard(tsv).then(() => {
+            this.showToast('�򻯽����Ѹ��Ƶ�������', 'success');
+        }).catch(() => {
+            this.showToast('����ʧ��', 'error');
+        });
+    }
+
+    /**
+     * 复制完整结果到剪贴板（最相似仅锁定，后续五个候选+相似度）
+     */
+    copyFullResults() {
+        if (this.results.length === 0) {
+            alert('û�пɵ����Ľ��');
+            return;
+        }
+        const tsv = this.buildFullTSV();
+        this.copyToClipboard(tsv).then(() => {
+            this.showToast('���Ѹ��Ƶ�������', 'success');
+        }).catch(() => {
+            this.showToast('����ʧ��', 'error');
+        });
+    }
+
+    /**
+     * 简化导出：仅导出 源文本, 最相似值（仅锁定的填写，未锁定留空）
+     */
+    generateSimpleCSVLockedOnly() {
+        const headers = ['源文本', '最相似值'];
+        const rows = [headers.join(',')];
+
+        this.results.forEach((result, index) => {
+            const isLocked = this.lockedResults.has(index);
+            let bestMatch = '';
+            if (isLocked) {
+                const lockedMatch = this.lockedResults.get(index);
+                bestMatch = lockedMatch && lockedMatch.text ? lockedMatch.text : '';
+            }
+            const row = [
+                this.escapeCSV(result.source),
+                this.escapeCSV(bestMatch)
+            ];
+            rows.push(row.join(','));
+        });
+
+        return rows.join('\n');
+    }
+
+    /**
+     * 生成CSV内容
+     * @param {boolean} includeSimilarity - 是否包含相似度
+     * @returns {string} - CSV内容
+     */
+    generateCSV(includeSimilarity) {
+        const headers = ['源数据', '最相似值'];
+        if (includeSimilarity) {
+            headers.push('相似度');
+        }
+        headers.push('锁定状态');
+
+        const rows = [headers.join(',')];
+
+        this.results.forEach((result, index) => {
+            const isLocked = this.lockedResults.has(index);
+            const tempMatch = this.tempSelections && this.tempSelections.has(index) ? this.tempSelections.get(index) : null;
+            let bestMatch = '';
+            let similarity = '';
+
+            if (isLocked) {
+                const lockedMatch = this.lockedResults.get(index);
+                bestMatch = lockedMatch.text;
+                similarity = Math.round(lockedMatch.similarity * 100) + '%';
+            } else if (tempMatch) {
+                bestMatch = tempMatch.text;
+                similarity = Math.round(tempMatch.similarity * 100) + '%';
+            } else if (result.matches.length > 0) {
+                bestMatch = result.matches[0].text;
+                similarity = Math.round(result.matches[0].similarity * 100) + '%';
+            }
+
+            const row = [
+                this.escapeCSV(result.source),
+                this.escapeCSV(bestMatch)
+            ];
+
+            if (includeSimilarity) {
+                row.push(similarity);
+            }
+
+            row.push(isLocked ? '已锁定' : '未锁定');
+            rows.push(row.join(','));
+        });
+
+        return rows.join('\n');
+    }
+
+    /**
+     * CSV字段转义
+     * @param {string} field - 字段值
+     * @returns {string} - 转义后的字段
+     */
+    escapeCSV(field) {
+        if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+            return '"' + field.replace(/"/g, '""') + '"';
+        }
+        return field;
+    }
+
+    /**
+     * 下载文件
+     * @param {string} content - 文件内容
+     * @param {string} filename - 文件名
+     * @param {string} mimeType - MIME类型
+     */
+    downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * 保存数据到localStorage
+     */
+    saveData() {
+        // 仅保存“比较设置”
+        const data = {
+            settings: {
+                threshold: this.thresholdSlider.value,
+                ignorePunctuation: this.ignorePunctuation.checked,
+                fullwidthToHalfwidth: this.fullwidthToHalfwidth.checked,
+                ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
+                wholeStringMode: this.wholeStringMode.checked,
+                synonymGroups: this.synonymGroups.value,
+                ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : ''
+            }
+        };
+
+        try {
+            localStorage.setItem('similarityAppData', JSON.stringify(data));
+            this.showToast('比较设置已保存', 'success');
+        } catch (error) {
+            this.showToast('保存失败: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 从localStorage加载数据
+     */
+    loadData() {
+        try {
+            const dataStr = localStorage.getItem('similarityAppData');
+            if (!dataStr) {
+                alert('没有保存的数据');
+                return;
+            }
+
+            const data = JSON.parse(dataStr);
+
+            // 仅恢复“比较设置”，不修改输入数据与结果
+            if (data.settings) {
+                this.thresholdSlider.value = data.settings.threshold || 70;
+                this.ignorePunctuation.checked = data.settings.ignorePunctuation !== false;
+                this.fullwidthToHalfwidth.checked = data.settings.fullwidthToHalfwidth !== false;
+                this.ignoreInvisibleChars.checked = data.settings.ignoreInvisibleChars !== false;
+                this.wholeStringMode.checked = data.settings.wholeStringMode !== false;
+                this.synonymGroups.value = data.settings.synonymGroups || '';
+                if (this.ignoreTermsEl) this.ignoreTermsEl.value = data.settings.ignoreTerms || '';
+                this.updateThresholdDisplay();
+            }
+
+            this.showToast('比较设置已加载', 'success');
+        } catch (error) {
+            this.showToast('加载失败: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 加载存储的数据（页面加载时）
+     */
+    loadStoredData() {
+        try {
+            const dataStr = localStorage.getItem('similarityAppData');
+            if (dataStr) {
+                const data = JSON.parse(dataStr);
+                
+                // 只恢复设置，不恢复结果
+                if (data.settings) {
+                    this.thresholdSlider.value = data.settings.threshold || 70;
+                    this.ignorePunctuation.checked = data.settings.ignorePunctuation !== false;
+                    this.fullwidthToHalfwidth.checked = data.settings.fullwidthToHalfwidth !== false;
+                    this.ignoreInvisibleChars.checked = data.settings.ignoreInvisibleChars !== false;
+                    this.wholeStringMode.checked = data.settings.wholeStringMode !== false;
+                    this.synonymGroups.value = data.settings.synonymGroups || '';
+                    if (this.ignoreTermsEl) this.ignoreTermsEl.value = data.settings.ignoreTerms || '';
+                    this.updateThresholdDisplay();
+                }
+            }
+        } catch (error) {
+            console.warn('加载存储数据失败:', error);
+        }
+    }
+}
+
+// 轻量提示
+SimilarityApp.prototype.showToast = function(message, type = 'info', duration = 2000) {
+    const toast = document.createElement('div');
+    toast.className = `app-toast app-toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    // 强制回流以启动过渡
+    void toast.offsetWidth;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast && toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, duration);
+};
+
+// 复制与TSV构建工具
+SimilarityApp.prototype.buildSimpleTSV = function() {
+    const headers = ['源文本', '最相似值'];
+    const lines = [headers.join('\t')];
+    this.results.forEach((result, index) => {
+        const isLocked = this.lockedResults.has(index);
+        let best = '';
+        if (isLocked) {
+            const locked = this.lockedResults.get(index);
+            best = locked && locked.text ? locked.text : '';
+        }
+        lines.push([this.escapeTSV(result.source), this.escapeTSV(best)].join('\t'));
+    });
+    return lines.join('\n');
+};
+
+SimilarityApp.prototype.buildFullTSV = function() {
+    const headers = ['源文本', '最相似值'];
+    for (let i = 1; i <= 5; i++) { headers.push(`第${i}相似`, `第${i}相似度`); }
+    const lines = [headers.join('\t')];
+    this.results.forEach((result, index) => {
+        const isLocked = this.lockedResults.has(index);
+        let bestText = '';
+        if (isLocked) {
+            const locked = this.lockedResults.get(index);
+            bestText = locked && locked.text ? locked.text : '';
+        }
+        const row = [this.escapeTSV(result.source), this.escapeTSV(bestText)];
+        const top = (result.matches || []).slice(0, 5);
+        while (top.length < 5) top.push(null);
+        top.forEach(m => {
+            if (m) {
+                row.push(this.escapeTSV(m.text), Math.round(m.similarity * 100) + '%');
+            } else {
+                row.push('', '');
+            }
+        });
+        lines.push(row.join('\t'));
+    });
+    return lines.join('\n');
+};
+
+SimilarityApp.prototype.escapeTSV = function(field) {
+    if (field == null) return '';
+    return String(field).replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+};
+
+SimilarityApp.prototype.copyToClipboard = async function(text) {
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+    } catch (e) { }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+};
+
+// 页面加载完成后初始化应用
+window.SimilarityApp = SimilarityApp;
+document.addEventListener('DOMContentLoaded', () => {
+    // 恢复主题
+    try {
+        const savedTheme = localStorage.getItem('similarityTheme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('theme-dark');
+        }
+    } catch(_) {}
+    const app = new SimilarityApp();
+    const themeBtn = document.getElementById('toggle-theme');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('theme-dark');
+            const isDark = document.body.classList.contains('theme-dark');
+            try { localStorage.setItem('similarityTheme', isDark ? 'dark' : 'light'); } catch(_) {}
+        });
+    }
+});
+
+
+
+</script>
+    <script>
+(function(){
+  try {
+    if (!window.SimilarityCalculator) return; // ensure app context
+    // wait for SimilarityApp to be defined
+    var tryPatch = function(){
+      if (!window.SimilarityApp) { setTimeout(tryPatch, 0); return; }
+      var P = window.SimilarityApp && window.SimilarityApp.prototype;
+      if (!P) return;
+
+      // 构建 Excel 兼容 HTML 文档，设置列宽与自动换行
+      P.buildExcelHTML = function(headers, rows, widthsPx){
+        var escape = (txt) => {
+          var div = document.createElement('div');
+          div.textContent = (txt == null ? '' : String(txt));
+          return div.innerHTML;
+        };
+        var style = '\n<meta charset="UTF-8">\n<style>\n' +
+          'table{border-collapse:collapse;table-layout:fixed;width:100%;}' +
+          'th,td{border:1px solid #ccc;padding:4px;vertical-align:top;white-space:normal;word-wrap:break-word;word-break:break-all;mso-word-wrap:break-word;}' +
+          // 统一列宽：约等于30字符宽 — 用col宽度+px/pt同时指定，提升Excel兼容性
+          'td{mso-number-format:"@";}' +
+        '</style>';
+        // 估算：30字符 ≈ 300px（按常见字体），同时设置pt与px
+        // 默认每列 ~30ch 宽；允许传入 widthsPx 指定每列像素宽度
+        var defaultPx = 300, defaultPt = 225;
+        var colgroup = '<colgroup>' + headers.map(function(_, idx){
+          var px = (widthsPx && widthsPx[idx]) || defaultPx;
+          var pt = Math.round(px * 0.75); // 1pt ≈ 1.333px => px * 0.75 ≈ pt
+          return '<col width="' + px + '" style="width:' + px + 'px; width:' + pt + 'pt; mso-width-source:userset;">';
+        }).join('') + '</colgroup>';
+        var thead = '<tr>' + headers.map(function(h){ return '<th>' + escape(h) + '</th>'; }).join('') + '</tr>';
+        var tbody = rows.map(function(r){ return '<tr>' + r.map(function(c){ return '<td>' + escape(c) + '</td>'; }).join('') + '</tr>'; }).join('');
+        return '<!DOCTYPE html><html><head>' + style + '</head><body><table>' + colgroup + thead + tbody + '</table></body></html>';
+      };
+
+      // 完整导出：源文本, 最相似值(仅锁定才填), 第1相似, 第1相似度, …, 第5相似, 第5相似度
+      P.generateFullExcelHTML = function(){
+        var headers = ['源文本','最相似值'];
+        for (var i = 1; i <= 5; i++) { headers.push('第' + i + '相似'); headers.push('第' + i + '相似度'); }
+        var rows = [];
+        this.results.forEach((result, index) => {
+          var isLocked = this.lockedResults.has(index);
+          var bestText = '';
+          if (isLocked) {
+            var lockedMatch = this.lockedResults.get(index);
+            bestText = lockedMatch && lockedMatch.text ? lockedMatch.text : '';
+          }
+
+          // 取前5个相似项（不排除最相似值，避免未锁定时缺失）
+          var top = (result.matches || []).slice(0, 5);
+          while (top.length < 5) top.push(null);
+
+          var row = [ result.source, bestText ];
+          top.forEach(function(m){
+            if (m) row.push(m.text, Math.round(m.similarity * 100) + '%');
+            else row.push('', '');
+          });
+          rows.push(row);
+        });
+        // 列宽：前两列 30ch ≈ 300px；后续列 15ch ≈ 150px
+        var widths = headers.map(function(_, idx){ return idx < 2 ? 300 : 150; });
+        return this.buildExcelHTML(headers, rows, widths);
+      };
+
+      // 简化导出：源文本, 最相似值（仅锁定的填写；未锁定留空）
+      P.generateSimpleExcelHTML = function(){
+        var headers = ['源文本','最相似值'];
+        var rows = [];
+        this.results.forEach((result, index) => {
+          var isLocked = this.lockedResults.has(index);
+          var bestMatch = '';
+          if (isLocked) {
+            var lockedMatch = this.lockedResults.get(index);
+            bestMatch = (lockedMatch && lockedMatch.text) ? lockedMatch.text : '';
+          }
+          rows.push([result.source, bestMatch]);
+        });
+        return this.buildExcelHTML(headers, rows);
+      };
+
+      // 覆盖导出方法，输出 .xls(HTML) 且设置列宽/换行
+      var origExportResults = P.exportResults;
+      P.exportResults = function(){
+        if (this.results.length === 0) { alert('û�пɵ����Ľ��'); return; }
+        var html = this.generateFullExcelHTML();
+        this.downloadFile('\ufeff' + html, 'similarity_results.xls', 'application/vnd.ms-excel;charset=utf-8');
+      };
+
+      var origExportSimpleResults = P.exportSimpleResults;
+      P.exportSimpleResults = function(){
+        if (this.results.length === 0) { alert('û�пɵ����Ľ��'); return; }
+        var html = this.generateSimpleExcelHTML();
+        this.downloadFile('\ufeff' + html, 'similarity_results_simple.xls', 'application/vnd.ms-excel;charset=utf-8');
+      };
+    };
+    tryPatch();
+  } catch (e) {
+    console && console.warn && console.warn('export excel patch init failed:', e);
+  }
+})();
+
+</script>
+    <script>
+(function(){
+  function applySessionSettings() {
+    try {
+      var dataStr = sessionStorage.getItem('similarityAppSettings');
+      if (!dataStr) return false;
+      var data = JSON.parse(dataStr);
+      if (!data || !data.settings) return false;
+      var s = data.settings;
+      var q = function(id){ return document.getElementById(id); };
+      var slider = q('similarity-threshold');
+      var thresholdValue = q('threshold-value');
+      if (slider && s.threshold != null) {
+        slider.value = s.threshold;
+        if (thresholdValue) thresholdValue.textContent = s.threshold + '%';
+      }
+      var ip = q('ignore-punctuation'); if (ip) ip.checked = s.ignorePunctuation !== false;
+      var fw = q('fullwidth-to-halfwidth'); if (fw) fw.checked = s.fullwidthToHalfwidth !== false;
+      var inv = q('ignore-invisible-chars'); if (inv) inv.checked = s.ignoreInvisibleChars !== false;
+      var whole = q('whole-string-mode'); if (whole) whole.checked = s.wholeStringMode !== false;
+      var syn = q('synonym-groups'); if (syn) syn.value = s.synonymGroups || '';
+      var ign = q('ignore-terms'); if (ign) ign.value = s.ignoreTerms || '';
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function saveSessionSettings() {
+    try {
+      var q = function(id){ return document.getElementById(id); };
+      var slider = q('similarity-threshold');
+      var data = {
+        settings: {
+          threshold: slider ? slider.value : 70,
+          ignorePunctuation: q('ignore-punctuation') ? q('ignore-punctuation').checked : true,
+          fullwidthToHalfwidth: q('fullwidth-to-halfwidth') ? q('fullwidth-to-halfwidth').checked : true,
+          ignoreInvisibleChars: q('ignore-invisible-chars') ? q('ignore-invisible-chars').checked : true,
+          wholeStringMode: q('whole-string-mode') ? q('whole-string-mode').checked : true,
+          synonymGroups: q('synonym-groups') ? q('synonym-groups').value : '',
+          ignoreTerms: q('ignore-terms') ? q('ignore-terms').value : ''
+        }
+      };
+      sessionStorage.setItem('similarityAppSettings', JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function attachAutoSave() {
+    var add = function(el, evt) { if (el) el.addEventListener(evt, saveSessionSettings); };
+    add(document.getElementById('similarity-threshold'), 'change');
+    add(document.getElementById('similarity-threshold'), 'input');
+    add(document.getElementById('ignore-punctuation'), 'change');
+    add(document.getElementById('fullwidth-to-halfwidth'), 'change');
+    add(document.getElementById('ignore-invisible-chars'), 'change');
+    add(document.getElementById('whole-string-mode'), 'change');
+    add(document.getElementById('synonym-groups'), 'input');
+    add(document.getElementById('ignore-terms'), 'input');
+  }
+
+  function clearDataAndResults() {
+    var src = document.getElementById('source-column');
+    var tgt = document.getElementById('target-column');
+    if (src) src.value = '';
+    if (tgt) tgt.value = '';
+    var sc = document.getElementById('source-count'); if (sc) sc.textContent = '0';
+    var tc = document.getElementById('target-count'); if (tc) tc.textContent = '0';
+    var rc = document.getElementById('results-container');
+    if (rc) rc.innerHTML = '<div class="no-results">���ޱȽϽ��</div>';
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // 应用 session 设置（若有），然后清空输入与结果
+    applySessionSettings();
+    attachAutoSave();
+    // 若存在 session/local 已保存设置，则清空数据；否则保留示例
+    var hasSession = !!sessionStorage.getItem('similarityAppSettings');
+    var hasLocal = !!localStorage.getItem('similarityAppData');
+    if (hasSession || hasLocal) {
+      clearDataAndResults();
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
