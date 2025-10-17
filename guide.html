@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>字符串相似度比对工具 · 使用指南</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --panel: #ffffff;
+      --text: #1f2933;
+      --muted: #5f6c7b;
+      --primary: #2563eb;
+      --accent: #0284c7;
+      --border: #d9e2ec;
+      --highlight: rgba(37, 99, 235, 0.08);
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+      --step-number: #e0ecff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, #eef2ff 0%, #fdf2f8 40%, #ecfeff 100%);
+      min-height: 100vh;
+      padding: 40px 18px 60px;
+      line-height: 1.6;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: var(--panel);
+      border-radius: 20px;
+      padding: 36px 40px;
+      box-shadow: var(--shadow);
+      border: 1px solid transparent;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 600px;
+    }
+
+    .cta {
+      display: flex;
+      gap: 14px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    .cta a {
+      text-decoration: none;
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+    }
+
+    .cta a.secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      box-shadow: none;
+    }
+
+    .cta a:hover {
+      transform: translateY(-2px);
+    }
+
+    main {
+      display: grid;
+      gap: 24px;
+    }
+
+    section {
+      background: var(--panel);
+      border-radius: 20px;
+      padding: 28px 32px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    section h2 {
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    section h2 span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--step-number);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .step-content {
+      display: grid;
+      gap: 18px;
+    }
+
+    .step-content p {
+      color: var(--muted);
+    }
+
+    .checklist {
+      display: grid;
+      gap: 10px;
+    }
+
+    .checklist li {
+      list-style: none;
+      background: var(--highlight);
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(37, 99, 235, 0.18);
+      font-weight: 500;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .checklist li::before {
+      content: "✓";
+      color: var(--primary);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .prompt-card {
+      border: 1px dashed rgba(37, 99, 235, 0.35);
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: rgba(37, 99, 235, 0.06);
+    }
+
+    .prompt-card h3 {
+      font-size: 1rem;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+
+    .prompt-card pre {
+      background: rgba(255, 255, 255, 0.75);
+      border-radius: 12px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .tips-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .tip {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      min-height: 120px;
+    }
+
+    .tip h4 {
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: 1rem;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 36px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 24px 14px 40px;
+      }
+
+      header, section {
+        padding: 24px;
+      }
+
+      section h2 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>字符串相似度比对工具 · 使用指南</h1>
+      <p>按照步骤完成从数据准备到结果导出，配合提示词快速获得清晰、可用的比对报告。本指南适用于首次上手或需要复训团队成员时使用。</p>
+      <div class="cta">
+        <a href="single.html" target="_blank" rel="noopener noreferrer">开始使用工具</a>
+        <a class="secondary" href="index.html" target="_blank" rel="noopener noreferrer">返回原版界面</a>
+      </div>
+    </header>
+
+    <main>
+      <section id="step-1">
+        <h2><span>1</span>准备两列原始数据</h2>
+        <div class="step-content">
+          <p>将待比对的文本拆分为「源数据列」与「候选数据列」，分别粘贴到工具左侧与右侧输入框。建议先在 Excel 或 Notion 中清洗空格、去除无效行，再复制粘贴。</p>
+          <ul class="checklist">
+            <li>每行一条记录，避免在单元格内换行。</li>
+            <li>确认两列文本都已按 UTF-8 编码粘贴，避免出现乱码。</li>
+            <li>源数据条数通常少于候选数据，便于查看结果。</li>
+          </ul>
+          <div class="prompt-card">
+            <h3>提示词 · 数据整理</h3>
+            <pre>「请帮我从这份客户名单中提取公司全称列表，每行一个名称，删除空行。」</pre>
+            <pre>「将以下多段描述拆分为：1）产品名；2）属性描述。输出两列，用制表符分隔。」</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="step-2">
+        <h2><span>2</span>配置对比策略</h2>
+        <div class="step-content">
+          <p>在「比较设置」区域勾选需要的预处理选项。例如启用「忽略标点」与「全角转半角」，可以降低细节差异造成的匹配失败。</p>
+          <div class="tips-grid">
+            <div class="tip">
+              <h4>同义词组</h4>
+              <p>把常见缩写或品牌简称放在一起，组内第一个词为代表词。系统会先把文本转换为代表词，再计算相似度。</p>
+            </div>
+            <div class="tip">
+              <h4>忽略词</h4>
+              <p>将「股份有限公司」「科技」「信息」等无意义词语加入忽略列表，减少噪声。</p>
+            </div>
+            <div class="tip">
+              <h4>阈值调节</h4>
+              <p>默认 70% 已覆盖大多数场景。若源数据极短（如两个字母），可将阈值调低到 50% 便于找到候选。</p>
+            </div>
+          </div>
+          <div class="prompt-card">
+            <h3>提示词 · 配置助手</h3>
+            <pre>「根据以下公司简称生成同义词组，组内以逗号分隔：阿里巴巴集团、阿里；腾讯控股有限公司、腾讯；百度在线网络技术有限公司、百度。」</pre>
+            <pre>「列出企业名称中常见但可忽略的后缀，输出逗号分隔的词语列表。」</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="step-3">
+        <h2><span>3</span>执行比对并监控进度</h2>
+        <div class="step-content">
+          <p>点击「开始比对」后，进度条将实时显示处理状态。若需要中断，可随时点击「停止比对」。在运行期间尽量不要刷新页面，以免数据丢失。</p>
+          <ul class="checklist">
+            <li>检查右上角提示是否已变为「处理中」，确认任务启动。</li>
+            <li>对于超过 1 万条候选的数据，可分批次运行以减轻浏览器压力。</li>
+            <li>运行过程中仍可修改阈值，修改后点击重新开始即可。</li>
+          </ul>
+          <div class="prompt-card">
+            <h3>提示词 · 进度播报</h3>
+            <pre>「请帮我记录本次比对的执行时间和待比对条数，以便后续复盘。」</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="step-4">
+        <h2><span>4</span>阅读结果与锁定匹配</h2>
+        <div class="step-content">
+          <p>结果表格会展示最相似的一条记录及相似度百分比。点击候选行可锁定当前匹配，锁定后的文本将在导出时固定填入「最相似值」。</p>
+          <div class="tips-grid">
+            <div class="tip">
+              <h4>高亮差异</h4>
+              <p>鼠标悬浮在候选文本上可查看字符级差异，红色为新增，绿色为删除。</p>
+            </div>
+            <div class="tip">
+              <h4>多候选比较</h4>
+              <p>列表默认显示前 5 个匹配，若都不满意，可降低阈值后重新运行。</p>
+            </div>
+            <div class="tip">
+              <h4>人工复核</h4>
+              <p>导出前建议人工抽查 10% 的结果，确保关键数据准确。</p>
+            </div>
+          </div>
+          <div class="prompt-card">
+            <h3>提示词 · 结果判定</h3>
+            <pre>「请根据以下源文本与候选结果，判断是否属于同一家公司，并说明理由。」</pre>
+            <pre>「为下列比对结果生成复核意见：若存在模糊匹配，标记需要人工确认。」</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="step-5">
+        <h2><span>5</span>导出、分享与复盘</h2>
+        <div class="step-content">
+          <p>根据需求选择导出方式：「导出简化结果」仅包含源文本与锁定值；「导出结果」会附带前 5 个候选及相似度。导出文件为 Excel 兼容 HTML，可直接在 Excel 或 WPS 中打开。</p>
+          <ul class="checklist">
+            <li>导出前确认锁定状态，避免导出后再手动修改。</li>
+            <li>可使用「复制结果」快速贴到飞书、钉钉或邮件中。</li>
+            <li>记得保存设置，方便下次复用同义词与忽略词。</li>
+          </ul>
+          <div class="prompt-card">
+            <h3>提示词 · 报告撰写</h3>
+            <pre>「请将以下相似度比对结果整理成邮件模板，包含摘要、匹配数量、待人工确认项。」</pre>
+            <pre>「依据导出表格生成复盘纪要，说明本次规则配置、运行时间、遇到的问题及改进建议。」</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="extra">
+        <h2><span>★</span>常见疑问速览</h2>
+        <div class="tips-grid">
+          <div class="tip">
+            <h4>为什么结果为空？</h4>
+            <p>可能是阈值过高或输入列存在全角/空格差异。降低阈值并开启文本预处理后重试。</p>
+          </div>
+          <div class="tip">
+            <h4>如何批量导入同义词？</h4>
+            <p>在 Excel 中整理两列表格「代表词」「同义词」，再使用提示词生成逗号分隔文本粘贴即可。</p>
+          </div>
+          <div class="tip">
+            <h4>浏览器卡顿怎么办？</h4>
+            <p>分批导入候选数据，或在比对前去除明显不相关的候选行，减轻计算量。</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      已完成比对？别忘了将复盘结论同步给团队，持续优化同义词与忽略词库。
+    </footer>
+  </div>
+</body>
+</html>
