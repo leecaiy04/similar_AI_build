@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字符串相似度比对工具</title>
+    <style>
+        :root {
+            --primary-color: #1890ff;
+            --danger-color: #ff4d4f;
+            --text-color: #333;
+            --border-color: #d9d9d9;
+            --bg-color: #f0f2f5;
+            --header-height: 60px;
+            /* Similarity Colors */
+            --sim-exact: #52c41a; /* Green */
+            --sim-similar: #fa8c16; /* Orange */
+            --sim-medium: #faad14; /* Yellow */
+            --sim-low: #8c8c8c; /* Gray */
+            /* Diff Highlighting */
+            --diff-add-bg: #d9f7be; /* Light Green bg */
+            --diff-add-text: #389e0d;
+            --diff-del-text: #cf1322;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .app-header {
+            height: var(--header-height);
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+
+        .app-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .header-actions .btn {
+            margin-left: 10px;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+        }
+        .header-actions .btn:hover {
+            background-color: rgba(255,255,255,0.3);
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 450px 1fr; /* Fixed width left, flexible right */
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden; /* Prevent outer scroll */
+        }
+
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Internal scroll */
+            max-height: calc(100vh - var(--header-height) - 40px);
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        /* Common UI Elements */
+        .btn {
+            padding: 6px 15px;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .btn-primary { background-color: var(--primary-color); color: white; border: none; }
+        .btn-primary:hover { background-color: #40a9ff; }
+        .btn-danger { background-color: var(--danger-color); color: white; border: none; }
+        .btn-danger:hover { background-color: #ff7875; }
+        .btn-small { padding: 2px 8px; font-size: 12px; }
+
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 500; }
+
+        /* Left Column: Settings & Input */
+        .input-area-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .input-column { flex: 1; }
+        .input-column textarea { height: 200px; }
+
+        .action-buttons { margin-bottom: 20px; }
+        .action-buttons .btn { margin-right: 10px; }
+
+        .settings-section { margin-bottom: 20px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
+        .settings-title { font-weight: bold; margin-bottom: 10px; display: block; }
+
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        .checkbox-group label { display: flex; align-items: center; cursor: pointer; font-size: 14px; }
+        .checkbox-group input { margin-right: 5px; }
+
+        .slider-container { display: flex; align-items: center; }
+        .slider-container input { flex: 1; margin-right: 10px; }
+
+        .radio-group { display: flex; gap: 15px; }
+        .radio-group label { display: flex; align-items: center; cursor: pointer; font-size: 14px; }
+        .radio-group input { margin-right: 5px; }
+
+        /* Right Column: Results */
+        .progress-section { margin-bottom: 15px; }
+        .progress-bar-bg { height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; position: relative;}
+        .progress-bar-fill { height: 100%; background: var(--primary-color); width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: flex-end; color: white; padding-right: 10px; font-size: 12px;}
+        .progress-bar-bg::after { content: '0%'; position: absolute; left: 50%; top: 0; transform: translateX(-50%); font-size: 12px; line-height: 20px; color: #666; visibility: hidden;} /* Fallback if fill is too small */
+
+        .current-item-status { margin-bottom: 10px; font-size: 14px; color: #666; }
+
+        .results-table-container { flex: 1; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;}
+        .results-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .results-table th, .results-table td { border: 1px solid var(--border-color); padding: 8px 12px; text-align: left; vertical-align: top; }
+        .results-table th { background: #fafafa; position: sticky; top: 0; z-index: 1; }
+
+        /* Table Cell Styling */
+        .sim-score { font-weight: bold; }
+        .sim-exact { color: var(--sim-exact); }
+        .sim-similar { color: var(--sim-similar); }
+        .sim-medium { color: var(--sim-medium); }
+        .sim-low { color: var(--sim-low); }
+
+        .candidate-list { list-style: none; padding: 0; margin: 0; }
+        .candidate-list li { margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .temp-select-btn { color: var(--primary-color); cursor: pointer; margin-left: 5px; font-size: 0.9em; visibility: hidden;}
+        .candidate-list li:hover .temp-select-btn { visibility: visible; }
+
+        /* Highlighting Styles */
+        .diff-add { background-color: var(--diff-add-bg); color: var(--diff-add-text); font-weight: bold; padding: 0 2px; border-radius: 2px;}
+        .diff-del { color: var(--diff-del-text); text-decoration: line-through; }
+
+        .legend { margin-top: 15px; font-size: 13px; color: #666; border-top: 1px solid var(--border-color); padding-top: 10px;}
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="app-title">字符串相似度比对工具</div>
+        <div class="header-actions">
+            <button class="btn" onclick="loadExample()">加载示例</button>
+            <button class="btn" onclick="console.log('保存设置')">保存设置</button>
+            <button class="btn" onclick="console.log('加载设置')">加载设置</button>
+            <button class="btn" onclick="console.log('导出完整CSV')">导出完整CSV</button>
+            <button class="btn" onclick="console.log('导出简化CSV')">导出简化CSV</button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <section class="panel left-panel">
+            <div class="panel-title">输入文本</div>
+
+            <div class="input-area-group">
+                <div class="input-column">
+                    <label class="form-label">源列 (支持 Excel 粘贴)</label>
+                    <textarea id="sourceInput" placeholder="每行一个待匹配文本"></textarea>
+                </div>
+                <div class="input-column">
+                    <label class="form-label">目标列 (支持 Excel 粘贴)</label>
+                    <textarea id="targetInput" placeholder="每行一个候选文本"></textarea>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="startBtn">开始比对</button>
+                <button class="btn btn-danger" id="stopBtn" disabled>停止比对</button>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">预处理设置</span>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" checked> 忽略标点</label>
+                    <label><input type="checkbox" checked> 全角转半角</label>
+                    <label><input type="checkbox" checked> 忽略不可见字符</label>
+                    <label style="color: #999;"><input type="checkbox" disabled> 整串对比模式</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">相似度阈值: <span id="thresholdValue">50%</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="thresholdSlider" min="0" max="100" value="50">
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">同义词组</span>
+                <textarea placeholder="例: 阿里巴巴, 阿里 (多组用换行分隔)" style="height: 80px;"></textarea>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">比对算法</span>
+                <div class="radio-group">
+                    <label><input type="radio" name="algo" checked> 编辑距离</label>
+                    <label><input type="radio" name="algo"> Jaro-Winkler</label>
+                    <label><input type="radio" name="algo"> 融合权重</label>
+                </div>
+            </div>
+
+            <div class="settings-section" style="border-bottom: none;">
+                <span class="settings-title">字符级差异算法</span>
+                <div class="radio-group">
+                    <label><input type="radio" name="diffAlgo" checked> LCS</label>
+                    <label><input type="radio" name="diffAlgo"> Levenshtein</label>
+                    <label><input type="radio" name="diffAlgo"> Myers</label>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel right-panel">
+            <div class="panel-title">比对结果</div>
+
+            <div class="progress-section">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressBar" style="width: 0%;">0%</div>
+                </div>
+            </div>
+            <div class="current-item-status" id="statusText">当前处理项: -</div>
+
+            <div class="results-table-container">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">源文本</th>
+                            <th style="width: 30%;">最佳匹配 (差异高亮)</th>
+                            <th style="width: 10%;">相似度</th>
+                            <th style="width: 35%;">其他候选 (相似度)</th>
+                            <th style="width: 10%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                        <tr><td colspan="5" style="text-align: center; color: #999;">暂无结果，请点击“开始比对”</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="legend">
+                高亮颜色说明：
+                <span class="diff-add">绿色背景</span> 代表新增，
+                <span class="diff-del">红色删除线</span> 代表删除，
+                未变文本保持默认。
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- UI Interactivity Script ---
+
+        // 1. Slider Value Update
+        const slider = document.getElementById('thresholdSlider');
+        const thresholdValueDisplay = document.getElementById('thresholdValue');
+        slider.addEventListener('input', (e) => {
+            thresholdValueDisplay.textContent = e.target.value + '%';
+        });
+
+        // 2. Load Example Data
+        function loadExample() {
+            document.getElementById('sourceInput').value = "阿里巴巴集团\n腾讯QQ\n苹果手机\n华为P40\n字节跳动";
+            document.getElementById('targetInput').value = "阿里巴巴公司\n腾讯扣扣\n苹果平板\n安卓手机\n华为P30\n小米10\n今日头条";
+            console.log('示例数据已加载');
+        }
+
+        // 3. Simulation of Comparison Process (MOCK DATA GENERATION)
+        // NOTE: This is a simulation to show the UI effect. Real algorithms are not implemented here.
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('statusText');
+        const resultsBody = document.getElementById('resultsBody');
+
+        let isProcessing = false;
+        let processInterval;
+
+        startBtn.addEventListener('click', startSimulation);
+        stopBtn.addEventListener('click', stopSimulation);
+
+        function startSimulation() {
+            const sourceText = document.getElementById('sourceInput').value;
+            if (!sourceText.trim()) {
+                alert("请先输入源文本");
+                return;
+            }
+
+            const sourceLines = sourceText.split('\n').filter(line => line.trim() !== '');
+            if (sourceLines.length === 0) return;
+
+            isProcessing = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            resultsBody.innerHTML = ''; // Clear previous results
+            let currentIndex = 0;
+            updateProgress(0);
+
+            // Simulate processing loop with setInterval to not freeze UI
+            processInterval = setInterval(() => {
+                if (currentIndex >= sourceLines.length) {
+                    stopSimulation();
+                    statusText.textContent = "比对完成！";
+                    updateProgress(100);
+                    return;
+                }
+
+                const currentSource = sourceLines[currentIndex];
+                statusText.textContent = `当前处理项: ${currentSource}`;
+                updateProgress(Math.round(((currentIndex) / sourceLines.length) * 100));
+
+                // Generate Mock Result Row
+                const mockResult = generateMockResult(currentSource);
+                renderResultRow(mockResult);
+
+                currentIndex++;
+            }, 600); // Simulate processing delay per item
+        }
+
+        function stopSimulation() {
+            isProcessing = false;
+            clearInterval(processInterval);
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            if (statusText.textContent !== "比对完成！") {
+                 statusText.textContent = "已停止";
+            }
+        }
+
+        function updateProgress(percent) {
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+        }
+
+        // Helper to generate fake data matching the screenshot styles
+        function generateMockResult(source) {
+            let bestMatchHtml = '*暂无最佳匹配*';
+            let simScore = '--';
+            let simClass = 'sim-low';
+            let candidates = [];
+            let isLocked = false;
+
+            if (source.includes('阿里巴巴')) {
+                bestMatchHtml = '<span class="diff-add">阿里</span>巴巴<span class="diff-add">公司</span>';
+                simScore = '90%';
+                simClass = 'sim-similar';
+                candidates = [
+                    { text: '腾讯QQ', score: '70%' },
+                    { text: '苹果手机', score: '50%' }
+                ];
+            } else if (source.includes('腾讯QQ')) {
+                bestMatchHtml = '腾讯<span class="diff-del">QQ</span><span class="diff-add">扣扣</span>';
+                simScore = '100%';
+                simClass = 'sim-exact';
+                isLocked = true;
+            } else if (source.includes('苹果手机')) {
+                bestMatchHtml = '<span class="diff-add">苹果</span>手机';
+                simScore = '95%';
+                simClass = 'sim-similar';
+                candidates = [
+                    { text: '苹果平板', score: '80%' },
+                    { text: '安卓手机', score: '60%' }
+                ];
+            } else if (source.includes('华为P40')) {
+                 simScore = '--';
+                 candidates = [
+                    { text: '华为P30', score: '75%' },
+                    { text: '小米10', score: '60%' }
+                ];
+            } else {
+                 // Fallback for other random inputs
+                 bestMatchHtml = `模拟匹配(${source})`;
+                 simScore = Math.floor(Math.random() * 60 + 40) + '%';
+                 simClass = parseInt(simScore) >= 80 ? 'sim-similar' : 'sim-medium';
+            }
+
+            return { source, bestMatchHtml, simScore, simClass, candidates, isLocked };
+        }
+
+        function renderResultRow(data) {
+            const row = document.createElement('tr');
+
+            let candidatesHtml = '';
+            if (data.candidates.length > 0) {
+                candidatesHtml = '<ul class="candidate-list">';
+                data.candidates.forEach((cand, index) => {
+                    candidatesHtml += `
+                        <li>
+                            <span>${index + 1}. ${cand.text} (${cand.score})</span>
+                            <span class="temp-select-btn">[临时选择]</span>
+                        </li>`;
+                });
+                candidatesHtml += '</ul>';
+            }
+
+            const lockBtnHtml = data.isLocked
+                ? '<button class="btn btn-small" disabled>[已锁定]</button>'
+                : '<button class="btn btn-small" onclick="toggleLock(this)">[锁定]</button>';
+
+            row.innerHTML = `
+                <td>${data.source}</td>
+                <td style="word-break: break-all;">${data.bestMatchHtml}</td>
+                <td><span class="sim-score ${data.simClass}">${data.simScore}</span></td>
+                <td>${candidatesHtml}</td>
+                <td>${lockBtnHtml}</td>
+            `;
+            resultsBody.appendChild(row);
+            // Auto scroll to bottom of results
+            resultsBody.parentElement.parentElement.scrollTop = resultsBody.parentElement.scrollHeight;
+        }
+
+        // Mock lock toggle function
+        window.toggleLock = function(btn) {
+            btn.textContent = "[已锁定]";
+            btn.disabled = true;
+            console.log('行已锁定');
+        }
+
+    </script>
+</body>
+</html>
