@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字符串相似度比对工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="app-title">字符串相似度比对工具</div>
+        <div class="header-actions">
+            <button class="btn btn-ghost" id="load-sample">加载示例</button>
+            <button class="btn btn-ghost" id="save-settings">保存设置</button>
+            <button class="btn btn-ghost" id="load-settings">加载设置</button>
+            <button class="btn btn-ghost" id="export-results">导出完整CSV</button>
+            <button class="btn btn-ghost" id="export-simple">导出简化CSV</button>
+            <button class="btn btn-ghost" id="toggle-theme" title="切换主题">切换主题</button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <section class="panel left-panel">
+            <div class="panel-title">输入文本</div>
+
+            <div class="input-area-group">
+                <div class="input-column">
+                    <label class="form-label" for="source-column">源列 <span class="count-badge" id="source-count">0</span></label>
+                    <textarea id="source-column" placeholder="每行一个待匹配文本"></textarea>
+                    <div class="sample-hint" id="source-hint">提示：每行一条文本，支持从 Excel 粘贴</div>
+                </div>
+                <div class="input-column">
+                    <label class="form-label" for="target-column">目标列 <span class="count-badge" id="target-count">0</span></label>
+                    <textarea id="target-column" placeholder="每行一个候选文本"></textarea>
+                    <div class="sample-hint" id="target-hint">提示：每行一条文本，支持从 Excel 粘贴</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="start-comparison">开始比对</button>
+                <button class="btn btn-danger" id="stop-comparison" disabled>停止比对</button>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">预处理设置</span>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="ignore-punctuation" checked> 忽略标点</label>
+                    <label><input type="checkbox" id="fullwidth-to-halfwidth" checked> 全角转半角</label>
+                    <label><input type="checkbox" id="ignore-invisible-chars" checked> 忽略不可见字符</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="similarity-threshold">相似度阈值: <span id="threshold-value">70%</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="similarity-threshold" min="0" max="100" value="70">
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">词表</span>
+                <div class="dual-group">
+                    <div>
+                        <label class="form-label" for="synonym-groups">同义词组</label>
+                        <textarea id="synonym-groups" placeholder="例: 阿里巴巴, 阿里 (多组用换行或分号分隔)" style="height: 90px;"></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label" for="ignore-terms">忽略对比词</label>
+                        <textarea id="ignore-terms" placeholder="例: 股份有限公司, 有限公司, 科技, 信息" style="height: 90px;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">比对算法（仅保留一种选择）</span>
+                <div class="radio-group">
+                    <label><input type="radio" name="algo-mode" value="fusion" checked> 融合权重</label>
+                    <label><input type="radio" name="algo-mode" value="edit"> 编辑距离</label>
+                    <label><input type="radio" name="algo-mode" value="jaro"> Jaro-Winkler</label>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel right-panel">
+            <div class="panel-title">比对结果</div>
+
+            <div class="progress-section">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-fill">0%</div>
+                </div>
+                <div class="current-item-status" id="progress-text">准备就绪</div>
+                <div class="current-item-status" id="current-status">当前处理项：-</div>
+            </div>
+
+            <div class="results-controls">
+                <button id="copy-simple" class="btn btn-secondary">复制简化结果</button>
+                <button id="copy-results" class="btn btn-secondary">复制完整结果</button>
+                <button id="clear-results" class="btn btn-secondary">清空结果</button>
+            </div>
+
+            <div id="results-container" class="results-table-container results-container">
+                <div class="no-results">暂无比对结果</div>
+            </div>
+
+            <div class="legend">
+                高亮说明：<span class="diff-add">绿色</span> 新增，<span class="diff-del">红色删除线</span> 删除，未变化保持默认。
+            </div>
+        </section>
+    </main>
+
+    <script src="js/similarity.js"></script>
+    <script src="js/synonyms_patch.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/export_excel_patch.js"></script>
+    <script src="js/settings_session_patch.js"></script>
+</body>
+</html>

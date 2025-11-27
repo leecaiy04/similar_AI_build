@@ -6,11 +6,12 @@
 
 - 比对模式：源列 vs 目标列，一对多匹配，寻找完全相同项或者最相似的前N个候选；多列比对时自动忽略空行
 - 算法融合：编辑距离相似度，Jaro‑Winkler，或者按照融合权重进行融合
-- 字符级差异高亮：LCS/Levenshtein/Myers 三种实现，界面默认使用 LCS，高亮新增/删除/未变
+- 字符级差异高亮：基于 LCS 高亮新增/删除/未变
 - 同义词组：在比对前将同组词替换为第一项代表词，提升召回并减少形态差异干扰
 - 候选展示：为每个源项列出按相似度排序的前 N 个候选
 - 一键锁定：相似度达到 100% 自动锁定；人工确认某个选项为最相似项可以锁定；支持手动锁定/解除和临时选择
 - 进度反馈：进度条 + 当前处理项提示，长列表也有清晰反馈，最好是用单独的worker线程不堵塞UI
+- 算法选项：可切换编辑距离/Jaro-Winkler/融合权重（差异算法固定为 LCS）
 - 导出结果：导出完整/简化 CSV；设置保存/加载（localStorage）
 - 示例数据：一键加载示例，便于快速体验，示例数据源列可以是3个(阿里巴巴集团、腾讯QQ、苹果手机)，但是对比列需要各种情况都有，各种相似度的也都有
 
@@ -32,7 +33,6 @@
   - 忽略标点：去除非字母数字和中文字符
   - 全角转半角：数字/字母/常见符号统一为半角
   - 忽略不可见字符：移除控制字符、零宽空格等
-  - 整串对比模式：选项预留，当前算法按整体字符串计算
   - 相似度阈值：0–100%，只显示不低于阈值的候选
 - 同义词组格式（多组用换行/分号/顿号分隔；同组内用逗号/空格分隔）
   - 例：
@@ -69,13 +69,23 @@
 ## 文件结构
 
 ```
-index.html       # 页面结构与文案
-styles.css       # 样式与配色（含差异高亮样式）
-similarity.js    # 相似度计算与差异算法（核心逻辑）
-app.js           # 应用状态、事件绑定、结果渲染、导出/存储
-README.md        # 项目说明文档（本文件）
-single-file.html  # 单文件版本
+src/
+  index.html              # 主界面入口（引用外部 CSS/JS）
+  styles.css              # 主样式、主题与高亮配色
+  js/
+    similarity.js         # 相似度计算与差异算法（核心逻辑）
+    synonyms_patch.js     # 同义词分组与替换策略补丁
+    app.js                # 应用状态、事件绑定、导出/存储
+    export_excel_patch.js # 导出 Excel 友好 HTML 的补丁
+    settings_session_patch.js # 会话级设置保存/恢复
+single.html               # 单文件版，直接双击即可用
+README.md                 # 项目说明
 ```
+
+### 使用
+
+- 入口（分文件版）：双击/打开 `src/index.html`。
+- 单文件版：双击/打开根目录下的 `single.html`，无需其他资源。
 
 ## 开发与扩展
 
@@ -84,7 +94,7 @@ single-file.html  # 单文件版本
   - `SimilarityApp`（app.js）：数据与 UI 管理、进度与锁定、导出/存取
 - 扩展点
   - 调整融合权重：在 `app.js` 组装的 `options.weights` 或 `similarity.js` 默认值
-  - 差异算法：`calculateCharDiff(str1, str2, algorithm)` 已实现 `lcs/levenshtein/myers`
+  - 差异算法：`calculateCharDiff(str1, str2, algorithm)` 已实现 `lcs/levenshtein/myers`（界面固定使用 LCS）
   - 性能：当前用 `setTimeout` 分片防阻塞；如需更大规模可改为 Web Worker
 - 持久化
   - 设置保存在 `localStorage/similarityAppData`
