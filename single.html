@@ -1,281 +1,450 @@
-<!DOCTYPE html>
+leecaiy<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>字符串相似度比对工具</title>
     <style>
-/* 全局与主题变量 */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #f5f5f5;
+  --bg-color: #f0f2f5;
   --card-bg: #ffffff;
-  --text: #333333;
-  --muted: #7f8c8d;
-  --border: #ecf0f1;
-  --primary: #3498db;
-  --primary-600: #2980b9;
-  --success: #27ae60;
-  --danger: #e74c3c;
-  --warning: #f39c12;
-  --info: #17a2b8;
-  --table-head: #34495e;
+  --text: #333;
+  --muted: #666;
+  --border: #d9d9d9;
+  --primary: #1890ff;
+  --primary-600: #0f7ae5;
+  --danger: #ff4d4f;
+  --success: #52c41a;
+  --warning: #faad14;
+  --sim-gray: #8c8c8c;
 }
 
 body.theme-dark {
-  --bg: #0f172a;
+  --bg-color: #0f172a;
   --card-bg: #111827;
   --text: #e5e7eb;
   --muted: #9ca3af;
   --border: #1f2937;
   --primary: #60a5fa;
   --primary-600: #3b82f6;
-  --success: #34d399;
   --danger: #f87171;
+  --success: #34d399;
   --warning: #fbbf24;
-  --info: #22d3ee;
-  --table-head: #1f2937;
+  --sim-gray: #9ca3af;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.45;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg-color);
   color: var(--text);
-  background-color: var(--bg);
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(90deg, var(--primary), #40a9ff);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.app-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.main-container {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 20px;
+  padding: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .main-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.panel-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.input-area-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .input-area-group { grid-template-columns: 1fr; }
+}
+
+.input-column textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: "Courier New", monospace;
+  resize: vertical;
+  background: transparent;
+  color: var(--text);
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.count-badge {
+  background: rgba(24, 144, 255, 0.12);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.sample-hint {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) { background: var(--primary-600); }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { filter: brightness(0.95); }
+.btn-secondary { background: #eef1f5; color: var(--text); }
+.btn-secondary:hover:not(:disabled) { background: #e4e7ed; }
+.btn-ghost { background: rgba(255, 255, 255, 0.22); border: 1px solid rgba(255, 255, 255, 0.4); color: #fff; }
+.btn-ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.28); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.settings-section {
+  margin-bottom: 14px;
+  border-top: 1px dashed var(--border);
+  padding-top: 12px;
+}
+
+.settings-title {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.dual-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.checkbox-group,
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkbox-group label,
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
+  cursor: pointer;
 }
 
-.container { max-width: 1280px; margin: 0 auto; padding: 12px; }
+.form-group { margin-top: 10px; }
 
-/* 头部 */
-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; background: var(--card-bg); padding: 10px 14px; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
-header h1 { color: var(--text); font-size: 1.3em; }
-header p { color: var(--muted); font-size: 0.9em; }
-.header-actions { display: flex; gap: 8px; align-items: center; }
-.theme-toggle { padding: 6px 10px; border: 1px solid var(--border); background: transparent; color: var(--text); border-radius: 6px; cursor: pointer; font-size: 12px; }
-.theme-toggle:hover { background: var(--border); }
+.slider-container { display: flex; align-items: center; gap: 12px; }
+.slider-container input[type="range"] { width: 100%; }
 
-/* 主体布局：桌面双栏 */
-.main-content { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@media (min-width: 1100px) {
-  .main-content { grid-template-columns: 1fr 1.25fr; align-items: start; }
-  .main-content > .results-section { grid-column: 2; grid-row: 1 / span 3; }
+.right-panel .results-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0 14px;
 }
 
-section { background: var(--card-bg); padding: 12px; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
-section h2 { color: var(--text); margin-bottom: 10px; font-size: 1.05em; border-bottom: 2px solid var(--primary); padding-bottom: 6px; }
+.progress-section { margin-bottom: 10px; }
+.progress-bar-bg {
+  height: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  width: 0%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  font-size: 12px;
+  transition: width 0.3s ease;
+}
 
-/* 输入区 */
-.input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.input-column label { font-weight: 600; margin-bottom: 8px; color: var(--text); }
-.input-column textarea { width: 100%; height: 120px; padding: 10px; border: 2px solid var(--border); background: transparent; color: var(--text); border-radius: 6px; font-size: 12px; font-family: 'Courier New', monospace; resize: vertical; transition: border-color 0.2s ease; }
-.input-column textarea:focus { outline: none; border-color: var(--primary); }
-.input-info { margin-top: 6px; font-size: 12px; color: var(--muted); }
-.sample-hint { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.current-item-status {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
 
-/* 设置区 */
-.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
-.setting-item { display: flex; flex-direction: column; gap: 6px; }
-.setting-item label { font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
-.setting-item input[type="checkbox"] { width: 18px; height: 18px; }
-.setting-item input[type="range"] { width: 100%; margin: 8px 0; }
-.setting-item textarea { width: 100%; height: 56px; padding: 8px; border: 2px solid var(--border); background: transparent; color: var(--text); border-radius: 5px; font-size: 13px; resize: vertical; }
-#threshold-value { font-weight: bold; color: var(--primary); font-size: 14px; }
+.results-container {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: auto;
+  max-height: calc(100vh - 260px);
+}
 
-/* 控制区 */
-.control-buttons { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.control-head { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
-.control-head .threshold-inline { display: flex; align-items: center; gap: 8px; flex: 0 0 360px; }
-.control-head .threshold-inline label { font-weight: 600; color: var(--text); white-space: nowrap; }
-.control-head .progress-wrap { display: flex; align-items: center; gap: 8px; flex: 1; }
-.control-head .progress-wrap .progress-bar { flex: 1; margin: 0; }
-.control-head .progress-wrap .progress-text { min-width: 96px; text-align: right; }
-.btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.3px; }
-.btn-primary { background: var(--primary); color: white; }
-.btn-primary:hover:not(:disabled) { background: var(--primary-600); transform: translateY(-2px); }
-.btn-secondary { background: #95a5a6; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #7f8c8d; transform: translateY(-2px); }
-.btn-success { background: var(--success); color: white; }
-.btn-success:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
-.btn-info { background: var(--info); color: white; }
-.btn-info:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
-.btn-warning { background: var(--warning); color: white; }
-.btn-warning:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
-.btn-danger { background: var(--danger); color: white; }
-.btn-danger:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.results-table-container { width: 100%; }
 
-.progress-section { margin-top: 10px; }
-.progress-bar { width: 100%; height: 12px; background: var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
-.progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); width: 0%; transition: width 0.3s ease; border-radius: 10px; }
-.progress-text { text-align: center; font-weight: 600; color: var(--text); font-size: 12px; }
+.no-results {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+}
 
-/* 结果区 */
-.results-controls { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.results-container { max-height: 520px; overflow-y: auto; border: 2px solid var(--border); border-radius: 8px; background: transparent; }
-.no-results { text-align: center; padding: 40px; color: var(--muted); font-style: italic; }
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
 
-.results-table-container { overflow-x: auto; }
-.results-table { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--text); }
-.results-table th { background: var(--table-head); color: white; padding: 8px 6px; text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 10; }
-.results-table td { padding: 6px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
-.result-row:hover { background-color: rgba(52, 152, 219, 0.08); }
-.result-row.locked { background-color: rgba(39, 174, 96, 0.08); }
-.source-cell { font-weight: 600; color: var(--text); min-width: 150px; }
-.best-match-cell { min-width: 200px; }
-.best-match { cursor: pointer; padding: 3px 6px; border-radius: 4px; transition: background-color 0.3s ease; font-family: 'Courier New', monospace; }
-.best-match:hover { background-color: rgba(52, 152, 219, 0.08); }
-.similarity-cell { text-align: center; min-width: 80px; }
-.similarity-value { font-weight: 600; font-size: 14px; padding: 3px 6px; border-radius: 4px; }
-.similarity-value.exact { color: var(--success); background-color: rgba(39, 174, 96, 0.15); }
-.similarity-value.similar { color: var(--warning); background-color: rgba(243, 156, 18, 0.12); }
-.similarity-value.medium { color: #e67e22; background-color: rgba(230, 126, 34, 0.12); }
-.similarity-value.low { color: var(--danger); background-color: rgba(231, 76, 60, 0.12); }
-.other-matches-cell { min-width: 250px; }
-.other-match { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; margin: 2px 0; background: rgba(0,0,0,0.03); border-radius: 4px; border-left: 3px solid var(--primary); cursor: pointer; transition: all 0.2s ease; font-family: 'Courier New', monospace; }
-.other-match:hover { background: rgba(52, 152, 219, 0.12); border-left-color: var(--primary-600); transform: translateX(2px); }
-.other-match .match-text { flex: 1; font-size: 12px; }
-.other-match .match-similarity { font-weight: 600; font-size: 11px; color: var(--muted); margin-left: 8px; }
-.no-matches { color: var(--muted); font-style: italic; font-size: 12px; }
-.locked-indicator { color: var(--success); font-weight: 600; font-size: 12px; }
-.action-cell { text-align: center; min-width: 72px; }
+.results-table th,
+.results-table td {
+  border: 1px solid var(--border);
+  padding: 8px;
+  vertical-align: top;
+  text-align: left;
+}
 
-/* diff 样式 */
-.diff-added { background-color: #ffebee; color: #c62828; padding: 1px 2px; border-radius: 2px; font-weight: 600; }
-.diff-removed { background-color: #e8f5e8; color: #2e7d32; text-decoration: line-through; padding: 1px 2px; border-radius: 2px; font-weight: 600; }
+.results-table th {
+  background: #fafafa;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.result-row:hover { background: rgba(24, 144, 255, 0.06); }
+.result-row.locked { background: rgba(82, 196, 26, 0.08); }
+
+.best-match { cursor: pointer; }
+.similarity-value {
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.similarity-value.exact { color: var(--success); background: rgba(82, 196, 26, 0.12); }
+.similarity-value.similar { color: var(--warning); background: rgba(250, 173, 20, 0.12); }
+.similarity-value.medium { color: #fa8c16; background: rgba(250, 140, 22, 0.12); }
+.similarity-value.low { color: var(--danger); background: rgba(255, 77, 79, 0.12); }
+
+.other-match {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  margin: 2px 0;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+  border-left: 3px solid var(--primary);
+  cursor: pointer;
+  font-family: "Courier New", monospace;
+}
+
+.other-match .match-text { flex: 1; margin-right: 8px; }
+.other-match .match-similarity { color: var(--muted); font-size: 12px; }
+.no-matches { color: var(--muted); font-style: italic; }
+.locked-indicator { color: var(--success); font-weight: 600; }
+
+.legend {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.diff-added { background: #e8f5e9; color: #2e7d32; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+.diff-removed { color: #c62828; text-decoration: line-through; padding: 0 2px; font-weight: 600; }
 .diff-unchanged { color: var(--text); }
 
-/* 滚动条 */
-.results-container::-webkit-scrollbar { width: 8px; }
-.results-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-.results-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
-.results-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+/* 兼容 string-similarity-tool 里的标记名 */
+.diff-add { background-color: #d9f7be; color: #389e0d; padding: 0 2px; border-radius: 2px; }
+.diff-del { color: #cf1322; text-decoration: line-through; }
 
-/* 响应式 */
-@media (max-width: 1024px) {
-  .container { padding: 10px; }
-  .main-content { display: flex; flex-direction: column; }
-  .input-group { grid-template-columns: 1fr; }
-  .settings-grid { grid-template-columns: 1fr; }
-  .control-buttons, .results-controls { flex-direction: column; }
-  .btn { width: 100%; }
+.app-toast {
+  position: fixed;
+  left: 50%;
+  top: 20px;
+  transform: translateX(-50%) translateY(-20px);
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 999;
 }
+.app-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.app-toast-success { background: rgba(82, 196, 26, 0.9); }
+.app-toast-error { background: rgba(255, 77, 79, 0.9); }
 
 </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div>
-                <h1>字符串相似度比对工具</h1>
-                <p>对比两列文本，查找最相似候选并高亮差异</p>
-            </div>
-            <div class="header-actions">
-                <button id="toggle-theme" class="theme-toggle" title="切换主题">切换主题</button>
-            </div>
-        </header>
-
-        <div class="main-content">
-            <!-- 输入区域 -->
-            <section class="input-section">
-                <h2>输入数据</h2>
-                <div class="input-group">
-                    <div class="input-column">
-                        <label for="source-column">源数据列（待比对）</label>
-                        <textarea id="source-column" placeholder="粘贴源数据，每行一条..."></textarea>
-                        <div class="input-info">条数：<span id="source-count">0</span></div>
-                        <div class="sample-hint" id="source-hint">提示：每行一条文本，支持从 Excel 粘贴</div>
-                    </div>
-                    <div class="input-column">
-                        <label for="target-column">目标数据列（候选）</label>
-                        <textarea id="target-column" placeholder="粘贴候选数据，每行一条..."></textarea>
-                        <div class="input-info">条数：<span id="target-count">0</span></div>
-                        <div class="sample-hint" id="target-hint">提示：每行一条文本，支持从 Excel 粘贴</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 比较设置 -->
-            <section class="settings-section">
-                <h2>比较设置</h2>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label>
-                            <input type="checkbox" id="ignore-punctuation" checked>
-                            忽略标点
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <label>
-                            <input type="checkbox" id="fullwidth-to-halfwidth" checked>
-                            全角转半角
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <label>
-                            <input type="checkbox" id="ignore-invisible-chars" checked>
-                            忽略不可见字符
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <label>
-                            <input type="checkbox" id="whole-string-mode" checked>
-                            整串对比
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <label for="synonym-groups">同义词组（用逗号分隔）</label>
-                        <textarea id="synonym-groups" placeholder="例如：阿里巴巴, 阿里"></textarea>
-                        <div class="sample-hint" id="synonym-hint">同组第一个词作为代表词。多组可用换行/分号/顿号分隔。</div>
-                    </div>
-                    <div class="setting-item">
-                        <label for="ignore-terms">忽略对比词（逗号/空格/换行分隔）</label>
-                        <textarea id="ignore-terms" placeholder="例如：股份有限公司, 有限公司, 科技, 信息"></textarea>
-                        <div class="sample-hint">这些词将被直接忽略，不参与相似度对比</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 控制按钮 -->
-            <section class="control-section">
-                <div class="control-head">
-                    <div class="threshold-inline">
-                        <label for="similarity-threshold">相似度阈值</label>
-                        <input type="range" id="similarity-threshold" min="0" max="100" value="70">
-                        <span id="threshold-value">70%</span>
-                    </div>
-                    <div class="progress-wrap">
-                        <div class="progress-bar">
-                            <div id="progress-fill" class="progress-fill"></div>
-                        </div>
-                        <div id="progress-text" class="progress-text">准备就绪</div>
-                    </div>
-                </div>
-
-                <div class="control-buttons">
-                    <button id="load-sample" class="btn btn-secondary">加载示例数据</button>
-                    <button id="start-comparison" class="btn btn-primary">开始比对</button>
-                    <button id="stop-comparison" class="btn btn-danger" disabled>停止比对</button>
-                </div>
-            </section>
-
-            <!-- 结果展示 -->
-            <section class="results-section">
-                <h2>对比结果</h2>
-                <div class="results-controls">
-                    <button id="export-simple" class="btn btn-info">导出简化结果</button>
-                    <button id="export-results" class="btn btn-success">导出结果</button>
-                    <button id="copy-simple" class="btn btn-warning">复制简单结果</button>
-                    <button id="copy-results" class="btn btn-secondary">复制结果</button>
-                    <button id="clear-results" class="btn btn-secondary">清空结果</button>
-                </div>
-                <div id="results-container" class="results-container">
-                    <div class="no-results">暂无比对结果</div>
-                </div>
-            </section>
+    <header class="app-header">
+        <div class="app-title">字符串相似度比对工具</div>
+        <div class="header-actions">
+            <button class="btn btn-ghost" id="load-sample">加载示例</button>
+            <button class="btn btn-ghost" id="save-settings">保存设置</button>
+            <button class="btn btn-ghost" id="load-settings">加载设置</button>
+            <button class="btn btn-ghost" id="export-results">导出完整CSV</button>
+            <button class="btn btn-ghost" id="export-simple">导出简化CSV</button>
+            <button class="btn btn-ghost" id="toggle-theme" title="切换主题">切换主题</button>
         </div>
-    </div>
+    </header>
+
+    <main class="main-container">
+        <section class="panel left-panel">
+            <div class="panel-title">输入文本</div>
+
+            <div class="input-area-group">
+                <div class="input-column">
+                    <label class="form-label" for="source-column">源列 <span class="count-badge" id="source-count">0</span></label>
+                    <textarea id="source-column" placeholder="每行一个待匹配文本"></textarea>
+                    <div class="sample-hint" id="source-hint">提示：每行一条文本，支持从 Excel 粘贴</div>
+                </div>
+                <div class="input-column">
+                    <label class="form-label" for="target-column">目标列 <span class="count-badge" id="target-count">0</span></label>
+                    <textarea id="target-column" placeholder="每行一个候选文本"></textarea>
+                    <div class="sample-hint" id="target-hint">提示：每行一条文本，支持从 Excel 粘贴</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="start-comparison">开始比对</button>
+                <button class="btn btn-danger" id="stop-comparison" disabled>停止比对</button>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">预处理设置</span>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="ignore-punctuation" checked> 忽略标点</label>
+                    <label><input type="checkbox" id="fullwidth-to-halfwidth" checked> 全角转半角</label>
+                    <label><input type="checkbox" id="ignore-invisible-chars" checked> 忽略不可见字符</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="similarity-threshold">相似度阈值: <span id="threshold-value">70%</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="similarity-threshold" min="0" max="100" value="70">
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">词表</span>
+                <div class="dual-group">
+                    <div>
+                        <label class="form-label" for="synonym-groups">同义词组</label>
+                        <textarea id="synonym-groups" placeholder="例: 阿里巴巴, 阿里 (多组用换行或分号分隔)" style="height: 90px;"></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label" for="ignore-terms">忽略对比词</label>
+                        <textarea id="ignore-terms" placeholder="例: 股份有限公司, 有限公司, 科技, 信息" style="height: 90px;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <span class="settings-title">比对算法（仅保留一种选择）</span>
+                <div class="radio-group">
+                    <label><input type="radio" name="algo-mode" value="fusion" checked> 融合权重</label>
+                    <label><input type="radio" name="algo-mode" value="edit"> 编辑距离</label>
+                    <label><input type="radio" name="algo-mode" value="jaro"> Jaro-Winkler</label>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel right-panel">
+            <div class="panel-title">比对结果</div>
+
+            <div class="progress-section">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-fill">0%</div>
+                </div>
+                <div class="current-item-status" id="progress-text">准备就绪</div>
+                <div class="current-item-status" id="current-status">当前处理项：-</div>
+            </div>
+
+            <div class="results-controls">
+                <button id="copy-simple" class="btn btn-secondary">复制简化结果</button>
+                <button id="copy-results" class="btn btn-secondary">复制完整结果</button>
+                <button id="clear-results" class="btn btn-secondary">清空结果</button>
+            </div>
+
+            <div id="results-container" class="results-table-container results-container">
+                <div class="no-results">暂无比对结果</div>
+            </div>
+
+            <div class="legend">
+                高亮说明：<span class="diff-add">绿色</span> 新增，<span class="diff-del">红色删除线</span> 删除，未变化保持默认。
+            </div>
+        </section>
+    </main>
 
     <script>
 /**
@@ -981,18 +1150,21 @@ class SimilarityApp {
         this.ignorePunctuation = document.getElementById('ignore-punctuation');
         this.fullwidthToHalfwidth = document.getElementById('fullwidth-to-halfwidth');
         this.ignoreInvisibleChars = document.getElementById('ignore-invisible-chars');
-        this.wholeStringMode = document.getElementById('whole-string-mode');
         this.synonymGroups = document.getElementById('synonym-groups');
         this.ignoreTermsEl = document.getElementById('ignore-terms');
+        this.algoRadios = document.querySelectorAll('input[name="algo-mode"]');
 
         // 控制按钮
         this.loadSampleBtn = document.getElementById('load-sample');
         this.startComparisonBtn = document.getElementById('start-comparison');
         this.stopComparisonBtn = document.getElementById('stop-comparison');
+        this.saveSettingsBtn = document.getElementById('save-settings');
+        this.loadSettingsBtn = document.getElementById('load-settings');
 
         // 进度条
         this.progressFill = document.getElementById('progress-fill');
         this.progressText = document.getElementById('progress-text');
+        this.currentStatus = document.getElementById('current-status');
 
         // 结果区域
         this.resultsContainer = document.getElementById('results-container');
@@ -1030,6 +1202,8 @@ class SimilarityApp {
         this.loadSampleBtn.addEventListener('click', () => this.loadSampleData());
         this.startComparisonBtn.addEventListener('click', () => this.startComparison());
         this.stopComparisonBtn.addEventListener('click', () => this.stopComparison());
+        if (this.saveSettingsBtn) this.saveSettingsBtn.addEventListener('click', () => this.saveData());
+        if (this.loadSettingsBtn) this.loadSettingsBtn.addEventListener('click', () => this.loadData());
 
         // 导出按钮事件
         if (this.exportResultsBtn) this.exportResultsBtn.addEventListener('click', () => this.exportResults());
@@ -1037,6 +1211,13 @@ class SimilarityApp {
         if (this.copySimpleBtn) this.copySimpleBtn.addEventListener('click', () => this.copySimpleResults());
         if (this.copyResultsBtn) this.copyResultsBtn.addEventListener('click', () => this.copyFullResults());
         if (this.clearResultsBtn) this.clearResultsBtn.addEventListener('click', () => this.clearResults());
+
+        // 算法选项
+        if (this.algoRadios && this.algoRadios.length) {
+            this.algoRadios.forEach(radio => radio.addEventListener('change', () => {
+                this.setCurrentStatus('比对算法已切换，下次比对生效');
+            }));
+        }
 
         // 初始化显示
         this.updateThresholdDisplay();
@@ -1056,6 +1237,8 @@ class SimilarityApp {
         this.resultsContainer.innerHTML = '<div class="no-results">暂无比较结果</div>';
         this.progressText.textContent = '已清空结果';
         this.progressFill.style.width = '0%';
+        this.progressFill.textContent = '0%';
+        this.setCurrentStatus('当前处理项：-');
     }
 
     /**
@@ -1192,25 +1375,34 @@ class SimilarityApp {
             return;
         }
 
+        const algoMode = this.getSelectedAlgorithm();
+        let weights = { edit: 0.6, jaro: 0.4 };
+        if (algoMode === 'edit') {
+            weights = { edit: 1, jaro: 0 };
+        } else if (algoMode === 'jaro') {
+            weights = { edit: 0, jaro: 1 };
+        }
         // 准备计算选项
         const options = {
             threshold: parseInt(this.thresholdSlider.value) / 100,
             ignorePunctuation: this.ignorePunctuation.checked,
             fullwidthToHalfwidth: this.fullwidthToHalfwidth.checked,
             ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
-            wholeStringMode: this.wholeStringMode.checked,
             synonymGroups: this.synonymGroups.value,
             ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : '',
-            weights: {
-                edit: 0.6,
-                jaro: 0.4
-            }
+            weights
         };
 
         // 开始计算
         this.isCalculating = true;
         this.updateUIState();
         this.results = [];
+        this.lockedResults.clear();
+        if (this.tempSelections) this.tempSelections.clear();
+        this.progressFill.style.width = '0%';
+        this.progressFill.textContent = '0%';
+        this.progressText.textContent = '开始计算...';
+        this.setCurrentStatus('准备处理...');
 
         // 使用同步计算（避免Worker的复杂性）
         this.performCalculation(sourceList, targetList, options);
@@ -1239,6 +1431,11 @@ class SimilarityApp {
 
         // 使用setTimeout来避免阻塞UI
         const processNext = (index) => {
+            if (!this.isCalculating) {
+                this.progressText.textContent = '计算已停止';
+                this.setCurrentStatus('当前处理项：-');
+                return;
+            }
             if (index >= sourceList.length) {
                 // 计算完成
                 this.results = results;
@@ -1247,11 +1444,14 @@ class SimilarityApp {
                 this.displayResults();
                 this.progressText.textContent = '计算完成';
                 this.progressFill.style.width = '100%';
+                this.progressFill.textContent = '100%';
+                this.setCurrentStatus('比对完成');
                 return;
             }
 
             const source = sourceList[index];
             const matches = [];
+            this.setCurrentStatus(`当前处理项：${source}`);
 
             // 计算当前源字符串与所有目标字符串的相似度
             for (let j = 0; j < targetList.length; j++) {
@@ -1287,6 +1487,7 @@ class SimilarityApp {
             // 更新进度
             const percentage = Math.round(((index + 1) / total) * 100);
             this.progressFill.style.width = percentage + '%';
+            this.progressFill.textContent = percentage + '%';
             this.progressText.textContent = `正在处理: ${source} (${index + 1}/${total})`;
 
             // 继续处理下一个
@@ -1306,6 +1507,7 @@ class SimilarityApp {
             this.isCalculating = false;
             this.updateUIState();
             this.progressText.textContent = '计算已停止';
+            this.setCurrentStatus('当前处理项：-');
         }
     }
 
@@ -1317,6 +1519,12 @@ class SimilarityApp {
         this.startComparisonBtn.disabled = this.isCalculating;
         this.stopComparisonBtn.disabled = !this.isCalculating;
         this.loadSampleBtn.disabled = this.isCalculating;
+    }
+
+    setCurrentStatus(text) {
+        if (this.currentStatus) {
+            this.currentStatus.textContent = text;
+        }
     }
 
     /**
@@ -1341,6 +1549,7 @@ class SimilarityApp {
      * @returns {string} - 表格HTML字符串
      */
     createTableHTML() {
+        const diffAlgo = 'lcs';
         let html = `
             <div class="results-table-container">
                 <table class="results-table">
@@ -1372,14 +1581,14 @@ class SimilarityApp {
                 bestSimilarity = Math.round(lockedMatch.similarity * 100) + '%';
                 otherMatches = '<span class="locked-indicator">已锁定</span>';
                 // 生成字符级差异（目标相对源：新增=红底，删除=绿删）
-                const diff = this.calculator.calculateCharDiff(result.source, lockedMatch.text, 'lcs');
+                const diff = this.calculator.calculateCharDiff(result.source, lockedMatch.text, diffAlgo);
                 bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
             } else if (tempMatch) {
                 // 显示临时选择的结果
                 bestMatch = tempMatch.text;
                 bestSimilarity = Math.round(tempMatch.similarity * 100) + '%';
                 // 生成字符级差异
-                const diff = this.calculator.calculateCharDiff(result.source, tempMatch.text, 'lcs');
+                const diff = this.calculator.calculateCharDiff(result.source, tempMatch.text, diffAlgo);
                 bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
                 // 显示其他相似值（包括原来的最相似值）
                 const otherMatchesList = result.matches
@@ -1387,7 +1596,7 @@ class SimilarityApp {
                     .slice(0, 5)
                     .map(match => {
                     const percentage = Math.round(match.similarity * 100);
-                        const diff = this.calculator.calculateCharDiff(result.source, match.text, 'lcs');
+                        const diff = this.calculator.calculateCharDiff(result.source, match.text, diffAlgo);
                         const diffHtml = this.calculator.generateDiffHTML(diff.diff);
                     return `<div class="other-match" data-match='${JSON.stringify(match)}' data-source-index="${index}">
                         <span class="match-text">${diffHtml}</span>
@@ -1402,12 +1611,12 @@ class SimilarityApp {
                 bestMatch = topMatch.text;
                 bestSimilarity = Math.round(topMatch.similarity * 100) + '%';
                 // 生成字符级差异
-                const diff = this.calculator.calculateCharDiff(result.source, topMatch.text, 'lcs');
+                const diff = this.calculator.calculateCharDiff(result.source, topMatch.text, diffAlgo);
                 bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
                 // 显示其他相似值（最多显示3个）
                 const otherMatchesList = result.matches.slice(1, 6).map(match => {
                     const percentage = Math.round(match.similarity * 100);
-                    const diff = this.calculator.calculateCharDiff(result.source, match.text, 'lcs');
+                    const diff = this.calculator.calculateCharDiff(result.source, match.text, diffAlgo);
                     const diffHtml = this.calculator.generateDiffHTML(diff.diff);
                     return `<div class="other-match" data-match='${JSON.stringify(match)}' data-source-index="${index}">
                         <span class="match-text">${diffHtml}</span>
@@ -1467,6 +1676,22 @@ class SimilarityApp {
         if (similarity >= 0.8) return 'similar';
         if (similarity >= 0.5) return 'medium';
         return 'low';
+    }
+
+    /**
+     * 获取相似度算法模式
+     */
+    getSelectedAlgorithm() {
+        if (!this.algoRadios || !this.algoRadios.length) return 'fusion';
+        const checked = Array.from(this.algoRadios).find(r => r.checked);
+        return (checked && checked.value) ? checked.value : 'fusion';
+    }
+
+    setRadioValue(radios, value) {
+        if (!radios || !radios.length) return;
+        radios.forEach(radio => {
+            radio.checked = radio.value === value;
+        });
     }
 
     /**
@@ -1647,14 +1872,14 @@ class SimilarityApp {
      */
     copySimpleResults() {
         if (this.results.length === 0) {
-            alert('û�пɵ����Ľ��');
+            alert('没有可复制的结果');
             return;
         }
         const tsv = this.buildSimpleTSV();
         this.copyToClipboard(tsv).then(() => {
-            this.showToast('�򻯽����Ѹ��Ƶ�������', 'success');
+            this.showToast('简化结果已复制到剪贴板', 'success');
         }).catch(() => {
-            this.showToast('����ʧ��', 'error');
+            this.showToast('复制失败', 'error');
         });
     }
 
@@ -1663,14 +1888,14 @@ class SimilarityApp {
      */
     copyFullResults() {
         if (this.results.length === 0) {
-            alert('û�пɵ����Ľ��');
+            alert('没有可复制的结果');
             return;
         }
         const tsv = this.buildFullTSV();
         this.copyToClipboard(tsv).then(() => {
-            this.showToast('���Ѹ��Ƶ�������', 'success');
+            this.showToast('完整结果已复制到剪贴板', 'success');
         }).catch(() => {
-            this.showToast('����ʧ��', 'error');
+            this.showToast('复制失败', 'error');
         });
     }
 
@@ -1787,9 +2012,9 @@ class SimilarityApp {
                 ignorePunctuation: this.ignorePunctuation.checked,
                 fullwidthToHalfwidth: this.fullwidthToHalfwidth.checked,
                 ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
-                wholeStringMode: this.wholeStringMode.checked,
                 synonymGroups: this.synonymGroups.value,
-                ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : ''
+                ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : '',
+                algoMode: this.getSelectedAlgorithm()
             }
         };
 
@@ -1820,9 +2045,9 @@ class SimilarityApp {
                 this.ignorePunctuation.checked = data.settings.ignorePunctuation !== false;
                 this.fullwidthToHalfwidth.checked = data.settings.fullwidthToHalfwidth !== false;
                 this.ignoreInvisibleChars.checked = data.settings.ignoreInvisibleChars !== false;
-                this.wholeStringMode.checked = data.settings.wholeStringMode !== false;
                 this.synonymGroups.value = data.settings.synonymGroups || '';
                 if (this.ignoreTermsEl) this.ignoreTermsEl.value = data.settings.ignoreTerms || '';
+                if (data.settings.algoMode) this.setRadioValue(this.algoRadios, data.settings.algoMode);
                 this.updateThresholdDisplay();
             }
 
@@ -1847,9 +2072,9 @@ class SimilarityApp {
                     this.ignorePunctuation.checked = data.settings.ignorePunctuation !== false;
                     this.fullwidthToHalfwidth.checked = data.settings.fullwidthToHalfwidth !== false;
                     this.ignoreInvisibleChars.checked = data.settings.ignoreInvisibleChars !== false;
-                    this.wholeStringMode.checked = data.settings.wholeStringMode !== false;
                     this.synonymGroups.value = data.settings.synonymGroups || '';
                     if (this.ignoreTermsEl) this.ignoreTermsEl.value = data.settings.ignoreTerms || '';
+                    if (data.settings.algoMode) this.setRadioValue(this.algoRadios, data.settings.algoMode);
                     this.updateThresholdDisplay();
                 }
             }
@@ -1964,8 +2189,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
-
 </script>
     <script>
 (function(){
@@ -2051,14 +2274,14 @@ document.addEventListener('DOMContentLoaded', () => {
       // 覆盖导出方法，输出 .xls(HTML) 且设置列宽/换行
       var origExportResults = P.exportResults;
       P.exportResults = function(){
-        if (this.results.length === 0) { alert('û�пɵ����Ľ��'); return; }
+        if (this.results.length === 0) { alert('没有可导出的结果'); return; }
         var html = this.generateFullExcelHTML();
         this.downloadFile('\ufeff' + html, 'similarity_results.xls', 'application/vnd.ms-excel;charset=utf-8');
       };
 
       var origExportSimpleResults = P.exportSimpleResults;
       P.exportSimpleResults = function(){
-        if (this.results.length === 0) { alert('û�пɵ����Ľ��'); return; }
+        if (this.results.length === 0) { alert('没有可导出的结果'); return; }
         var html = this.generateSimpleExcelHTML();
         this.downloadFile('\ufeff' + html, 'similarity_results_simple.xls', 'application/vnd.ms-excel;charset=utf-8');
       };
@@ -2080,6 +2303,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!data || !data.settings) return false;
       var s = data.settings;
       var q = function(id){ return document.getElementById(id); };
+      var setRadio = function(name, value){
+        var list = document.querySelectorAll('input[name="' + name + '"]');
+        if (!list || !list.length) return;
+        list.forEach(function(r){ r.checked = (r.value === value); });
+      };
       var slider = q('similarity-threshold');
       var thresholdValue = q('threshold-value');
       if (slider && s.threshold != null) {
@@ -2089,9 +2317,9 @@ document.addEventListener('DOMContentLoaded', () => {
       var ip = q('ignore-punctuation'); if (ip) ip.checked = s.ignorePunctuation !== false;
       var fw = q('fullwidth-to-halfwidth'); if (fw) fw.checked = s.fullwidthToHalfwidth !== false;
       var inv = q('ignore-invisible-chars'); if (inv) inv.checked = s.ignoreInvisibleChars !== false;
-      var whole = q('whole-string-mode'); if (whole) whole.checked = s.wholeStringMode !== false;
       var syn = q('synonym-groups'); if (syn) syn.value = s.synonymGroups || '';
       var ign = q('ignore-terms'); if (ign) ign.value = s.ignoreTerms || '';
+      if (s.algoMode) setRadio('algo-mode', s.algoMode);
       return true;
     } catch (e) { return false; }
   }
@@ -2106,9 +2334,12 @@ document.addEventListener('DOMContentLoaded', () => {
           ignorePunctuation: q('ignore-punctuation') ? q('ignore-punctuation').checked : true,
           fullwidthToHalfwidth: q('fullwidth-to-halfwidth') ? q('fullwidth-to-halfwidth').checked : true,
           ignoreInvisibleChars: q('ignore-invisible-chars') ? q('ignore-invisible-chars').checked : true,
-          wholeStringMode: q('whole-string-mode') ? q('whole-string-mode').checked : true,
           synonymGroups: q('synonym-groups') ? q('synonym-groups').value : '',
-          ignoreTerms: q('ignore-terms') ? q('ignore-terms').value : ''
+          ignoreTerms: q('ignore-terms') ? q('ignore-terms').value : '',
+          algoMode: (function(){
+            var r = document.querySelector('input[name="algo-mode"]:checked');
+            return r ? r.value : 'fusion';
+          })()
         }
       };
       sessionStorage.setItem('similarityAppSettings', JSON.stringify(data));
@@ -2122,7 +2353,6 @@ document.addEventListener('DOMContentLoaded', () => {
     add(document.getElementById('ignore-punctuation'), 'change');
     add(document.getElementById('fullwidth-to-halfwidth'), 'change');
     add(document.getElementById('ignore-invisible-chars'), 'change');
-    add(document.getElementById('whole-string-mode'), 'change');
     add(document.getElementById('synonym-groups'), 'input');
     add(document.getElementById('ignore-terms'), 'input');
   }
@@ -2135,7 +2365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var sc = document.getElementById('source-count'); if (sc) sc.textContent = '0';
     var tc = document.getElementById('target-count'); if (tc) tc.textContent = '0';
     var rc = document.getElementById('results-container');
-    if (rc) rc.innerHTML = '<div class="no-results">���ޱȽϽ��</div>';
+    if (rc) rc.innerHTML = '<div class="no-results">暂无比较结果</div>';
   }
 
   document.addEventListener('DOMContentLoaded', function(){

@@ -49,18 +49,21 @@ class SimilarityApp {
         this.ignorePunctuation = document.getElementById('ignore-punctuation');
         this.fullwidthToHalfwidth = document.getElementById('fullwidth-to-halfwidth');
         this.ignoreInvisibleChars = document.getElementById('ignore-invisible-chars');
-        this.wholeStringMode = document.getElementById('whole-string-mode');
         this.synonymGroups = document.getElementById('synonym-groups');
         this.ignoreTermsEl = document.getElementById('ignore-terms');
+        this.algoRadios = document.querySelectorAll('input[name="algo-mode"]');
 
         // 控制按钮
         this.loadSampleBtn = document.getElementById('load-sample');
         this.startComparisonBtn = document.getElementById('start-comparison');
         this.stopComparisonBtn = document.getElementById('stop-comparison');
+        this.saveSettingsBtn = document.getElementById('save-settings');
+        this.loadSettingsBtn = document.getElementById('load-settings');
 
         // 进度条
         this.progressFill = document.getElementById('progress-fill');
         this.progressText = document.getElementById('progress-text');
+        this.currentStatus = document.getElementById('current-status');
 
         // 结果区域
         this.resultsContainer = document.getElementById('results-container');
@@ -98,6 +101,8 @@ class SimilarityApp {
         this.loadSampleBtn.addEventListener('click', () => this.loadSampleData());
         this.startComparisonBtn.addEventListener('click', () => this.startComparison());
         this.stopComparisonBtn.addEventListener('click', () => this.stopComparison());
+        if (this.saveSettingsBtn) this.saveSettingsBtn.addEventListener('click', () => this.saveData());
+        if (this.loadSettingsBtn) this.loadSettingsBtn.addEventListener('click', () => this.loadData());
 
         // 导出按钮事件
         if (this.exportResultsBtn) this.exportResultsBtn.addEventListener('click', () => this.exportResults());
@@ -105,6 +110,13 @@ class SimilarityApp {
         if (this.copySimpleBtn) this.copySimpleBtn.addEventListener('click', () => this.copySimpleResults());
         if (this.copyResultsBtn) this.copyResultsBtn.addEventListener('click', () => this.copyFullResults());
         if (this.clearResultsBtn) this.clearResultsBtn.addEventListener('click', () => this.clearResults());
+
+        // 算法选项
+        if (this.algoRadios && this.algoRadios.length) {
+            this.algoRadios.forEach(radio => radio.addEventListener('change', () => {
+                this.setCurrentStatus('比对算法已切换，下次比对生效');
+            }));
+        }
 
         // 初始化显示
         this.updateThresholdDisplay();
@@ -124,6 +136,8 @@ class SimilarityApp {
         this.resultsContainer.innerHTML = '<div class="no-results">暂无比较结果</div>';
         this.progressText.textContent = '已清空结果';
         this.progressFill.style.width = '0%';
+        this.progressFill.textContent = '0%';
+        this.setCurrentStatus('当前处理项：-');
     }
 
     /**
@@ -260,25 +274,34 @@ class SimilarityApp {
             return;
         }
 
+        const algoMode = this.getSelectedAlgorithm();
+        let weights = { edit: 0.6, jaro: 0.4 };
+        if (algoMode === 'edit') {
+            weights = { edit: 1, jaro: 0 };
+        } else if (algoMode === 'jaro') {
+            weights = { edit: 0, jaro: 1 };
+        }
         // 准备计算选项
         const options = {
             threshold: parseInt(this.thresholdSlider.value) / 100,
             ignorePunctuation: this.ignorePunctuation.checked,
             fullwidthToHalfwidth: this.fullwidthToHalfwidth.checked,
             ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
-            wholeStringMode: this.wholeStringMode.checked,
             synonymGroups: this.synonymGroups.value,
             ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : '',
-            weights: {
-                edit: 0.6,
-                jaro: 0.4
-            }
+            weights
         };
 
         // 开始计算
         this.isCalculating = true;
         this.updateUIState();
         this.results = [];
+        this.lockedResults.clear();
+        if (this.tempSelections) this.tempSelections.clear();
+        this.progressFill.style.width = '0%';
+        this.progressFill.textContent = '0%';
+        this.progressText.textContent = '开始计算...';
+        this.setCurrentStatus('准备处理...');
 
         // 使用同步计算（避免Worker的复杂性）
         this.performCalculation(sourceList, targetList, options);
@@ -307,6 +330,11 @@ class SimilarityApp {
 
         // 使用setTimeout来避免阻塞UI
         const processNext = (index) => {
+            if (!this.isCalculating) {
+                this.progressText.textContent = '计算已停止';
+                this.setCurrentStatus('当前处理项：-');
+                return;
+            }
             if (index >= sourceList.length) {
                 // 计算完成
                 this.results = results;
@@ -315,11 +343,14 @@ class SimilarityApp {
                 this.displayResults();
                 this.progressText.textContent = '计算完成';
                 this.progressFill.style.width = '100%';
+                this.progressFill.textContent = '100%';
+                this.setCurrentStatus('比对完成');
                 return;
             }
 
             const source = sourceList[index];
             const matches = [];
+            this.setCurrentStatus(`当前处理项：${source}`);
 
             // 计算当前源字符串与所有目标字符串的相似度
             for (let j = 0; j < targetList.length; j++) {
@@ -355,6 +386,7 @@ class SimilarityApp {
             // 更新进度
             const percentage = Math.round(((index + 1) / total) * 100);
             this.progressFill.style.width = percentage + '%';
+            this.progressFill.textContent = percentage + '%';
             this.progressText.textContent = `正在处理: ${source} (${index + 1}/${total})`;
 
             // 继续处理下一个
@@ -374,6 +406,7 @@ class SimilarityApp {
             this.isCalculating = false;
             this.updateUIState();
             this.progressText.textContent = '计算已停止';
+            this.setCurrentStatus('当前处理项：-');
         }
     }
 
@@ -385,6 +418,12 @@ class SimilarityApp {
         this.startComparisonBtn.disabled = this.isCalculating;
         this.stopComparisonBtn.disabled = !this.isCalculating;
         this.loadSampleBtn.disabled = this.isCalculating;
+    }
+
+    setCurrentStatus(text) {
+        if (this.currentStatus) {
+            this.currentStatus.textContent = text;
+        }
     }
 
     /**
@@ -409,6 +448,7 @@ class SimilarityApp {
      * @returns {string} - 表格HTML字符串
      */
     createTableHTML() {
+        const diffAlgo = 'lcs';
         let html = `
             <div class="results-table-container">
                 <table class="results-table">
@@ -440,14 +480,14 @@ class SimilarityApp {
                 bestSimilarity = Math.round(lockedMatch.similarity * 100) + '%';
                 otherMatches = '<span class="locked-indicator">已锁定</span>';
                 // 生成字符级差异（目标相对源：新增=红底，删除=绿删）
-                const diff = this.calculator.calculateCharDiff(result.source, lockedMatch.text, 'lcs');
+                const diff = this.calculator.calculateCharDiff(result.source, lockedMatch.text, diffAlgo);
                 bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
             } else if (tempMatch) {
                 // 显示临时选择的结果
                 bestMatch = tempMatch.text;
                 bestSimilarity = Math.round(tempMatch.similarity * 100) + '%';
                 // 生成字符级差异
-                const diff = this.calculator.calculateCharDiff(result.source, tempMatch.text, 'lcs');
+                const diff = this.calculator.calculateCharDiff(result.source, tempMatch.text, diffAlgo);
                 bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
                 // 显示其他相似值（包括原来的最相似值）
                 const otherMatchesList = result.matches
@@ -455,7 +495,7 @@ class SimilarityApp {
                     .slice(0, 5)
                     .map(match => {
                     const percentage = Math.round(match.similarity * 100);
-                        const diff = this.calculator.calculateCharDiff(result.source, match.text, 'lcs');
+                        const diff = this.calculator.calculateCharDiff(result.source, match.text, diffAlgo);
                         const diffHtml = this.calculator.generateDiffHTML(diff.diff);
                     return `<div class="other-match" data-match='${JSON.stringify(match)}' data-source-index="${index}">
                         <span class="match-text">${diffHtml}</span>
@@ -470,12 +510,12 @@ class SimilarityApp {
                 bestMatch = topMatch.text;
                 bestSimilarity = Math.round(topMatch.similarity * 100) + '%';
                 // 生成字符级差异
-                const diff = this.calculator.calculateCharDiff(result.source, topMatch.text, 'lcs');
+                const diff = this.calculator.calculateCharDiff(result.source, topMatch.text, diffAlgo);
                 bestMatchDiffHtml = this.calculator.generateDiffHTML(diff.diff);
                 // 显示其他相似值（最多显示3个）
                 const otherMatchesList = result.matches.slice(1, 6).map(match => {
                     const percentage = Math.round(match.similarity * 100);
-                    const diff = this.calculator.calculateCharDiff(result.source, match.text, 'lcs');
+                    const diff = this.calculator.calculateCharDiff(result.source, match.text, diffAlgo);
                     const diffHtml = this.calculator.generateDiffHTML(diff.diff);
                     return `<div class="other-match" data-match='${JSON.stringify(match)}' data-source-index="${index}">
                         <span class="match-text">${diffHtml}</span>
@@ -535,6 +575,22 @@ class SimilarityApp {
         if (similarity >= 0.8) return 'similar';
         if (similarity >= 0.5) return 'medium';
         return 'low';
+    }
+
+    /**
+     * 获取相似度算法模式
+     */
+    getSelectedAlgorithm() {
+        if (!this.algoRadios || !this.algoRadios.length) return 'fusion';
+        const checked = Array.from(this.algoRadios).find(r => r.checked);
+        return (checked && checked.value) ? checked.value : 'fusion';
+    }
+
+    setRadioValue(radios, value) {
+        if (!radios || !radios.length) return;
+        radios.forEach(radio => {
+            radio.checked = radio.value === value;
+        });
     }
 
     /**
@@ -715,14 +771,14 @@ class SimilarityApp {
      */
     copySimpleResults() {
         if (this.results.length === 0) {
-            alert('û�пɵ����Ľ��');
+            alert('没有可复制的结果');
             return;
         }
         const tsv = this.buildSimpleTSV();
         this.copyToClipboard(tsv).then(() => {
-            this.showToast('�򻯽����Ѹ��Ƶ�������', 'success');
+            this.showToast('简化结果已复制到剪贴板', 'success');
         }).catch(() => {
-            this.showToast('����ʧ��', 'error');
+            this.showToast('复制失败', 'error');
         });
     }
 
@@ -731,14 +787,14 @@ class SimilarityApp {
      */
     copyFullResults() {
         if (this.results.length === 0) {
-            alert('û�пɵ����Ľ��');
+            alert('没有可复制的结果');
             return;
         }
         const tsv = this.buildFullTSV();
         this.copyToClipboard(tsv).then(() => {
-            this.showToast('���Ѹ��Ƶ�������', 'success');
+            this.showToast('完整结果已复制到剪贴板', 'success');
         }).catch(() => {
-            this.showToast('����ʧ��', 'error');
+            this.showToast('复制失败', 'error');
         });
     }
 
@@ -855,9 +911,9 @@ class SimilarityApp {
                 ignorePunctuation: this.ignorePunctuation.checked,
                 fullwidthToHalfwidth: this.fullwidthToHalfwidth.checked,
                 ignoreInvisibleChars: this.ignoreInvisibleChars.checked,
-                wholeStringMode: this.wholeStringMode.checked,
                 synonymGroups: this.synonymGroups.value,
-                ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : ''
+                ignoreTerms: this.ignoreTermsEl ? this.ignoreTermsEl.value : '',
+                algoMode: this.getSelectedAlgorithm()
             }
         };
 
@@ -888,9 +944,9 @@ class SimilarityApp {
                 this.ignorePunctuation.checked = data.settings.ignorePunctuation !== false;
                 this.fullwidthToHalfwidth.checked = data.settings.fullwidthToHalfwidth !== false;
                 this.ignoreInvisibleChars.checked = data.settings.ignoreInvisibleChars !== false;
-                this.wholeStringMode.checked = data.settings.wholeStringMode !== false;
                 this.synonymGroups.value = data.settings.synonymGroups || '';
                 if (this.ignoreTermsEl) this.ignoreTermsEl.value = data.settings.ignoreTerms || '';
+                if (data.settings.algoMode) this.setRadioValue(this.algoRadios, data.settings.algoMode);
                 this.updateThresholdDisplay();
             }
 
@@ -915,9 +971,9 @@ class SimilarityApp {
                     this.ignorePunctuation.checked = data.settings.ignorePunctuation !== false;
                     this.fullwidthToHalfwidth.checked = data.settings.fullwidthToHalfwidth !== false;
                     this.ignoreInvisibleChars.checked = data.settings.ignoreInvisibleChars !== false;
-                    this.wholeStringMode.checked = data.settings.wholeStringMode !== false;
                     this.synonymGroups.value = data.settings.synonymGroups || '';
                     if (this.ignoreTermsEl) this.ignoreTermsEl.value = data.settings.ignoreTerms || '';
+                    if (data.settings.algoMode) this.setRadioValue(this.algoRadios, data.settings.algoMode);
                     this.updateThresholdDisplay();
                 }
             }
@@ -1031,5 +1087,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
-

@@ -7,6 +7,11 @@
       if (!data || !data.settings) return false;
       var s = data.settings;
       var q = function(id){ return document.getElementById(id); };
+      var setRadio = function(name, value){
+        var list = document.querySelectorAll('input[name="' + name + '"]');
+        if (!list || !list.length) return;
+        list.forEach(function(r){ r.checked = (r.value === value); });
+      };
       var slider = q('similarity-threshold');
       var thresholdValue = q('threshold-value');
       if (slider && s.threshold != null) {
@@ -16,9 +21,9 @@
       var ip = q('ignore-punctuation'); if (ip) ip.checked = s.ignorePunctuation !== false;
       var fw = q('fullwidth-to-halfwidth'); if (fw) fw.checked = s.fullwidthToHalfwidth !== false;
       var inv = q('ignore-invisible-chars'); if (inv) inv.checked = s.ignoreInvisibleChars !== false;
-      var whole = q('whole-string-mode'); if (whole) whole.checked = s.wholeStringMode !== false;
       var syn = q('synonym-groups'); if (syn) syn.value = s.synonymGroups || '';
       var ign = q('ignore-terms'); if (ign) ign.value = s.ignoreTerms || '';
+      if (s.algoMode) setRadio('algo-mode', s.algoMode);
       return true;
     } catch (e) { return false; }
   }
@@ -33,9 +38,12 @@
           ignorePunctuation: q('ignore-punctuation') ? q('ignore-punctuation').checked : true,
           fullwidthToHalfwidth: q('fullwidth-to-halfwidth') ? q('fullwidth-to-halfwidth').checked : true,
           ignoreInvisibleChars: q('ignore-invisible-chars') ? q('ignore-invisible-chars').checked : true,
-          wholeStringMode: q('whole-string-mode') ? q('whole-string-mode').checked : true,
           synonymGroups: q('synonym-groups') ? q('synonym-groups').value : '',
-          ignoreTerms: q('ignore-terms') ? q('ignore-terms').value : ''
+          ignoreTerms: q('ignore-terms') ? q('ignore-terms').value : '',
+          algoMode: (function(){
+            var r = document.querySelector('input[name="algo-mode"]:checked');
+            return r ? r.value : 'fusion';
+          })()
         }
       };
       sessionStorage.setItem('similarityAppSettings', JSON.stringify(data));
@@ -49,7 +57,6 @@
     add(document.getElementById('ignore-punctuation'), 'change');
     add(document.getElementById('fullwidth-to-halfwidth'), 'change');
     add(document.getElementById('ignore-invisible-chars'), 'change');
-    add(document.getElementById('whole-string-mode'), 'change');
     add(document.getElementById('synonym-groups'), 'input');
     add(document.getElementById('ignore-terms'), 'input');
   }
@@ -62,7 +69,7 @@
     var sc = document.getElementById('source-count'); if (sc) sc.textContent = '0';
     var tc = document.getElementById('target-count'); if (tc) tc.textContent = '0';
     var rc = document.getElementById('results-container');
-    if (rc) rc.innerHTML = '<div class="no-results">���ޱȽϽ��</div>';
+    if (rc) rc.innerHTML = '<div class="no-results">暂无比较结果</div>';
   }
 
   document.addEventListener('DOMContentLoaded', function(){

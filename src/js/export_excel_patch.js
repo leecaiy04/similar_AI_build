@@ -81,14 +81,14 @@
       // 覆盖导出方法，输出 .xls(HTML) 且设置列宽/换行
       var origExportResults = P.exportResults;
       P.exportResults = function(){
-        if (this.results.length === 0) { alert('û�пɵ����Ľ��'); return; }
+        if (this.results.length === 0) { alert('没有可导出的结果'); return; }
         var html = this.generateFullExcelHTML();
         this.downloadFile('\ufeff' + html, 'similarity_results.xls', 'application/vnd.ms-excel;charset=utf-8');
       };
 
       var origExportSimpleResults = P.exportSimpleResults;
       P.exportSimpleResults = function(){
-        if (this.results.length === 0) { alert('û�пɵ����Ľ��'); return; }
+        if (this.results.length === 0) { alert('没有可导出的结果'); return; }
         var html = this.generateSimpleExcelHTML();
         this.downloadFile('\ufeff' + html, 'similarity_results_simple.xls', 'application/vnd.ms-excel;charset=utf-8');
       };
