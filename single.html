@@ -1,4 +1,4 @@
-leecaiy<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -343,6 +343,92 @@ body {
 .app-toast-success { background: rgba(82, 196, 26, 0.9); }
 .app-toast-error { background: rgba(255, 77, 79, 0.9); }
 
+.guide-panel {
+  margin: 10px 20px 20px;
+  padding: 18px 20px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: linear-gradient(120deg, rgba(24, 144, 255, 0.08), rgba(82, 196, 26, 0.06));
+  color: var(--text);
+}
+
+.guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.guide-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.guide-subtitle {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.guide-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-link {
+  background: transparent;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.btn-link:hover:not(:disabled) { background: rgba(24, 144, 255, 0.08); }
+
+.guide-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.guide-step {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  display: grid;
+  gap: 4px;
+}
+
+.guide-step strong {
+  color: var(--primary);
+}
+
+.guide-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.guide-pill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(24, 144, 255, 0.1);
+  color: var(--primary);
+  font-size: 12px;
+  border: 1px solid rgba(24, 144, 255, 0.25);
+}
+
+.guide-notes {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 </style>
 </head>
 <body>
@@ -445,6 +531,70 @@ body {
             </div>
         </section>
     </main>
+
+    <section class="guide-panel" aria-label="快速上手指南">
+        <div class="guide-header">
+            <div>
+                <div class="guide-title">快速上手指南（适合第一次使用）</div>
+                <div class="guide-subtitle">按顺序点击按钮即可跑通：先加载示例，再粘贴数据、配置词表、开始比对，最后导出或保存设置。</div>
+            </div>
+            <div class="guide-actions">
+                <a class="btn btn-link" id="full-guide-link" href="src/guide.html" target="_blank" rel="noopener noreferrer">查看完整指南</a>
+            </div>
+        </div>
+        <ol class="guide-steps">
+            <li class="guide-step">
+                <strong>1. 先加载示例</strong>
+                <span>点击右上角「加载示例」，熟悉输入区、阈值滑块和结果表格。</span>
+            </li>
+            <li class="guide-step">
+                <strong>2. 粘贴两列数据</strong>
+                <span>左侧为源列，右侧为候选列；确保一行一条记录，计数角标会实时更新。</span>
+            </li>
+            <li class="guide-step">
+                <strong>3. 勾选预处理</strong>
+                <span>默认勾选「忽略标点」「全角转半角」「忽略不可见字符」，可按需调整阈值。</span>
+            </li>
+            <li class="guide-step">
+                <strong>4. 配置词表</strong>
+                <span>在同义词组填入“代表词, 别名”；忽略词可写常见后缀如“股份有限公司、科技、信息”。</span>
+            </li>
+            <li class="guide-step">
+                <strong>5. 选择算法并开始</strong>
+                <span>默认「融合权重」即可，点击「开始比对」后观察进度条；需要暂停时用「停止比对」。</span>
+            </li>
+            <li class="guide-step">
+                <strong>6. 复核与锁定</strong>
+                <span>在结果表格中点击任意候选行即可锁定，鼠标悬停可查看字符差异。</span>
+            </li>
+            <li class="guide-step">
+                <strong>7. 导出或保存</strong>
+                <span>用「导出完整CSV」或「导出简化CSV」下载结果；保存好设置，方便下次「加载设置」继续使用。</span>
+            </li>
+        </ol>
+        <div class="guide-pills">
+            <span class="guide-pill">复制结果/简化结果：快速发给同事</span>
+            <span class="guide-pill">切换主题：明亮/暗色随时换</span>
+            <span class="guide-pill">建议分批处理超大候选列表</span>
+        </div>
+        <div class="guide-notes">如果对齐度不理想，降低阈值或补充同义词组再重新开始；有疑问可打开「完整指南」查看详细解释与示例提示词。</div>
+    </section>
+
+    <script>
+    (function() {
+      var link = document.getElementById('full-guide-link');
+      if (!link) return;
+      var url = link.getAttribute('href');
+      if (!url) { link.style.display = 'none'; return; }
+      try {
+        fetch(url, { method: 'HEAD' }).then(function(res) {
+          if (!res || !res.ok) link.style.display = 'none';
+        }).catch(function() { link.style.display = 'none'; });
+      } catch (_) {
+        link.style.display = 'none';
+      }
+    })();
+    </script>
 
     <script>
 /**
