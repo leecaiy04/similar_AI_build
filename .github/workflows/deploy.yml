@@ -8,7 +8,7 @@ on:
       - 'v*'
 
 jobs:
-  build-and-deploy:
+  build:
     name: Build (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -53,53 +53,60 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install Node Dependencies
-        run: npm install --registry=https://registry.npmmirror.com
+        run: npm install
 
       - name: Build Web app
         run: npm run build:all
 
+      - name: Package Dist (Zip)
+        if: matrix.platform == 'linux'
+        run: |
+          zip -r htmldist_v${{ github.ref_name }}.zip dist/
+          cp dist-single/index.html similar_ai_single_file.html
+
       - name: Build Tauri Package
         run: npm run tauri:build
 
-      - name: Organize Built Artifacts
+      - name: Organize Artifacts
         shell: bash
         run: |
-          mkdir -p bin-tauri
+          mkdir -p release_artifacts
           if [ "${{ matrix.platform }}" == "linux" ]; then
-            find src-tauri/target/release/bundle/deb -name "*.deb" -exec cp {} bin-tauri/ \; 2>/dev/null || true
-            find src-tauri/target/release/bundle/appimage -name "*.AppImage" -exec cp {} bin-tauri/ \; 2>/dev/null || true
+            cp htmldist_v${{ github.ref_name }}.zip release_artifacts/ 2>/dev/null || true
+            cp similar_ai_single_file.html release_artifacts/ 2>/dev/null || true
+            find src-tauri/target/release/bundle/deb -name "*.deb" -exec cp {} release_artifacts/ \; 2>/dev/null || true
+            find src-tauri/target/release/bundle/appimage -name "*.AppImage" -exec cp {} release_artifacts/ \; 2>/dev/null || true
           else
-            find src-tauri/target/release/bundle/msi -name "*.msi" -exec cp {} bin-tauri/ \; 2>/dev/null || true
-            find src-tauri/target/release/bundle/nsis -name "*.exe" -exec cp {} bin-tauri/ \; 2>/dev/null || true
+            find src-tauri/target/release/bundle/msi -name "*.msi" -exec cp {} release_artifacts/ \; 2>/dev/null || true
+            find src-tauri/target/release/bundle/nsis -name "*.exe" -exec cp {} release_artifacts/ \; 2>/dev/null || true
           fi
-          echo "Organized artifacts in bin-tauri:"
-          ls -R bin-tauri/
 
-      - name: SFTP Deployment
-        # SFTP 部署只在 Linux 构建中运行一次，避免重复部署 Web 文件和冲突
-        if: matrix.platform == 'linux'
-        env:
-          SFTP_PASS: ${{ secrets.SFTP_PASS }}
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-          SFTP_PORT: ${{ secrets.SFTP_PORT }}
-        run: npm run deploy
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v3
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: tauri-bundles-${{ matrix.platform }}
-          path: bin-tauri/*
+          name: release-${{ matrix.platform }}
+          path: release_artifacts/*
 
-      - name: Create Gitea Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v1
+  release:
+    name: GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: Release ${{ github.ref_name }}
-          files: |
-            bin-tauri/*.deb
-            bin-tauri/*.AppImage
-            bin-tauri/*.msi
-            bin-tauri/*.exe
+          path: artifacts
+
+      - name: Flatten Artifacts
+        run: |
+          mkdir -p final_release
+          find artifacts -type f -exec cp {} final_release/ \;
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: final_release/*
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

@@ -9,7 +9,6 @@
     "build:single": "vue-tsc -b && vite build --config vite.config.single.ts",
     "build:all": "npm run build && npm run build:single && node -e \"const fs=require('fs'); fs.copyFileSync('dist-single/index.html', 'dist/single.html'); fs.mkdirSync('dist/index', {recursive:true}); fs.copyFileSync('dist-single/index.html', 'dist/index/single.html')\"",
     "preview": "vite preview",
-    "deploy": "node deploy_sftp.js",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },
@@ -27,7 +26,6 @@
     "@vue/tsconfig": "^0.8.1",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",
-    "ssh2-sftp-client": "^12.1.0",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
