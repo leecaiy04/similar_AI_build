@@ -3,7 +3,7 @@ import type { AppError } from '../../../core/errors'
 import { createBatchQueue } from '../../../core/task/batchQueue'
 import type { LlmInvoke, LlmRequest } from '../../../infra/llm'
 
-export interface BatchRunOptions extends Omit<LlmRequest, 'prompt'> {
+export interface BatchRunOptions extends Partial<Omit<LlmRequest, 'prompt'>> {
   promptTemplate: string
   maxRetries?: number
 }
@@ -65,9 +65,9 @@ export function createBatchInferenceService({ concurrency, invoke }: BatchInfere
               const content = await invokeWithRetry(
                 invoke,
                 {
-                  baseUrl: options.baseUrl,
-                  apiKey: options.apiKey,
-                  model: options.model,
+                  baseUrl: options.baseUrl ?? '',
+                  apiKey: options.apiKey ?? '',
+                  model: options.model ?? '',
                   systemPrompt: options.systemPrompt,
                   prompt,
                 },

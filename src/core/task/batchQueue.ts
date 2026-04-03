@@ -11,13 +11,13 @@ export type BatchQueueTask<T> = (signal: AbortSignal) => Promise<T>
 
 interface PendingTask<T> {
   task: BatchQueueTask<T>
-  resolve: (value: T | PromiseLike<T>) => void
+  resolve: (value: T) => void
   reject: (reason?: unknown) => void
 }
 
 export function createBatchQueue({ concurrency }: BatchQueueOptions) {
   const limit = Math.max(1, concurrency)
-  const pending: PendingTask<unknown>[] = []
+  const pending: PendingTask<any>[] = []
   const listeners = new Set<(progress: BatchQueueProgress) => void>()
   const controller = new AbortController()
   let active = 0
