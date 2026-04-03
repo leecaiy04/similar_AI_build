@@ -65,6 +65,8 @@ export interface DifferenceItem {
     char: string;
 }
 
+export type DiffAlgorithm = 'lcs' | 'levenshtein' | 'myers';
+
 /**
  * 字符级差异分析结果接口
  */
@@ -566,7 +568,7 @@ export class SimilarityCalculator {
      * @param algorithm 差异算法：'lcs'(最长公共子序列)、'levenshtein'(编辑距离)、'myers'(Myers算法)
      * @returns 字符差异结果
      */
-    public calculateCharDiff(str1: string, str2: string, algorithm: 'lcs' | 'levenshtein' | 'myers' = 'lcs'): CharDiffResult {
+    public calculateCharDiff(str1: string, str2: string, algorithm: DiffAlgorithm = 'lcs'): CharDiffResult {
         // 两个字符串都为空
         if (!str1 && !str2) {
             return { diff: [], added: 0, removed: 0, unchanged: 0, similarity: 1 };

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "vue-tsc -b && vite build",
     "build:single": "vue-tsc -b && vite build --config vite.config.single.ts",
     "build:all": "npm run build && npm run build:single && node -e \"const fs=require('fs'); fs.copyFileSync('dist-single/index.html', 'dist/single.html'); fs.mkdirSync('dist/index', {recursive:true}); fs.copyFileSync('dist-single/index.html', 'dist/index/single.html')\"",
@@ -30,6 +32,7 @@
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
     "vite-plugin-singlefile": "^2.3.2",
+    "vitest": "^3.2.4",
     "vue-tsc": "^3.1.4"
   }
 }

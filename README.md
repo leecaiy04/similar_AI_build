@@ -1,5 +1,29 @@
-# Vue 3 + TypeScript + Vite
+# Similar AI Build
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Multi-tool text workflow app built with Vue 3, TypeScript, Vite, and Tauri. The current product surface includes:
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+- Similarity matching
+- Row-by-row diff comparison
+- Data processing helpers
+- Batch AI request tooling
+
+## Development
+
+```bash
+npm install
+npm test
+npm run build
+```
+
+## Architecture
+
+The project is being migrated toward a layered structure:
+
+- `src/core`: shared primitives such as text parsing, IO helpers, task queue, and versioned storage
+- `src/features`: feature-level services and composables for each tool page
+- `src/infra`: provider adapters and external integration boundaries
+- `src/pages`: page-level UI entry points
+
+## CI
+
+Both GitHub Pages and release workflows now run `npm test` before build steps.
