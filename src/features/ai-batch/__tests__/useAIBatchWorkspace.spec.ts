@@ -14,6 +14,7 @@ describe('useAIBatchWorkspace', () => {
     )
 
     const workspace = useAIBatchWorkspace({ runBatch })
+    workspace.currentPreset.value.mode = 'test'
     workspace.textData.value.input = 'a\nb'
 
     const pending = workspace.startBatchRequest()
@@ -42,6 +43,7 @@ describe('useAIBatchWorkspace', () => {
     )
 
     const workspace = useAIBatchWorkspace({ runBatch })
+    workspace.currentPreset.value.mode = 'test'
     workspace.textData.value.input = 'a'
 
     const pending = workspace.startBatchRequest()

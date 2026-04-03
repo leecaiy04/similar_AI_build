@@ -53,44 +53,56 @@ async function invokeWithRetry(
 
 export function createBatchInferenceService({ concurrency, invoke }: BatchInferenceServiceOptions) {
   return {
-    async runBatch(inputs: InputRecord[], options: BatchRunOptions): Promise<ProcessResult[]> {
+    async runBatch(inputs: InputRecord[], options: BatchRunOptions, externalSignal?: AbortSignal): Promise<ProcessResult[]> {
       const queue = createBatchQueue({ concurrency })
       const results = inputs.map((input) => createProcessResult(input.id))
+      const abortListener = () => queue.cancelAll('Aborted')
 
-      await Promise.all(
-        inputs.map((input, index) =>
-          queue.enqueue(async (signal) => {
-            const prompt = renderPrompt(options.promptTemplate, input.fields)
-            try {
-              const content = await invokeWithRetry(
-                invoke,
-                {
-                  baseUrl: options.baseUrl ?? '',
-                  apiKey: options.apiKey ?? '',
-                  model: options.model ?? '',
-                  systemPrompt: options.systemPrompt,
-                  prompt,
-                },
-                signal,
-                options.maxRetries ?? 0,
-              )
+      externalSignal?.addEventListener('abort', abortListener)
 
-              results[index] = {
-                id: input.id,
-                status: 'success',
-                output: { content },
+      try {
+        await Promise.all(
+          inputs.map((input, index) =>
+            queue.enqueue(async (signal) => {
+              const prompt = renderPrompt(options.promptTemplate, input.fields)
+              try {
+                const content = await invokeWithRetry(
+                  invoke,
+                  {
+                    baseUrl: options.baseUrl ?? '',
+                    apiKey: options.apiKey ?? '',
+                    model: options.model ?? '',
+                    systemPrompt: options.systemPrompt,
+                    prompt,
+                  },
+                  signal,
+                  options.maxRetries ?? 0,
+                )
+
+                results[index] = {
+                  id: input.id,
+                  status: 'success',
+                  output: { content },
+                }
+              } catch (error) {
+                results[index] = {
+                  id: input.id,
+                  status: 'error',
+                  output: {},
+                  error: normalizeError(error),
+                }
               }
-            } catch (error) {
-              results[index] = {
-                id: input.id,
-                status: 'error',
-                output: {},
-                error: normalizeError(error),
-              }
-            }
-          }),
-        ),
-      )
+            }),
+          ),
+        )
+      } catch (error) {
+        if (externalSignal?.aborted) {
+          throw new DOMException('Aborted', 'AbortError')
+        }
+        throw error
+      } finally {
+        externalSignal?.removeEventListener('abort', abortListener)
+      }
 
       return results
     },
