@@ -1,6 +1,0 @@
-6: <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">鍔犺浇绀轰緥<
-7: <el-button @click="clearData" link class="!text-rose-500 hover:!text-rose-600" size="small">娓呴櫎鏁版嵁</
-30: 鏁版嵁 A缁?({{ listACount }})
-37: placeholder="姣忚杈撳叆涓€鏉℃暟鎹?.."
-48: 鏁版嵁 B缁?({{ listBCount }})
-55: placeholder="姣忚杈撳叆涓€鏉″姣旀暟鎹?.."

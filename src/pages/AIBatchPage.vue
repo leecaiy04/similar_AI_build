@@ -1,17 +1,17 @@
-﻿锘<template>
+﻿<template>
   <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <!-- Header -->
     <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-1.5 flex justify-between items-center h-12 shrink-0">
       <div class="flex items-center gap-3">
         <h2 class="text-sm font-bold flex items-center gap-2">
-          <span>棣冾樆 閹靛綊鍣 AI 閸斺晜澧</span>
+          <span>馃 鎵归噺 AI 鍔╂墜</span>
         </h2>
-        <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">閸旂姾娴囩粈杞扮伐</el-button>
-        <el-button @click="clearData" link class="!text-rose-500 hover:!text-rose-600" size="small">濞撳懘娅庨弫鐗堝祦</el-button>
+        <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">鍔犺浇绀轰緥</el-button>
+        <el-button @click="clearData" link class="!text-rose-500 hover:!text-rose-600" size="small">娓呴櫎鏁版嵁</el-button>
       </div>
       <div class="flex items-center gap-2">
         <el-tag size="small" type="success" effect="plain" round v-if="isProcessing">
-          濮濓絽婀婢跺嫮鎮: {{ processedCount }} / {{ listACount }}
+          姝ｅ湪澶勭悊: {{ processedCount }} / {{ listACount }}
         </el-tag>
       </div>
     </div>
@@ -24,7 +24,7 @@
           <section class="space-y-4">
             <!-- Preset Selection -->
             <div class="flex justify-between items-center">
-              <label class="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">闁板秶鐤嗘０鍕顔 (娑撶粯绁︽径褎膩閸?</label>
+              <label class="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">閰嶇疆棰勮 (涓绘祦澶фā鍨?</label>
               <el-radio-group v-model="activePresetIndex" size="small">
                  <el-radio-button v-for="(p, n) in presets" :key="n" :value="n" class="px-0">
                    {{ p.name || `P${n+1}` }}
@@ -36,23 +36,23 @@
             <div class="space-y-4 bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50">
               <div class="space-y-1">
                  <label class="text-[10px] font-bold text-gray-400 uppercase text-blue-500">Preset label</label>
-                 <el-input v-model="currentPreset.name" size="small" placeholder="娓氬顩ч敍姘鍨滈惃?DeepSeek 閸掑棙鐎芥稉鎾舵暏" />
+                 <el-input v-model="currentPreset.name" size="small" placeholder="渚嬪锛氭垜鐨?DeepSeek 鍒嗘瀽涓撶敤" />
               </div>
 
               <div class="space-y-1">
                  <div class="flex justify-between items-center">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">閹恒儱褰涘Ο鈥崇础</label>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase">鎺ュ彛妯″紡</label>
                  </div>
                  <el-select v-model="currentPreset.mode" size="small" class="w-full">
-                    <el-option label="OpenAI (閸忕厧顔愰弽鐓庣础)" value="openai" />
+                    <el-option label="OpenAI (鍏煎鏍煎紡)" value="openai" />
                     <el-option label="Anthropic (Claude)" value="claude" />
                     <el-option label="Google (Gemini)" value="gemini" />
-                    <el-option label="閺堫剙婀村ù瀣鐦 (閸樼喐鐗辨潻鏂挎礀)" value="test" />
+                    <el-option label="鏈湴娴嬭瘯 (鍘熸牱杩斿洖)" value="test" />
                  </el-select>
               </div>
 
               <div class="space-y-1">
-                 <label class="text-[10px] font-bold text-gray-400 uppercase">Base URL (API 閸︽澘娼 / 娴狅絿鎮婄純鎴濆彠)</label>
+                 <label class="text-[10px] font-bold text-gray-400 uppercase">Base URL (API 鍦板潃 / 浠ｇ悊缃戝叧)</label>
                  <el-input v-model="currentPreset.baseUrl" size="small" placeholder="https://api.openai.com/v1" />
                  <div class="text-[9px] text-gray-400 mt-1 leading-tight">
                     <span class="text-orange-400 font-bold">Proxy note:</span> Frontend requests cannot attach a system HTTP proxy directly. Use a reachable base URL or a relay such as Cloudflare or OneAPI.
@@ -66,8 +66,8 @@
               
               <div class="space-y-1">
                  <div class="flex justify-between items-center">
-                   <label class="text-[10px] font-bold text-gray-400 uppercase">濡鈥崇烽崥宥囆 (Model)</label>
-                   <el-button size="small" type="primary" link @click="fetchModels" :loading="fetchingModels">閼惧嘲褰囧Ο鈥崇烽崚妤勩</el-button>
+                   <label class="text-[10px] font-bold text-gray-400 uppercase">妯″瀷鍚嶇О (Model)</label>
+                   <el-button size="small" type="primary" link @click="fetchModels" :loading="fetchingModels">鑾峰彇妯″瀷鍒楄〃</el-button>
                  </div>
                  <el-select 
                     v-model="currentPreset.model" 
@@ -76,7 +76,7 @@
                     filterable
                     allow-create
                     default-first-option
-                    placeholder="閸欘垶鈧澶嬪ㄩ幋鏍鍤滅悰宀冪翻閸忋儲膩閸ㄥ鎮曠粔?.."
+                    placeholder="鍙€夋嫨鎴栬嚜琛岃緭鍏ユā鍨嬪悕绉?.."
                  >
                     <el-option v-for="m in modelList" :key="m" :label="m" :value="m" />
                  </el-select>
@@ -86,19 +86,19 @@
             <!-- Prompt Settings -->
             <div class="space-y-3 pt-2">
                 <div class="space-y-1">
-                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">缁鑽ょ埠閹绘劗銇氱拠?(System Prompt)</label>
-                    <el-input v-model="currentPreset.systemPrompt" type="textarea" :rows="2" size="small" placeholder="婵″偊绱版担鐘虫Ц娑撯偓娑擃亞鐐曠拠鎴滅瑩鐎?.." class="custom-small-textarea" />
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">绯荤粺鎻愮ず璇?(System Prompt)</label>
+                    <el-input v-model="currentPreset.systemPrompt" type="textarea" :rows="2" size="small" placeholder="濡傦細浣犳槸涓€涓炕璇戜笓瀹?.." class="custom-small-textarea" />
                 </div>
                 <div class="space-y-1">
                     <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">
-                        閻銊﹀煕閹绘劗銇氱拠宥喣侀弶?<span class="text-blue-500 bg-blue-50 dark:bg-blue-900/40 px-1 rounded ml-1" v-pre>{{input}}</span>
+                        鐢ㄦ埛鎻愮ず璇嶆ā鏉?<span class="text-blue-500 bg-blue-50 dark:bg-blue-900/40 px-1 rounded ml-1" v-pre>{{input}}</span>
                     </label>
-                    <el-input v-model="currentPreset.promptTemplate" type="textarea" :rows="3" size="small" placeholder="鐠囧嘲顦╅悶鍡曚簰娑撳鏆熼幑顕嗙窗\n{{input}}" class="custom-small-textarea" />
+                    <el-input v-model="currentPreset.promptTemplate" type="textarea" :rows="3" size="small" placeholder="璇峰鐞嗕互涓嬫暟鎹細\n{{input}}" class="custom-small-textarea" />
                     <div class="text-[9px] text-gray-400 mt-1">Include <span v-pre>{{input}}</span> in the template. It will be replaced with each input row.</div>
                 </div>
                 
                 <div class="space-y-1 pt-2">
-                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">楠炶泛褰傜拠閿嬬湴閺佷即鍣 (Max Concurrent)</label>
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">骞跺彂璇锋眰鏁伴噺 (Max Concurrent)</label>
                     <el-slider v-model="concurrentCount" :min="1" :max="10" size="small" />
                 </div>
             </div>
@@ -107,10 +107,10 @@
 
         <footer class="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 space-y-2">
           <el-button v-if="!isProcessing" type="primary" class="w-full !h-10 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="startBatchRequest">
-            瀵鈧婵瀣澹掗柌蹇氼嚞濮?
+            寮€濮嬫壒閲忚姹?
           </el-button>
           <el-button v-else type="danger" class="w-full !h-10 !rounded-xl !text-sm font-black shadow-lg shadow-rose-500/10 active:scale-95 transition-all" @click="stopBatchRequest">
-            缂佸牊顒涙禒璇插
+            缁堟浠诲姟
           </el-button>
         </footer>
       </aside>
@@ -123,10 +123,10 @@
              <div class="bg-white dark:bg-gray-800 flex flex-col h-full overflow-hidden">
                  <div class="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm z-10">
                      <div class="flex items-center gap-2">
-                         <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">濠ф劖鏆熼幑?(鏉堟挸鍙)</span>
-                         <el-select v-model="splitMode" size="small" class="w-32" placeholder="閸掑棝娈уΟ鈥崇础">
-                             <el-option label="閹稿庮攽婢跺嫮鎮" value="newline"></el-option>
-                             <el-option label="閹稿屸敄鐞涘苯顦╅悶?婢舵俺顢)" value="blankline"></el-option>
+                         <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">婧愭暟鎹?(杈撳叆)</span>
+                         <el-select v-model="splitMode" size="small" class="w-32" placeholder="鍒嗛殧妯″紡">
+                             <el-option label="鎸夎澶勭悊" value="newline"></el-option>
+                             <el-option label="鎸夌┖琛屽鐞?澶氳)" value="blankline"></el-option>
                          </el-select>
                      </div>
                      <span class="text-[10px] font-mono text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ listACount }} items</span>
@@ -136,12 +136,12 @@
                           class="flex-1 flex flex-col h-full overflow-hidden"
                           :class="{'border-r border-gray-200 dark:border-gray-700': idx < inputNames.length - 1}">
                          <div v-if="inputNames.length > 1" class="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30 text-[10px] font-bold text-blue-500 uppercase tracking-widest shrink-0">
-                             閸欐﹢鍣: {{ name }}
+                             鍙橀噺: {{ name }}
                          </div>
                          <el-input
                            v-model="textData[name]"
                            type="textarea"
-                           :placeholder="`濮ｅ繗顢戞潏鎾冲弳鐎电懓绨 {{${name}}} 閻ㄥ嫬顦╅悶鍡樻殶閹?..`"
+                           :placeholder="`姣忚杈撳叆瀵瑰簲 {{${name}}} 鐨勫鐞嗘暟鎹?..`"
                            resize="none"
                            class="premium-textarea flex-1 w-full h-full !rounded-none !border-none custom-no-border-textarea"
                          />
@@ -153,13 +153,13 @@
              <div class="bg-white dark:bg-gray-800 flex flex-col h-full overflow-hidden relative">
                  <div class="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm z-10">
                      <span class="text-[11px] font-bold text-indigo-500 uppercase tracking-widest">AI output</span>
-                     <el-button size="small" type="primary" plain class="!h-6 !px-2 !text-[10px]" @click="exportResults" :disabled="outputResults.length === 0">鐎电厧鍤</el-button>
+                     <el-button size="small" type="primary" plain class="!h-6 !px-2 !text-[10px]" @click="exportResults" :disabled="outputResults.length === 0">瀵煎嚭</el-button>
                  </div>
                  
                  <div class="flex-1 overflow-auto p-2 bg-gray-50/30 dark:bg-gray-900/30">
                      <div v-if="outputResults.length === 0 && !isProcessing" class="h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-600 select-none">
                          <div class="text-4xl mb-2">...</div>
-                         <p class="text-[10px] font-bold uppercase tracking-widest">缁涘婄窡閹笛嗩攽</p>
+                         <p class="text-[10px] font-bold uppercase tracking-widest">绛夊緟鎵ц</p>
                      </div>
                      <div class="space-y-[1px]">
                          <div v-for="(res, idx) in displayOutputs" :key="idx" 
@@ -171,7 +171,7 @@
                                  <span v-else-if="res.status === 'error'" class="mt-2 text-red-500 text-[10px]">ERR</span>
                              </div>
                              <div class="flex-1 p-2 overflow-hidden">
-                                 <div v-if="res.status === 'loading'" class="text-xs text-blue-400 italic">鐠囬攱鐪版稉?..</div>
+                                 <div v-if="res.status === 'loading'" class="text-xs text-blue-400 italic">璇锋眰涓?..</div>
                                  <div v-else-if="res.status === 'error'" class="text-xs text-red-500 font-mono break-words">{{ res.error }}</div>
                                  <div v-else class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed break-words whitespace-pre-wrap">{{ res.result }}</div>
                              </div>
