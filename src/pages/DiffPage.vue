@@ -3,8 +3,8 @@
     <!-- Action Header -->
     <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-1.5 flex justify-between items-center h-10 shrink-0">
       <div class="flex items-center gap-3">
-        <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">鍔犺浇绀轰緥</el-button>
-        <el-button @click="clearData" link class="!text-rose-500 hover:!text-rose-600" size="small">娓呴櫎鏁版嵁</el-button>
+        <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">加载示例</el-button>
+        <el-button @click="clearData" link class="!text-rose-500 hover:!text-rose-600" size="small">清除数据</el-button>
       </div>
       <div class="flex items-center gap-4">
         <span class="text-xs text-gray-500 font-medium">算法: </span>
@@ -27,7 +27,7 @@
                 <div class="flex justify-between items-center mb-2 px-1">
                   <label class="text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                    鏁版嵁 A缁?({{ listACount }})
+                    数据A组?({{ listACount }})
                   </label>
                 </div>
                 <el-input
@@ -45,7 +45,7 @@
                 <div class="flex justify-between items-center mb-2 px-1">
                   <label class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                    鏁版嵁 B缁?({{ listBCount }})
+                    数据B组?({{ listBCount }})
                   </label>
                 </div>
                 <el-input

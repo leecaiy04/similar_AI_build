@@ -102,7 +102,7 @@
                     </div>
                     
                     <el-radio-group v-model="selectedAlgorithm" size="small" class="w-full flex !mb-4 premium-radio-group">
-                       <el-radio-button value="edit" class="flex-1">鍩虹寮哄害</el-radio-button>
+                       <el-radio-button value="edit" class="flex-1">基础强度</el-radio-button>
                        <el-radio-button value="hybrid" class="flex-1">混合动能</el-radio-button>
                        <el-radio-button value="jaro" class="flex-1">优先</el-radio-button>
                     </el-radio-group>
@@ -158,7 +158,7 @@
           <!-- Bottom Action -->
           <footer class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
                     <el-button type="primary" class="w-full !h-12 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="startComparison" :loading="isProcessing">
-                      {{ isProcessing ? 'AI 鍒嗘瀽涓?..' : '鍚姩鏅鸿兘姣斿' }}
+                      {{ isProcessing ? 'AI 鍒嗘瀽涓?..' : '启动智能比对' }}
                     </el-button>
           </footer>
         </aside>
@@ -181,7 +181,7 @@
                       <div class="flex justify-between items-center">
                           <div class="flex items-center gap-6">
                              <div class="flex flex-col">
-                                <span class="font-bold text-gray-700 dark:text-gray-200 text-sm italic">鏅鸿兘姣斿鍒嗘瀽鎶ュ憡 ({{ displayResults.length }})</span>
+                                <span class="font-bold text-gray-700 dark:text-gray-200 text-sm italic">智能比对分析报告 ({{ displayResults.length }})</span>
                                 <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none">{{ joinMode }} Perspective Enabled</span>
                              </div>
                           </div>
