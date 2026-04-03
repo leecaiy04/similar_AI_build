@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: "tauri-build-${{ github.ref }}"
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build (${{ matrix.os }})
@@ -62,7 +66,7 @@ jobs:
         run: npm run build:all
 
       - name: Package Dist (Zip)
-        if: matrix.platform == 'linux'
+        if: matrix.platform == 'linux' && startsWith(github.ref, 'refs/tags/v')
         run: |
           zip -r htmldist_v${{ github.ref_name }}.zip dist/
           cp dist-single/index.html similar_ai_single_file.html
