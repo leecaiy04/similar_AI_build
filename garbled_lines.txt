@@ -1,0 +1,8 @@
+Line 6: <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">鍔犺浇绀轰緥<
+Line 10: <el-button @click="resetAll" link class="!text-rose-500 hover:!text-rose-600" size="small">娓呴櫎缂撳瓨</e
+Line 28: 婧愬垪 ({{ sourceCount }})
+Line 65: <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">姣斿寮曟搸楂樼骇閰嶇疆</span>
+Line 105: <el-radio-button value="edit" class="flex-1">鍩虹寮哄害</el-radio-button>
+Line 124: <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">澧炲己鍚屼箟璇嶇粍</lab
+Line 161: {{ isProcessing ? 'AI 鍒嗘瀽涓?..' : '鍚姩鏅鸿兘姣斿' }}
+Line 184: <span class="font-bold text-gray-700 dark:text-gray-200 text-sm italic">鏅鸿兘姣斿鍒嗘瀽鎶ュ憡 ({{ displayResu

@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <el-config-provider :locale="zhCn">
     <div class="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <!-- Global Header with Navigation (Draggable in Tauri) -->
       <header data-tauri-drag-region class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-0 flex justify-between items-center shadow-sm z-20 h-12 shrink-0 select-none">
         <div data-tauri-drag-region class="flex items-center gap-6">
           <h1 data-tauri-drag-region class="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent whitespace-nowrap cursor-default">
-            智能文本分析
+            鏅鸿兘鏂囨湰鍒嗘瀽
           </h1>
           <!-- Navigation Tabs -->
           <nav class="flex items-center gap-1 h-12">
@@ -30,7 +30,7 @@
         </div>
         <div class="flex items-center gap-2">
           <el-button circle @click="toggleTheme" class="!bg-transparent border-gray-200 dark:border-gray-700 hover:!bg-gray-100 dark:hover:!bg-gray-700" size="small">
-             {{ isDark ? '🌞' : '🌙' }}
+             {{ isDark ? '馃尀' : '馃寵' }}
           </el-button>
         </div>
       </header>
@@ -56,10 +56,10 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 const isDark = ref(false)
 
 const navTabs = [
-    { name: 'similarity', path: '/', label: '相似度比对', icon: '🔍' },
-    { name: 'diff', path: '/diff', label: '数据Diff', icon: '⚡' },
-    { name: 'process', path: '/process', label: '数据处理', icon: '⚙️' },
-    { name: 'aibatch', path: '/ai-batch', label: '批量AI', icon: '🤖' },
+    { name: 'similarity', path: '/', label: '鐩镐技搴︽瘮瀵', icon: '馃攳' },
+    { name: 'diff', path: '/diff', label: '鏁版嵁Diff', icon: '鈿' },
+    { name: 'process', path: '/process', label: '鏁版嵁澶勭悊', icon: '鈿欙笍' },
+    { name: 'aibatch', path: '/ai-batch', label: '鎵归噺AI', icon: '馃' },
 ]
 
 const toggleTheme = () => {

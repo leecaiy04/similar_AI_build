@@ -1,475 +1,950 @@
 ﻿<template>
+
     <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+
       <!-- Sub Header -->
+
       <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-1.5 flex justify-between items-center h-10 shrink-0">
+
         <div class="flex items-center gap-3">
-          <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">鍔犺浇绀轰緥</el-button>
+
+          <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">閸旂姾娴囩粈杞扮伐</el-button>
+
           <el-button @click="exportStateJson" link class="!text-blue-500 hover:!text-blue-600" size="small">Export workspace</el-button>
+
           <el-button @click="triggerImportJson" link class="!text-blue-500 hover:!text-blue-600" size="small">Import workspace</el-button>
+
           <input type="file" ref="importJsonRef" class="hidden" accept=".json" @change="handleImportJson" />
-          <el-button @click="resetAll" link class="!text-rose-500 hover:!text-rose-600" size="small">娓呴櫎缂撳瓨</el-button>
+
+          <el-button @click="resetAll" link class="!text-rose-500 hover:!text-rose-600" size="small">濞撳懘娅庣紓鎾崇摠</el-button>
+
         </div>
+
       </div>
+
       
+
       <!-- Main Content -->
+
       <main class="flex-1 flex overflow-hidden">
+
         <!-- Sidebar / Configuration Panel -->
+
         <aside class="w-full md:w-96 lg:w-[450px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-2xl relative z-10">
+
           <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5 scrollbar-hide">
+
             
+
             <!-- Inputs Section -->
+
             <section class="space-y-6">
+
                 <div class="space-y-6">
+
                   <!-- Source Input Card -->
+
                   <div class="premium-input-group @container">
+
                     <div class="flex justify-between items-center mb-2 px-1">
+
                       <label class="text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+
                         <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        婧愬垪 ({{ sourceCount }})
+
+                        濠ф劕鍨 ({{ sourceCount }})
+
                       </label>
+
                     </div>
+
                     <el-input
+
                       v-model="sourceText"
+
                       type="textarea"
+
                       :rows="4"
-                      placeholder="姣忚杈撳叆涓€涓緟鍖归厤鐨勬簮鏂囨湰..."
+
+                      placeholder="濮ｅ繗顢戞潏鎾冲弳娑撯偓娑擃亜绶熼崠褰掑帳閻ㄥ嫭绨閺傚洦婀..."
+
                       resize="none"
+
                       class="premium-textarea"
+
                     />
+
                   </div>
+
+
 
                   <!-- Target Input Card -->
+
                   <div class="premium-input-group @container">
+
                     <div class="flex justify-between items-center mb-2 px-1">
+
                       <label class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+
                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                        鐩爣搴?({{ targetCount }})
+
+                        閻╊喗鐖ｆ惔?({{ targetCount }})
+
                       </label>
+
                     </div>
+
                     <el-input
+
                       v-model="targetText"
+
                       type="textarea"
+
                       :rows="4"
-                      placeholder="姣忚杈撳叆涓€涓熀鍑嗘爣鍑嗘枃鏈?.."
+
+                      placeholder="濮ｅ繗顢戞潏鎾冲弳娑撯偓娑擃亜鐔閸戝棙鐖ｉ崙鍡樻瀮閺?.."
+
                       resize="none"
+
                       class="premium-textarea"
+
                     />
+
                   </div>
+
                 </div>
+
             </section>
+
+
 
             <!-- Settings Section -->
+
             <section class="space-y-4">
+
               <div class="flex items-center gap-2 mb-4">
+
                  <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">姣斿寮曟搸楂樼骇閰嶇疆</span>
+
+                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">濮ｆ柨顕瀵鏇熸惛妤傛奸獓闁板秶鐤</span>
+
                  <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+
               </div>
+
+
 
               <div class="grid grid-cols-1 gap-4">
+
                 <!-- Toggle Switches Group -->
+
                 <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 grid grid-cols-2 gap-y-3 gap-x-1">
+
                    <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.ignorePunctuation = !options.ignorePunctuation">
+
                       <el-checkbox v-model="options.ignorePunctuation" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">蹇界暐绗﹀彿</span>
+
+                      <span class="text-xs text-gray-600 dark:text-gray-400">韫囩晫鏆愮粭锕褰</span>
+
                    </div>
+
                    <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.fullwidthToHalfwidth = !options.fullwidthToHalfwidth">
+
                       <el-checkbox v-model="options.fullwidthToHalfwidth" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">鍏ㄥ崐瑙掕浆</span>
+
+                      <span class="text-xs text-gray-600 dark:text-gray-400">閸忋劌宕愮憴鎺曟祮</span>
+
                    </div>
+
                    <div class="col-span-2 flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.ignoreInvisibleChars = !options.ignoreInvisibleChars">
+
                       <el-checkbox v-model="options.ignoreInvisibleChars" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">蹇界暐涓嶅彲瑙佸瓧绗?<span class="text-[10px] text-gray-400 font-normal">(BOM/鎺у埗绗?</span></span>
+
+                      <span class="text-xs text-gray-600 dark:text-gray-400">韫囩晫鏆愭稉宥呭讲鐟欎礁鐡х粭?<span class="text-[10px] text-gray-400 font-normal">(BOM/閹貉冨煑缁?</span></span>
+
                    </div>
+
                 </div>
+
+
 
                 <!-- Slider Group -->
+
                 <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-4">
+
                     <div class="space-y-1">
+
                         <div class="flex justify-between items-center mb-1">
+
                            <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Threshold</span>
+
                            <span class="text-xs font-mono font-black text-blue-600">{{ options.threshold }}%</span>
+
                         </div>
+
                         <el-slider v-model="options.threshold" :min="0" :max="100" />
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Algorithm Settings -->
+
                 <div class="bg-gray-50/50 dark:bg-gray-700/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+
                     <div class="flex items-center justify-between mb-4">
-                       <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">浼樺寲绛栫暐</span>
+
+                       <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">娴兼ê瀵茬粵鏍鏆</span>
+
                        <el-tag size="small" effect="dark" round class="scale-90 origin-right">Premium</el-tag>
+
                     </div>
+
                     
+
                     <el-radio-group v-model="selectedAlgorithm" size="small" class="w-full flex !mb-4 premium-radio-group">
-                       <el-radio-button value="edit" class="flex-1">鍩虹寮哄害</el-radio-button>
-                       <el-radio-button value="hybrid" class="flex-1">娣峰悎鍔ㄥ姏</el-radio-button>
-                       <el-radio-button value="jaro" class="flex-1">鍓嶇紑浼樺厛</el-radio-button>
+
+                       <el-radio-button value="edit" class="flex-1">閸╄櫣顢呭鍝勫</el-radio-button>
+
+                       <el-radio-button value="hybrid" class="flex-1">濞ｅ嘲鎮庨崝銊ュ</el-radio-button>
+
+                       <el-radio-button value="jaro" class="flex-1">閸撳秶绱戞导妯哄帥</el-radio-button>
+
                     </el-radio-group>
+
                     
+
                     <transition name="el-fade-in-linear">
+
                       <div v-if="selectedAlgorithm === 'hybrid'" class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm mt-2">
+
                          <div class="flex justify-between text-[10px] text-gray-400 font-mono mb-2">
-                            <span>缂栬緫: {{ editWeight }}%</span>
+
+                            <span>缂傛牞绶: {{ editWeight }}%</span>
+
                             <span>Jaro: {{ jaroWeight }}%</span>
+
                          </div>
+
                          <el-slider v-model="editWeight" :min="0" :max="100" />
+
                       </div>
+
                     </transition>
+
                 </div>
+
+
 
                 <!-- Textarea Rules -->
+
                 <div class="space-y-3 pt-2">
+
                     <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">澧炲己鍚屼箟璇嶇粍</label>
-                        <el-input v-model="synonymText" type="textarea" :rows="2" size="small" placeholder="璇?, 璇? (鍒嗙粍鎹㈣)..." class="custom-small-textarea" />
+
+                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">婢х偛宸遍崥灞肩疅鐠囧秶绮</label>
+
+                        <el-input v-model="synonymText" type="textarea" :rows="2" size="small" placeholder="鐠?, 鐠? (閸掑棛绮嶉幑銏ｎ攽)..." class="custom-small-textarea" />
+
                     </div>
+
                     <div class="space-y-1">
+
                         <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">Ignore Terms</label>
-                        <el-input v-model="ignoreText" type="textarea" :rows="2" size="small" placeholder="濡傦細鏈夐檺鍏徃, 闆嗗洟..." class="custom-small-textarea" />
+
+                        <el-input v-model="ignoreText" type="textarea" :rows="2" size="small" placeholder="婵″偊绱伴張澶愭洪崗顒寰, 闂嗗棗娲..." class="custom-small-textarea" />
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Join Mode Selection -->
+
                 <div class="bg-gray-50/50 dark:bg-gray-700/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-4">
+
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">鏁版嵁杩炴帴瑙嗚</span>
+
+                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">閺佺増宓佹潻鐐村复鐟欏棜顫</span>
+
                         <el-tag size="small" type="info" round class="scale-90 origin-right transition-all">{{ joinMode }}</el-tag>
+
                     </div>
+
                     
+
                     <el-radio-group v-model="joinMode" size="small" class="w-full flex premium-radio-group">
+
                         <el-radio-button value="left" class="flex-1">Left</el-radio-button>
+
                         <el-radio-button value="inner" class="flex-1">Inner</el-radio-button>
+
                         <el-radio-button value="right" class="flex-1">Right</el-radio-button>
+
                         <el-radio-button value="outer" class="flex-1">Outer</el-radio-button>
+
                     </el-radio-group>
+
                     
+
                     <div class="text-[10px] text-gray-400 mt-2 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-100 dark:border-gray-700 leading-relaxed shadow-inner">
+
                         <span v-if="joinMode === 'left'">Show every source item with its recommended matches.</span>
+
                         <span v-else-if="joinMode === 'inner'">Only show source rows that have suggested matches.</span>
+
                         <span v-else-if="joinMode === 'right'">Use target rows as the primary view and match sources against them.</span>
+
                         <span v-else-if="joinMode === 'outer'">Show all source rows plus unmatched target rows.</span>
+
                     </div>
+
                 </div>
+
               </div>
+
             </section>
+
           </div>
 
+
+
           <!-- Bottom Action -->
+
           <footer class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+
                     <el-button type="primary" class="w-full !h-12 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="startComparison" :loading="isProcessing">
-                      {{ isProcessing ? 'AI 鍒嗘瀽涓?..' : '鍚姩鏅鸿兘姣斿' }}
+
+                      {{ isProcessing ? 'AI 閸掑棙鐎芥稉?..' : '閸氼垰濮╅弲楦垮厴濮ｆ柨顕' }}
+
                     </el-button>
+
           </footer>
+
         </aside>
 
+
+
         <!-- Results Panel -->
+
         <div class="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-900 overflow-hidden relative">
+
            <!-- Empty State -->
+
            <div v-if="results.length === 0" class="absolute inset-0 flex items-center justify-center text-gray-400 select-none">
+
               <div class="text-center">
-                <div class="text-6xl mb-4 text-gray-200 dark:text-gray-700">馃攳</div>
-                <p class="text-lg font-medium">鍑嗗灏辩华</p>
+
+                <div class="text-6xl mb-4 text-gray-200 dark:text-gray-700">棣冩敵</div>
+
+                <p class="text-lg font-medium">閸戝棗顦鐏忚京鍗</p>
+
                 <p class="text-sm mt-2">Add source and target data, then start the comparison.</p>
+
               </div>
+
            </div>
+
            
+
            <!-- Results List -->
+
            <div v-else class="flex-1 overflow-auto p-4 scroll-smooth">
+
                <div class="max-w-5xl mx-auto space-y-4">
+
                   <div class="sticky top-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur z-20 pt-2 pb-4 border-b border-gray-200 dark:border-gray-700 mb-4 px-1 space-y-3">
+
                       <div class="flex justify-between items-center">
+
                           <div class="flex items-center gap-6">
+
                              <div class="flex flex-col">
-                                <span class="font-bold text-gray-700 dark:text-gray-200 text-sm italic">鏅鸿兘姣斿鍒嗘瀽鎶ュ憡 ({{ displayResults.length }})</span>
+
+                                <span class="font-bold text-gray-700 dark:text-gray-200 text-sm italic">閺呴缚鍏樺В鏂款嚠閸掑棙鐎介幎銉ユ啞 ({{ displayResults.length }})</span>
+
                                 <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none">{{ joinMode }} Perspective Enabled</span>
+
                              </div>
+
                           </div>
+
                            <div class="flex gap-2">
-                              <el-button type="info" size="small" plain @click="triggerImport">瀵煎叆閿佸畾</el-button>
+
+                              <el-button type="info" size="small" plain @click="triggerImport">鐎电厧鍙嗛柨浣哥暰</el-button>
+
                               <el-button type="success" size="small" plain @click="exportSimple" :disabled="lockedItems.size === 0">
-                                 瀵煎嚭閿佸畾 ({{ lockedItems.size }})
+
+                                 鐎电厧鍤闁夸礁鐣 ({{ lockedItems.size }})
+
                               </el-button>
+
                               <el-button type="primary" size="small" plain @click="exportComplex">
-                                 鍏ㄩ噺鎶ュ憡
+
+                                 閸忋劑鍣洪幎銉ユ啞
+
                               </el-button>
+
                               <input type="file" ref="importRef" class="hidden" accept=".csv" @change="handleImport" />
+
                            </div>
+
                       </div>
+
+
 
                       <!-- Filter Bar -->
+
                       <div class="flex flex-wrap items-center gap-3 bg-white/50 dark:bg-gray-800/50 p-2 rounded-xl border border-gray-100 dark:border-gray-700/50">
+
                           <div class="flex-1 min-w-[200px] flex gap-1">
+
                               <el-input
+
                                   v-model="filterOptions.searchQuery"
-                                  placeholder="鎼滅储婧愭垨鐩爣鏂囨湰..."
+
+                                  placeholder="閹兼粎鍌ㄥ┃鎰鍨ㄩ惄顔界垼閺傚洦婀..."
+
                                   size="small"
+
                                   clearable
+
                                   class="premium-search-input"
+
                               >
+
                                   <template #prefix>
-                                      <span class="text-gray-400">馃攳</span>
+
+                                      <span class="text-gray-400">棣冩敵</span>
+
                                   </template>
+
                               </el-input>
+
                               <el-tooltip content="Regex mode" placement="top">
+
                                   <div 
+
                                       class="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all border border-gray-100 dark:border-gray-700"
+
                                       :class="filterOptions.isRegexSearch ? 'bg-blue-500 text-white border-blue-600' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'"
+
                                       @click="filterOptions.isRegexSearch = !filterOptions.isRegexSearch"
+
                                   >
+
                                       <span class="text-[10px] font-black italic">.*</span>
+
                                   </div>
+
                               </el-tooltip>
-                          </div>
-                          
-                          <div class="flex items-center gap-2">
-                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">閿佸畾鐘舵€?</span>
-                              <el-radio-group v-model="filterOptions.lockStatus" size="small" class="premium-filter-radio">
-                                  <el-radio-button value="all">鍏ㄩ儴</el-radio-button>
-                                  <el-radio-button value="locked">Locked</el-radio-button>
-                                  <el-radio-button value="unlocked">Unlocked</el-radio-button>
-                              </el-radio-group>
+
                           </div>
 
-                          <div class="flex items-center gap-2">
-                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">鍖归厤鐘舵€?</span>
-                              <el-radio-group v-model="filterOptions.matchStatus" size="small" class="premium-filter-radio">
-                                  <el-radio-button value="all">鍏ㄩ儴</el-radio-button>
-                                  <el-radio-button value="matched">Matched</el-radio-button>
-                                  <el-radio-button value="unmatched">Unmatched</el-radio-button>
-                              </el-radio-group>
-                          </div>
                           
-                          <div class="ml-auto flex items-center gap-1" v-if="filterOptions.searchQuery || filterOptions.lockStatus !== 'all' || filterOptions.matchStatus !== 'all'">
-                             <el-button link size="small" @click="filterOptions = { lockStatus: 'all', matchStatus: 'all', searchQuery: '', isRegexSearch: false }" class="!text-rose-500 !text-[10px] font-bold">
-                                閲嶇疆绛涢€?
-                             </el-button>
+
+                          <div class="flex items-center gap-2">
+
+                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">闁夸礁鐣鹃悩鑸碘偓?</span>
+
+                              <el-radio-group v-model="filterOptions.lockStatus" size="small" class="premium-filter-radio">
+
+                                  <el-radio-button value="all">閸忋劑鍎</el-radio-button>
+
+                                  <el-radio-button value="locked">Locked</el-radio-button>
+
+                                  <el-radio-button value="unlocked">Unlocked</el-radio-button>
+
+                              </el-radio-group>
+
                           </div>
+
+
+
+                          <div class="flex items-center gap-2">
+
+                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">閸栧綊鍘ら悩鑸碘偓?</span>
+
+                              <el-radio-group v-model="filterOptions.matchStatus" size="small" class="premium-filter-radio">
+
+                                  <el-radio-button value="all">閸忋劑鍎</el-radio-button>
+
+                                  <el-radio-button value="matched">Matched</el-radio-button>
+
+                                  <el-radio-button value="unmatched">Unmatched</el-radio-button>
+
+                              </el-radio-group>
+
+                          </div>
+
+                          
+
+                          <div class="ml-auto flex items-center gap-1" v-if="filterOptions.searchQuery || filterOptions.lockStatus !== 'all' || filterOptions.matchStatus !== 'all'">
+
+                             <el-button link size="small" @click="filterOptions = { lockStatus: 'all', matchStatus: 'all', searchQuery: '', isRegexSearch: false }" class="!text-rose-500 !text-[10px] font-bold">
+
+                                闁插秶鐤嗙粵娑⑩偓?
+
+                             </el-button>
+
+                          </div>
+
                       </div>
+
                   </div>
+
+
 
                   <div v-for="(item, idx) in displayResults" :key="item.index + '-' + (item.isRight ? 'r' : 'l')" 
+
                        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border overflow-hidden transition hover:shadow-md"
+
                        :class="isLocked(item) ? 'border-green-400 dark:border-green-600 ring-4 ring-green-100 dark:ring-green-900/10' : 'border-gray-200 dark:border-gray-700'">
+
                       <div class="flex">
+
                          <div class="w-14 flex flex-col items-center justify-center border-r border-gray-100 dark:border-gray-700"
+
                               :class="isLocked(item) ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-700/30'">
+
                             <span class="font-mono text-gray-400 text-sm">{{ idx + 1 }}</span>
-                            <span v-if="isLocked(item)" class="text-green-500 text-lg mt-1">馃敀</span>
+
+                            <span v-if="isLocked(item)" class="text-green-500 text-lg mt-1">棣冩晙</span>
+
                          </div>
+
                          <div class="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
                             <div>
+
                                <div class="text-[10px] font-black text-gray-400 mb-1 uppercase tracking-widest">{{ joinMode === 'right' ? 'Target Standard' : 'Source Input' }}</div>
+
                                <div class="text-gray-900 dark:text-gray-100 text-base leading-relaxed break-all font-semibold italic">{{ item.source }}</div>
+
                                
+
                                <div v-if="isLocked(item)" class="mt-4 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
+
                                   <div class="flex items-center justify-between mb-1">
+
                                      <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest flex items-center gap-1">
+
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        宸茬‘鏉冮厤瀵?
+
+                                        瀹歌尙鈥橀弶鍐鍘ょ?
+
                                      </span>
-                                     <el-button type="danger" size="small" link @click="unlockMatch(item)">瑙ｉ櫎</el-button>
+
+                                     <el-button type="danger" size="small" link @click="unlockMatch(item)">鐟欙綁娅</el-button>
+
                                   </div>
+
                                   <div class="text-sm text-emerald-800 dark:text-emerald-200 font-bold break-all flex items-center gap-2">
+
                                      {{ getLockedItem(item)?.text }}
+
                                      <el-tag type="success" size="small" round effect="dark" class="font-mono scale-90">
+
                                         {{ ((getLockedItem(item)?.similarity || 0) * 100).toFixed(1) }}%
+
                                      </el-tag>
+
                                   </div>
+
                                </div>
+
                             </div>
+
                             <div>
+
                                <div class="flex items-center justify-between mb-1">
+
                                   <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ joinMode === 'right' ? 'Matched Source' : 'Matched Target' }} Rank #1</div>
+
                                   <el-button v-if="item.matches.length > 0 && !isLocked(item)" 
+
                                              type="primary" size="small" text
+
                                              class="!bg-blue-50 dark:!bg-blue-900/30 !font-black !text-[10px]"
+
                                              @click="lockMatch(item, item.matches[0]!)">
-                                    閿佸畾寤鸿
+
+                                    闁夸礁鐣惧ら缚顔
+
                                   </el-button>
+
                                </div>
+
                                <div v-if="item.matches.length > 0">
+
                                    <div class="flex items-center justify-between mb-2">
+
                                        <el-tag :type="getScoreColor(item.matches[0]!.similarity)" effect="dark" size="small" class="font-mono font-black scale-90 origin-left">
+
                                            {{ (item.matches[0]!.similarity * 100).toFixed(1) }}%
+
                                        </el-tag>
+
                                        <span class="text-[10px] text-gray-400 font-mono">ID: {{ item.matches[0]!.index }}</span>
+
                                    </div>
+
                                     <div class="mb-3">
+
                                         <div class="text-sm font-bold text-gray-700 dark:text-gray-200 break-all">
+
                                             {{ item.matches[0]!.text }}
+
                                         </div>
+
                                     </div>
+
                                     <div class="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800/80 break-all text-sm leading-relaxed overflow-hidden">
+
                                         <div class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-tighter opacity-50">Visual Check</div>
+
                                         <span v-html="renderDiffHTML(item.source, item.matches[0]!.text)"></span>
+
                                     </div>
+
                                    
+
                                    <div v-if="item.matches.length > 1" class="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
-                                       <div class="text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">鍏朵粬鍖归厤寤鸿 ({{ Math.min(item.matches.length - 1, 5) }})</div>
+
+                                       <div class="text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">閸忔湹绮閸栧綊鍘ゅら缚顔 ({{ Math.min(item.matches.length - 1, 5) }})</div>
+
                                        <div class="grid grid-cols-1 gap-2">
+
                                            <div v-for="(match, matchIndex) in item.matches.slice(1, 6)" :key="matchIndex" 
+
                                                 class="px-3 py-2 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg border border-transparent hover:border-blue-400 dark:hover:border-blue-500 transition cursor-pointer flex items-center justify-between"
+
                                                 @click="!isLocked(item) && lockMatch(item, match)">
+
                                                <div class="flex items-center gap-2 overflow-hidden">
+
                                                    <el-tag :type="getScoreColor(match.similarity)" effect="plain" size="small" class="font-mono text-[10px] shrink-0">
+
                                                        {{ (match.similarity * 100).toFixed(1) }}%
+
                                                    </el-tag>
+
                                                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate">{{ match.text }}</span>
+
                                                </div>
+
                                                <span v-if="!isLocked(item)" class="text-[10px] font-bold text-blue-500 whitespace-nowrap ml-2">Lock</span>
+
                                            </div>
+
                                        </div>
+
                                    </div>
+
                                </div>
+
                                <div v-else class="h-full flex flex-col items-center justify-center py-8 opacity-30 select-none">
-                                   <div class="text-2xl mb-2">馃</div>
+
+                                   <div class="text-2xl mb-2">棣冾潖</div>
+
                                    <div class="text-[10px] font-black uppercase tracking-widest">No Strong Matches</div>
+
                                </div>
+
                             </div>
+
                          </div>
+
                       </div>
+
                   </div>
+
                </div>
+
            </div>
+
            
+
            <!-- Progress Bar -->
+
            <div v-if="isProcessing" class="absolute top-0 left-0 w-full h-1 bg-blue-100 dark:bg-gray-700 z-50">
+
               <div class="h-full bg-blue-600 transition-all duration-300 shadow-[0_0_10px_rgba(37,99,235,0.5)]" :style="{ width: progress + '%' }"></div>
+
            </div>
+
         </div>
+
       </main>
+
     </div>
+
 </template>
 
+
+
 <script setup lang="ts">
+
 import { useSimilarityWorkspace } from '../features/similarity/composables/useSimilarityWorkspace'
 
+
+
 const {
+
   displayResults,
+
   editWeight,
+
   exportComplex,
+
   exportSimple,
+
   exportStateJson,
+
   filterOptions,
+
   getLockedItem,
+
   getScoreColor,
+
   handleImport,
+
   handleImportJson,
+
   ignoreText,
+
   importJsonRef,
+
   importRef,
+
   isLocked,
+
   isProcessing,
+
   jaroWeight,
+
   joinMode,
+
   loadSample,
+
   lockMatch,
+
   lockedItems,
+
   options,
+
   progress,
+
   renderDiffHTML,
+
   resetAll,
+
   results,
+
   selectedAlgorithm,
+
   sourceCount,
+
   sourceText,
+
   startComparison,
+
   synonymText,
+
   targetCount,
+
   targetText,
+
   triggerImport,
+
   triggerImportJson,
+
   unlockMatch,
+
 } = useSimilarityWorkspace()
 
+
+
 void importJsonRef
+
 void importRef
+
 </script>
 
+
+
 <style>
+
 /* Premium Styles */
+
 .premium-textarea :deep(.el-textarea__inner) {
+
     border-radius: 12px;
+
     border: 1px solid rgba(226, 232, 240, 0.8);
+
     background: rgba(248, 250, 252, 0.5);
+
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
     font-family: 'JetBrains Mono', 'Monaco', monospace;
+
     font-size: 13px;
+
     padding: 12px;
+
 }
+
+
 
 .dark .premium-textarea :deep(.el-textarea__inner) {
+
     background: rgba(15, 23, 42, 0.3);
+
     border-color: rgba(51, 65, 85, 0.8);
+
 }
+
+
 
 .premium-textarea :deep(.el-textarea__inner:focus) {
+
     background: #fff;
+
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+
     border-color: #3b82f6;
+
 }
+
+
 
 .dark .premium-textarea :deep(.el-textarea__inner:focus) {
+
     background: rgba(30, 41, 59, 0.8);
+
 }
+
+
 
 .custom-small-textarea :deep(.el-textarea__inner) {
+
     border-radius: 10px;
+
     font-size: 11px;
+
     background: #fff;
+
 }
+
+
 
 .dark .custom-small-textarea :deep(.el-textarea__inner) {
+
     background: rgba(15, 23, 42, 0.5);
+
 }
+
+
 
 .premium-radio-group :deep(.el-radio-button__inner) {
+
     background: transparent;
+
     padding: 8px 12px;
+
     font-size: 11px;
+
 }
+
+
 
 .premium-search-input :deep(.el-input__wrapper) {
+
     border-radius: 10px;
+
     background: rgba(255, 255, 255, 0.5);
+
     border: 1px solid rgba(226, 232, 240, 0.8);
+
     box-shadow: none !important;
+
     transition: all 0.3s ease;
+
 }
+
+
 
 .dark .premium-search-input :deep(.el-input__wrapper) {
+
     background: rgba(15, 23, 42, 0.3);
+
     border-color: rgba(51, 65, 85, 0.8);
+
 }
+
+
 
 .premium-search-input :deep(.el-input__wrapper.is-focus) {
+
     background: #fff;
+
     border-color: #3b82f6;
+
     box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1) !important;
+
 }
+
+
 
 .premium-filter-radio :deep(.el-radio-button__inner) {
+
     font-size: 10px;
+
     padding: 5px 10px;
+
     background: transparent;
+
     border: 1px solid transparent;
+
 }
+
+
 
 .premium-filter-radio :deep(.el-radio-button__orig-radio:checked + .el-radio-button__inner) {
+
     background: #3b82f6;
+
     border-color: #3b82f6;
+
     box-shadow: -1px 0 0 0 #3b82f6;
+
 }
 
+
+
 /* Hide Scrollbar */
+
 .scrollbar-hide::-webkit-scrollbar {
+
     display: none;
+
 }
+
 .scrollbar-hide {
+
     -ms-overflow-style: none;
+
     scrollbar-width: none;
+
 }
+
 </style>
+
+
+
 
 
