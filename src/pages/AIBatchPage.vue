@@ -4,7 +4,7 @@
     <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-1.5 flex justify-between items-center h-12 shrink-0">
       <div class="flex items-center gap-3">
         <h2 class="text-sm font-bold flex items-center gap-2">
-          <span>馃 鎵归噺 AI 鍔╂墜</span>
+          <span>馃 鎵归噺 AI 鍔╂墜</span>
         </h2>
         <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">鍔犺浇绀轰緥</el-button>
         <el-button @click="clearData" link class="!text-rose-500 hover:!text-rose-600" size="small">娓呴櫎鏁版嵁</el-button>
@@ -24,7 +24,7 @@
           <section class="space-y-4">
             <!-- Preset Selection -->
             <div class="flex justify-between items-center">
-              <label class="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">閰嶇疆棰勮 (涓绘祦澶фā鍨?</label>
+              <label class="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">閰嶇疆棰勮 (涓绘祦澶фā鍨?</label>
               <el-radio-group v-model="activePresetIndex" size="small">
                  <el-radio-button v-for="(p, n) in presets" :key="n" :value="n" class="px-0">
                    {{ p.name || `P${n+1}` }}
@@ -36,7 +36,7 @@
             <div class="space-y-4 bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50">
               <div class="space-y-1">
                  <label class="text-[10px] font-bold text-gray-400 uppercase text-blue-500">Preset label</label>
-                 <el-input v-model="currentPreset.name" size="small" placeholder="渚嬪锛氭垜鐨?DeepSeek 鍒嗘瀽涓撶敤" />
+                 <el-input v-model="currentPreset.name" size="small" placeholder="渚嬪锛氭垜鐨?DeepSeek 鍒嗘瀽涓撶敤" />
               </div>
 
               <div class="space-y-1">
@@ -44,10 +44,10 @@
                     <label class="text-[10px] font-bold text-gray-400 uppercase">鎺ュ彛妯″紡</label>
                  </div>
                  <el-select v-model="currentPreset.mode" size="small" class="w-full">
-                    <el-option label="OpenAI (鍏煎鏍煎紡)" value="openai" />
+                    <el-option label="OpenAI (鍏煎鏍煎紡)" value="openai" />
                     <el-option label="Anthropic (Claude)" value="claude" />
                     <el-option label="Google (Gemini)" value="gemini" />
-                    <el-option label="鏈湴娴嬭瘯 (鍘熸牱杩斿洖)" value="test" />
+                    <el-option label="鏈湴娴嬭瘯 (鍘熸牱杩斿洖)" value="test" />
                  </el-select>
               </div>
 
@@ -76,7 +76,7 @@
                     filterable
                     allow-create
                     default-first-option
-                    placeholder="鍙€夋嫨鎴栬嚜琛岃緭鍏ユā鍨嬪悕绉?.."
+                    placeholder="鍙€夋嫨鎴栬嚜琛岃緭鍏ユā鍨嬪悕绉?.."
                  >
                     <el-option v-for="m in modelList" :key="m" :label="m" :value="m" />
                  </el-select>
@@ -87,13 +87,13 @@
             <div class="space-y-3 pt-2">
                 <div class="space-y-1">
                     <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">绯荤粺鎻愮ず璇?(System Prompt)</label>
-                    <el-input v-model="currentPreset.systemPrompt" type="textarea" :rows="2" size="small" placeholder="濡傦細浣犳槸涓€涓炕璇戜笓瀹?.." class="custom-small-textarea" />
+                    <el-input v-model="currentPreset.systemPrompt" type="textarea" :rows="2" size="small" placeholder="濡傦細浣犳槸涓€涓炕璇戜笓瀹?.." class="custom-small-textarea" />
                 </div>
                 <div class="space-y-1">
                     <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">
                         鐢ㄦ埛鎻愮ず璇嶆ā鏉?<span class="text-blue-500 bg-blue-50 dark:bg-blue-900/40 px-1 rounded ml-1" v-pre>{{input}}</span>
                     </label>
-                    <el-input v-model="currentPreset.promptTemplate" type="textarea" :rows="3" size="small" placeholder="璇峰鐞嗕互涓嬫暟鎹細\n{{input}}" class="custom-small-textarea" />
+                    <el-input v-model="currentPreset.promptTemplate" type="textarea" :rows="3" size="small" placeholder="璇峰鐞嗕互涓嬫暟鎹細\n{{input}}" class="custom-small-textarea" />
                     <div class="text-[9px] text-gray-400 mt-1">Include <span v-pre>{{input}}</span> in the template. It will be replaced with each input row.</div>
                 </div>
                 
@@ -107,10 +107,10 @@
 
         <footer class="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 space-y-2">
           <el-button v-if="!isProcessing" type="primary" class="w-full !h-10 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="startBatchRequest">
-            寮€濮嬫壒閲忚姹?
+            寮€濮嬫壒閲忚姹?
           </el-button>
           <el-button v-else type="danger" class="w-full !h-10 !rounded-xl !text-sm font-black shadow-lg shadow-rose-500/10 active:scale-95 transition-all" @click="stopBatchRequest">
-            缁堟浠诲姟
+            缁堟浠诲姟
           </el-button>
         </footer>
       </aside>
@@ -125,8 +125,8 @@
                      <div class="flex items-center gap-2">
                          <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">婧愭暟鎹?(杈撳叆)</span>
                          <el-select v-model="splitMode" size="small" class="w-32" placeholder="鍒嗛殧妯″紡">
-                             <el-option label="鎸夎澶勭悊" value="newline"></el-option>
-                             <el-option label="鎸夌┖琛屽鐞?澶氳)" value="blankline"></el-option>
+                             <el-option label="鎸夎澶勭悊" value="newline"></el-option>
+                             <el-option label="鎸夌┖琛屽鐞?澶氳)" value="blankline"></el-option>
                          </el-select>
                      </div>
                      <span class="text-[10px] font-mono text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ listACount }} items</span>
@@ -141,7 +141,7 @@
                          <el-input
                            v-model="textData[name]"
                            type="textarea"
-                           :placeholder="`姣忚杈撳叆瀵瑰簲 {{${name}}} 鐨勫鐞嗘暟鎹?..`"
+                           :placeholder="`姣忚杈撳叆瀵瑰簲 {{${name}}} 鐨勫鐞嗘暟鎹?..`"
                            resize="none"
                            class="premium-textarea flex-1 w-full h-full !rounded-none !border-none custom-no-border-textarea"
                          />
@@ -159,7 +159,7 @@
                  <div class="flex-1 overflow-auto p-2 bg-gray-50/30 dark:bg-gray-900/30">
                      <div v-if="outputResults.length === 0 && !isProcessing" class="h-full flex flex-col items-center justify-center text-gray-300 dark:text-gray-600 select-none">
                          <div class="text-4xl mb-2">...</div>
-                         <p class="text-[10px] font-bold uppercase tracking-widest">绛夊緟鎵ц</p>
+                         <p class="text-[10px] font-bold uppercase tracking-widest">绛夊緟鎵ц</p>
                      </div>
                      <div class="space-y-[1px]">
                          <div v-for="(res, idx) in displayOutputs" :key="idx" 

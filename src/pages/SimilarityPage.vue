@@ -3,11 +3,11 @@
       <!-- Sub Header -->
       <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-1.5 flex justify-between items-center h-10 shrink-0">
         <div class="flex items-center gap-3">
-          <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">鍔犺浇绀轰緥</el-button>
+          <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">加载示例</el-button>
           <el-button @click="exportStateJson" link class="!text-blue-500 hover:!text-blue-600" size="small">Export workspace</el-button>
           <el-button @click="triggerImportJson" link class="!text-blue-500 hover:!text-blue-600" size="small">Import workspace</el-button>
           <input type="file" ref="importJsonRef" class="hidden" accept=".json" @change="handleImportJson" />
-          <el-button @click="resetAll" link class="!text-rose-500 hover:!text-rose-600" size="small">娓呴櫎缂撳瓨</el-button>
+          <el-button @click="resetAll" link class="!text-rose-500 hover:!text-rose-600" size="small">清除缓存</el-button>
         </div>
       </div>
       
@@ -25,14 +25,14 @@
                     <div class="flex justify-between items-center mb-2 px-1">
                       <label class="text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        婧愬垪 ({{ sourceCount }})
+                        源列表 ({{ sourceCount }})
                       </label>
                     </div>
                     <el-input
                       v-model="sourceText"
                       type="textarea"
                       :rows="4"
-                      placeholder="姣忚杈撳叆涓€涓緟鍖归厤鐨勬簮鏂囨湰..."
+                      placeholder="姣忚杈撳叆涓€涓緟鍖归厤鐨勬簮鏂囨湰..."
                       resize="none"
                       class="premium-textarea"
                     />
@@ -43,14 +43,14 @@
                     <div class="flex justify-between items-center mb-2 px-1">
                       <label class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                        鐩爣搴?({{ targetCount }})
+                        鐩爣搴?({{ targetCount }})
                       </label>
                     </div>
                     <el-input
                       v-model="targetText"
                       type="textarea"
                       :rows="4"
-                      placeholder="姣忚杈撳叆涓€涓熀鍑嗘爣鍑嗘枃鏈?.."
+                      placeholder="姣忚杈撳叆涓€涓熀鍑嗘爣鍑嗘枃鏈?.."
                       resize="none"
                       class="premium-textarea"
                     />
@@ -62,7 +62,7 @@
             <section class="space-y-4">
               <div class="flex items-center gap-2 mb-4">
                  <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">姣斿寮曟搸楂樼骇閰嶇疆</span>
+                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">姣斿寮曟搸楂樼骇閰嶇疆</span>
                  <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
               </div>
 
@@ -71,15 +71,15 @@
                 <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 grid grid-cols-2 gap-y-3 gap-x-1">
                    <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.ignorePunctuation = !options.ignorePunctuation">
                       <el-checkbox v-model="options.ignorePunctuation" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">蹇界暐绗﹀彿</span>
+                      <span class="text-xs text-gray-600 dark:text-gray-400">忽略符号</span>
                    </div>
                    <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.fullwidthToHalfwidth = !options.fullwidthToHalfwidth">
                       <el-checkbox v-model="options.fullwidthToHalfwidth" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">鍏ㄥ崐瑙掕浆</span>
+                      <span class="text-xs text-gray-600 dark:text-gray-400">全角转</span>
                    </div>
                    <div class="col-span-2 flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.ignoreInvisibleChars = !options.ignoreInvisibleChars">
                       <el-checkbox v-model="options.ignoreInvisibleChars" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">蹇界暐涓嶅彲瑙佸瓧绗?<span class="text-[10px] text-gray-400 font-normal">(BOM/鎺у埗绗?</span></span>
+                      <span class="text-xs text-gray-600 dark:text-gray-400">忽略不可见字符?<span class="text-[10px] text-gray-400 font-normal">(BOM/控制符?</span></span>
                    </div>
                 </div>
 
@@ -97,14 +97,14 @@
                 <!-- Algorithm Settings -->
                 <div class="bg-gray-50/50 dark:bg-gray-700/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
                     <div class="flex items-center justify-between mb-4">
-                       <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">浼樺寲绛栫暐</span>
+                       <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">优化策略</span>
                        <el-tag size="small" effect="dark" round class="scale-90 origin-right">Premium</el-tag>
                     </div>
                     
                     <el-radio-group v-model="selectedAlgorithm" size="small" class="w-full flex !mb-4 premium-radio-group">
-                       <el-radio-button value="edit" class="flex-1">鍩虹寮哄害</el-radio-button>
-                       <el-radio-button value="hybrid" class="flex-1">娣峰悎鍔ㄥ姏</el-radio-button>
-                       <el-radio-button value="jaro" class="flex-1">鍓嶇紑浼樺厛</el-radio-button>
+                       <el-radio-button value="edit" class="flex-1">鍩虹寮哄害</el-radio-button>
+                       <el-radio-button value="hybrid" class="flex-1">混合动能</el-radio-button>
+                       <el-radio-button value="jaro" class="flex-1">优先</el-radio-button>
                     </el-radio-group>
                     
                     <transition name="el-fade-in-linear">
@@ -121,19 +121,19 @@
                 <!-- Textarea Rules -->
                 <div class="space-y-3 pt-2">
                     <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">澧炲己鍚屼箟璇嶇粍</label>
-                        <el-input v-model="synonymText" type="textarea" :rows="2" size="small" placeholder="璇?, 璇? (鍒嗙粍鎹㈣)..." class="custom-small-textarea" />
+                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">增强同义词组</label>
+                        <el-input v-model="synonymText" type="textarea" :rows="2" size="small" placeholder="璇?, 璇? (鍒嗙粍鎹㈣)..." class="custom-small-textarea" />
                     </div>
                     <div class="space-y-1">
                         <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">Ignore Terms</label>
-                        <el-input v-model="ignoreText" type="textarea" :rows="2" size="small" placeholder="濡傦細鏈夐檺鍏徃, 闆嗗洟..." class="custom-small-textarea" />
+                        <el-input v-model="ignoreText" type="textarea" :rows="2" size="small" placeholder="濡傦細鏈夐檺鍏徃, 闆嗗洟..." class="custom-small-textarea" />
                     </div>
                 </div>
 
                 <!-- Join Mode Selection -->
                 <div class="bg-gray-50/50 dark:bg-gray-700/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-4">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">鏁版嵁杩炴帴瑙嗚</span>
+                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">数据连接视角</span>
                         <el-tag size="small" type="info" round class="scale-90 origin-right transition-all">{{ joinMode }}</el-tag>
                     </div>
                     
@@ -158,7 +158,7 @@
           <!-- Bottom Action -->
           <footer class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
                     <el-button type="primary" class="w-full !h-12 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="startComparison" :loading="isProcessing">
-                      {{ isProcessing ? 'AI 鍒嗘瀽涓?..' : '鍚姩鏅鸿兘姣斿' }}
+                      {{ isProcessing ? 'AI 鍒嗘瀽涓?..' : '鍚姩鏅鸿兘姣斿' }}
                     </el-button>
           </footer>
         </aside>
@@ -169,7 +169,7 @@
            <div v-if="results.length === 0" class="absolute inset-0 flex items-center justify-center text-gray-400 select-none">
               <div class="text-center">
                 <div class="text-6xl mb-4 text-gray-200 dark:text-gray-700">馃攳</div>
-                <p class="text-lg font-medium">鍑嗗灏辩华</p>
+                <p class="text-lg font-medium">鍑嗗灏辩华</p>
                 <p class="text-sm mt-2">Add source and target data, then start the comparison.</p>
               </div>
            </div>
@@ -181,14 +181,14 @@
                       <div class="flex justify-between items-center">
                           <div class="flex items-center gap-6">
                              <div class="flex flex-col">
-                                <span class="font-bold text-gray-700 dark:text-gray-200 text-sm italic">鏅鸿兘姣斿鍒嗘瀽鎶ュ憡 ({{ displayResults.length }})</span>
+                                <span class="font-bold text-gray-700 dark:text-gray-200 text-sm italic">鏅鸿兘姣斿鍒嗘瀽鎶ュ憡 ({{ displayResults.length }})</span>
                                 <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none">{{ joinMode }} Perspective Enabled</span>
                              </div>
                           </div>
                            <div class="flex gap-2">
-                              <el-button type="info" size="small" plain @click="triggerImport">瀵煎叆閿佸畾</el-button>
+                              <el-button type="info" size="small" plain @click="triggerImport">导入锁定</el-button>
                               <el-button type="success" size="small" plain @click="exportSimple" :disabled="lockedItems.size === 0">
-                                 瀵煎嚭閿佸畾 ({{ lockedItems.size }})
+                                 导出锁定 ({{ lockedItems.size }})
                               </el-button>
                               <el-button type="primary" size="small" plain @click="exportComplex">
                                  鍏ㄩ噺鎶ュ憡
@@ -202,7 +202,7 @@
                           <div class="flex-1 min-w-[200px] flex gap-1">
                               <el-input
                                   v-model="filterOptions.searchQuery"
-                                  placeholder="鎼滅储婧愭垨鐩爣鏂囨湰..."
+                                  placeholder="鎼滅储婧愭垨鐩爣鏂囨湰..."
                                   size="small"
                                   clearable
                                   class="premium-search-input"
@@ -223,7 +223,7 @@
                           </div>
                           
                           <div class="flex items-center gap-2">
-                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">閿佸畾鐘舵€?</span>
+                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">锁定状态?</span>
                               <el-radio-group v-model="filterOptions.lockStatus" size="small" class="premium-filter-radio">
                                   <el-radio-button value="all">鍏ㄩ儴</el-radio-button>
                                   <el-radio-button value="locked">Locked</el-radio-button>
@@ -232,7 +232,7 @@
                           </div>
 
                           <div class="flex items-center gap-2">
-                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">鍖归厤鐘舵€?</span>
+                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">匹配状态?</span>
                               <el-radio-group v-model="filterOptions.matchStatus" size="small" class="premium-filter-radio">
                                   <el-radio-button value="all">鍏ㄩ儴</el-radio-button>
                                   <el-radio-button value="matched">Matched</el-radio-button>
@@ -266,9 +266,9 @@
                                   <div class="flex items-center justify-between mb-1">
                                      <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest flex items-center gap-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        宸茬‘鏉冮厤瀵?
+                                        已确认匹配?
                                      </span>
-                                     <el-button type="danger" size="small" link @click="unlockMatch(item)">瑙ｉ櫎</el-button>
+                                     <el-button type="danger" size="small" link @click="unlockMatch(item)">解除</el-button>
                                   </div>
                                   <div class="text-sm text-emerald-800 dark:text-emerald-200 font-bold break-all flex items-center gap-2">
                                      {{ getLockedItem(item)?.text }}
@@ -285,7 +285,7 @@
                                              type="primary" size="small" text
                                              class="!bg-blue-50 dark:!bg-blue-900/30 !font-black !text-[10px]"
                                              @click="lockMatch(item, item.matches[0]!)">
-                                    閿佸畾寤鸿
+                                    锁定建议
                                   </el-button>
                                </div>
                                <div v-if="item.matches.length > 0">
@@ -306,7 +306,7 @@
                                     </div>
                                    
                                    <div v-if="item.matches.length > 1" class="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
-                                       <div class="text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">鍏朵粬鍖归厤寤鸿 ({{ Math.min(item.matches.length - 1, 5) }})</div>
+                                       <div class="text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">其他匹配建议 ({{ Math.min(item.matches.length - 1, 5) }})</div>
                                        <div class="grid grid-cols-1 gap-2">
                                            <div v-for="(match, matchIndex) in item.matches.slice(1, 6)" :key="matchIndex" 
                                                 class="px-3 py-2 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg border border-transparent hover:border-blue-400 dark:hover:border-blue-500 transition cursor-pointer flex items-center justify-between"
@@ -323,7 +323,7 @@
                                    </div>
                                </div>
                                <div v-else class="h-full flex flex-col items-center justify-center py-8 opacity-30 select-none">
-                                   <div class="text-2xl mb-2">馃</div>
+                                   <div class="text-2xl mb-2">馃</div>
                                    <div class="text-[10px] font-black uppercase tracking-widest">No Strong Matches</div>
                                </div>
                             </div>

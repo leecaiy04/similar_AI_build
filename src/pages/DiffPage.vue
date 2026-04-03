@@ -7,7 +7,7 @@
         <el-button @click="clearData" link class="!text-rose-500 hover:!text-rose-600" size="small">娓呴櫎鏁版嵁</el-button>
       </div>
       <div class="flex items-center gap-4">
-        <span class="text-xs text-gray-500 font-medium">绠楁硶: </span>
+        <span class="text-xs text-gray-500 font-medium">算法: </span>
         <el-radio-group v-model="diffAlgorithm" size="small" class="custom-radio">
           <el-radio-button value="lcs">LCS</el-radio-button>
           <el-radio-button value="myers">Myers</el-radio-button>
@@ -34,7 +34,7 @@
                   v-model="textA"
                   type="textarea"
                   :rows="8"
-                  placeholder="姣忚杈撳叆涓€鏉℃暟鎹?.."
+                  placeholder="姣忚杈撳叆涓€鏉℃暟鎹?.."
                   resize="none"
                   class="premium-textarea"
                 />
@@ -52,7 +52,7 @@
                   v-model="textB"
                   type="textarea"
                   :rows="8"
-                  placeholder="姣忚杈撳叆涓€鏉″姣旀暟鎹?.."
+                  placeholder="姣忚杈撳叆涓€鏉″姣旀暟鎹?.."
                   resize="none"
                   class="premium-textarea"
                 />
@@ -66,7 +66,7 @@
               </div>
               <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="ignoreSpace = !ignoreSpace">
                  <el-checkbox v-model="ignoreSpace" size="small" @click.stop />
-                 <span class="text-xs text-gray-600 dark:text-gray-400">蹇界暐绌虹櫧瀛楃</span>
+                 <span class="text-xs text-gray-600 dark:text-gray-400">蹇界暐绌虹櫧瀛楃</span>
               </div>
             </div>
           </section>
@@ -74,7 +74,7 @@
 
         <footer class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
           <el-button type="primary" class="w-full !h-12 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="runDiff" :loading="isProcessing">
-            {{ isProcessing ? '瀵规瘮璁＄畻涓?..' : '閫愯 Diff 瀵规瘮' }}
+            {{ isProcessing ? '瀵规瘮璁＄畻涓?..' : '閫愯 Diff 瀵规瘮' }}
           </el-button>
         </footer>
       </aside>
@@ -84,7 +84,7 @@
         <div v-if="results.length === 0" class="absolute inset-0 flex items-center justify-center text-gray-400 select-none">
           <div class="text-center">
             <div class="text-6xl mb-4 text-gray-200 dark:text-gray-700">鈿栵笍</div>
-            <p class="text-lg font-medium">鍑嗗瀵规瘮</p>
+            <p class="text-lg font-medium">鍑嗗瀵规瘮</p>
             <p class="text-sm mt-2">Enter both datasets on the left, then run the row-by-row diff.</p>
           </div>
         </div>
@@ -93,7 +93,7 @@
           <div class="max-w-6xl mx-auto w-full h-full flex flex-col space-y-4">
             <div class="flex justify-between items-center bg-white/95 dark:bg-gray-800/95 backdrop-blur z-20 py-3 px-4 rounded-xl border border-gray-200 dark:border-gray-700">
                <div>
-                 <span class="font-bold text-gray-700 dark:text-gray-200 text-sm">宸紓瀵规瘮缁撴灉</span>
+                 <span class="font-bold text-gray-700 dark:text-gray-200 text-sm">宸紓瀵规瘮缁撴灉</span>
                  <span class="ml-3 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">Rows: {{ results.length }}</span>
                </div>
                <el-button type="success" size="small" plain @click="exportDiff">瀵煎嚭瀵规瘮鎶ュ憡 (CSV)</el-button>

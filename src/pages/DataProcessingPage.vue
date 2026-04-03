@@ -4,11 +4,11 @@
     <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex flex-col gap-3 shrink-0 shadow-sm z-10 text-sm">
       <!-- Row 1: Duplicate Management -->
       <div class="flex flex-wrap gap-2 items-center">
-        <span class="text-xs font-bold text-gray-500 w-16 text-right">閲嶅澶勭悊</span>
+        <span class="text-xs font-bold text-gray-500 w-16 text-right">閲嶅澶勭悊</span>
         <el-button-group>
-          <el-button size="small" type="primary" plain @click="highlightDuplicates">楂樹寒閲嶅 (S)</el-button>
+          <el-button size="small" type="primary" plain @click="highlightDuplicates">楂樹寒閲嶅 (S)</el-button>
           <el-button size="small" type="info" plain @click="clearHighlights">娓呴珮浜?(C)</el-button>
-          <el-button size="small" type="success" plain @click="countDuplicates">缁熻娆℃暟 (N)</el-button>
+          <el-button size="small" type="success" plain @click="countDuplicates">缁熻娆℃暟 (N)</el-button>
         </el-button-group>
 
         <el-button-group>
@@ -21,7 +21,7 @@
         </el-button-group>
 
         <el-button-group>
-          <el-button size="small" type="danger" plain @click="removeDuplicates">鍒犻櫎閲嶅 (D)</el-button>
+          <el-button size="small" type="danger" plain @click="removeDuplicates">鍒犻櫎閲嶅 (D)</el-button>
           <el-button size="small" type="warning" plain @click="extractNumbers">Extract numbers</el-button>
         </el-button-group>
         
@@ -31,9 +31,9 @@
 
       <!-- Row 2: Text Transformation -->
       <div class="flex flex-wrap gap-2 items-center">
-        <span class="text-xs font-bold text-gray-500 w-16 text-right">鍩虹澶勭悊</span>
+        <span class="text-xs font-bold text-gray-500 w-16 text-right">鍩虹澶勭悊</span>
         <el-button-group>
-          <el-button size="small" @click="trimSpaces">鍘婚灏剧┖</el-button>
+          <el-button size="small" @click="trimSpaces">鍘婚灏剧┖</el-button>
           <el-button size="small" @click="removeEmpty">Remove empty</el-button>
           <el-button size="small" @click="sortData('asc')">Sort asc</el-button>
           <el-button size="small" @click="sortData('desc')">Sort desc</el-button>
@@ -59,7 +59,7 @@
         
         <!-- Find & Replace -->
         <div class="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded px-1 py-1">
-          <el-input v-model="findText" size="small" placeholder="鏌ユ壘鍐呭" class="w-24 !mx-0" clearable />
+          <el-input v-model="findText" size="small" placeholder="鏌ユ壘鍐呭" class="w-24 !mx-0" clearable />
           <el-input v-model="replaceText" size="small" placeholder="Replace with" class="w-24 !mx-0" clearable />
           <el-button size="small" type="warning" plain @click="batchReplace" class="!border-amber-300">鎵归噺鏇挎崲</el-button>
         </div>
@@ -78,9 +78,9 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="phone">Phone numbers</el-dropdown-item>
-                  <el-dropdown-item command="email">鉁夛笍 鎻愬彇閭</el-dropdown-item>
+                  <el-dropdown-item command="email">鉁夛笍 鎻愬彇閭</el-dropdown-item>
                   <el-dropdown-item command="url">URLs</el-dropdown-item>
-                  <el-dropdown-item command="idcard">馃 鎻愬彇韬唤璇?18浣?</el-dropdown-item>
+                  <el-dropdown-item command="idcard">馃 鎻愬彇韬唤璇?18浣?</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
            </el-dropdown>
@@ -90,7 +90,7 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="phone">138****1234 phone</el-dropdown-item>
                   <el-dropdown-item command="idcard">110105******1234 ID</el-dropdown-item>
-                  <el-dropdown-item command="name">鏉?鏄?(鍩轰簬琛岄鏂囨湰)</el-dropdown-item>
+                  <el-dropdown-item command="name">鏉?鏄?(鍩轰簬琛岄鏂囨湰)</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
            </el-dropdown>
@@ -113,7 +113,7 @@
             <el-tag size="small" type="info" round class="font-mono scale-90">{{ dataList.length }} rows</el-tag>
           </label>
           <el-button size="small" type="primary" plain @click="copyAllData" :disabled="dataList.length === 0">
-             涓€閿鍒?(瀹岀編杩樺師鍥?Excel)
+             涓€閿鍒?(瀹岀編杩樺師鍥?Excel)
           </el-button>
         </div>
 
@@ -122,15 +122,15 @@
             <div class="flex justify-between items-center mb-2">
                <span class="text-xs text-gray-500 font-bold tracking-widest uppercase">Add input</span>
                <el-radio-group v-model="splitMode" size="small">
-                 <el-radio-button value="newline">鎸夎鍒嗛殧</el-radio-button>
-                 <el-radio-button value="blankline">鎸夌┖琛屽垎闅?鏀寔澶氳鏁版嵁)</el-radio-button>
+                 <el-radio-button value="newline">鎸夎鍒嗛殧</el-radio-button>
+                 <el-radio-button value="blankline">鎸夌┖琛屽垎闅?鏀寔澶氳鏁版嵁)</el-radio-button>
                </el-radio-group>
             </div>
             <el-input
               v-model="inputText"
               type="textarea"
               :rows="3"
-              placeholder="鍦ㄦ绮樿创澶氳鏂囨湰鏁版嵁锛屾垨鐩存帴杈撳叆鍚庣偣鍑绘坊鍔?.."
+              placeholder="鍦ㄦ绮樿创澶氳鏂囨湰鏁版嵁锛屾垨鐩存帴杈撳叆鍚庣偣鍑绘坊鍔?.."
               resize="none"
               class="custom-textarea"
               @keydown.enter.prevent="addTypedData"
@@ -172,7 +172,7 @@
                 <!-- Status Tags & Actions -->
                 <div class="flex items-center gap-2 shrink-0">
                   <el-tag v-if="item.count > 1" type="danger" size="small" effect="plain" round class="scale-90 font-mono">
-                    閲嶅 {{ item.count }} 娆?
+                    閲嶅 {{ item.count }} 娆?
                   </el-tag>
                   <el-button type="danger" link icon="Delete" size="small" class="opacity-0 group-hover:opacity-100 transition-opacity" @click="removeRow(index)"></el-button>
                 </div>
