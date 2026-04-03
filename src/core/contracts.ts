@@ -1,5 +1,10 @@
 import type { AppError } from './errors'
 
+export interface InputRecord {
+  id: string
+  fields: Record<string, string>
+}
+
 export interface ProcessResult {
   id: string
   status: 'idle' | 'loading' | 'success' | 'error'
