@@ -1,6 +1,12 @@
 # Similar AI Build
 
-Multi-tool text workflow app built with Vue 3, TypeScript, Vite, and Tauri. The current product surface includes:
+Multi-tool text workflow app built with Vue 3, TypeScript, Vite, and Tauri.
+
+## Live Demo
+
+🚀 **Production**: https://leecaiy04.github.io/similar_AI_build/#/
+
+## Features
 
 - Similarity matching
 - Row-by-row diff comparison
