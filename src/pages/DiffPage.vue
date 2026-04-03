@@ -27,14 +27,14 @@
                 <div class="flex justify-between items-center mb-2 px-1">
                   <label class="text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                    数据A组?({{ listACount }})
+                    数据A组 ({{ listACount }})
                   </label>
                 </div>
                 <el-input
                   v-model="textA"
                   type="textarea"
                   :rows="8"
-                  placeholder="姣忚杈撳叆涓€鏉℃暟鎹?.."
+                  placeholder="每行输入一条数据..."
                   resize="none"
                   class="premium-textarea"
                 />
@@ -45,14 +45,14 @@
                 <div class="flex justify-between items-center mb-2 px-1">
                   <label class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                    数据B组?({{ listBCount }})
+                    数据B组 ({{ listBCount }})
                   </label>
                 </div>
                 <el-input
                   v-model="textB"
                   type="textarea"
                   :rows="8"
-                  placeholder="姣忚杈撳叆涓€鏉″姣旀暟鎹?.."
+                  placeholder="每行输入一条比对数据..."
                   resize="none"
                   class="premium-textarea"
                 />
@@ -66,7 +66,7 @@
               </div>
               <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="ignoreSpace = !ignoreSpace">
                  <el-checkbox v-model="ignoreSpace" size="small" @click.stop />
-                 <span class="text-xs text-gray-600 dark:text-gray-400">蹇界暐绌虹櫧瀛楃</span>
+                 <span class="text-xs text-gray-600 dark:text-gray-400">忽略空白字符</span>
               </div>
             </div>
           </section>
@@ -74,7 +74,7 @@
 
         <footer class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
           <el-button type="primary" class="w-full !h-12 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="runDiff" :loading="isProcessing">
-            {{ isProcessing ? '瀵规瘮璁＄畻涓?..' : '閫愯 Diff 瀵规瘮' }}
+            {{ isProcessing ? '对比计算中...' : '逐行 Diff 对比' }}
           </el-button>
         </footer>
       </aside>
@@ -83,8 +83,8 @@
       <div class="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-900 overflow-hidden relative">
         <div v-if="results.length === 0" class="absolute inset-0 flex items-center justify-center text-gray-400 select-none">
           <div class="text-center">
-            <div class="text-6xl mb-4 text-gray-200 dark:text-gray-700">鈿栵笍</div>
-            <p class="text-lg font-medium">鍑嗗瀵规瘮</p>
+            <div class="text-6xl mb-4 text-gray-200 dark:text-gray-700">📊</div>
+            <p class="text-lg font-medium">准备对比</p>
             <p class="text-sm mt-2">Enter both datasets on the left, then run the row-by-row diff.</p>
           </div>
         </div>
@@ -93,16 +93,16 @@
           <div class="max-w-6xl mx-auto w-full h-full flex flex-col space-y-4">
             <div class="flex justify-between items-center bg-white/95 dark:bg-gray-800/95 backdrop-blur z-20 py-3 px-4 rounded-xl border border-gray-200 dark:border-gray-700">
                <div>
-                 <span class="font-bold text-gray-700 dark:text-gray-200 text-sm">宸紓瀵规瘮缁撴灉</span>
+                 <span class="font-bold text-gray-700 dark:text-gray-200 text-sm">差异对比结果</span>
                  <span class="ml-3 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">Rows: {{ results.length }}</span>
                </div>
-               <el-button type="success" size="small" plain @click="exportDiff">瀵煎嚭瀵规瘮鎶ュ憡 (CSV)</el-button>
+               <el-button type="success" size="small" plain @click="exportDiff">导出比对报告 (CSV)</el-button>
             </div>
 
             <!-- Scrollable Diff List -->
             <div class="flex-1 overflow-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
               <div class="diff-grid-header grid grid-cols-[60px_1fr_1fr_80px] bg-gray-100 dark:bg-gray-700/50 py-2 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
-                <div class="text-center">琛屽彿</div>
+                <div class="text-center">行号</div>
                 <div class="px-4">Data A</div>
                 <div class="px-4 border-l border-gray-200 dark:border-gray-600">Data B</div>
                 <div class="text-center">Similarity</div>

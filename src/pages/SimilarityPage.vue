@@ -122,11 +122,11 @@
                 <div class="space-y-3 pt-2">
                     <div class="space-y-1">
                         <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">增强同义词组</label>
-                        <el-input v-model="synonymText" type="textarea" :rows="2" size="small" placeholder="璇?, 璇? (鍒嗙粍鎹㈣)..." class="custom-small-textarea" />
+                        <el-input v-model="synonymText" type="textarea" :rows="2" size="small" placeholder="词?, 词? (分组)..." class="custom-small-textarea" />
                     </div>
                     <div class="space-y-1">
                         <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">Ignore Terms</label>
-                        <el-input v-model="ignoreText" type="textarea" :rows="2" size="small" placeholder="濡傦細鏈夐檺鍏徃, 闆嗗洟..." class="custom-small-textarea" />
+                        <el-input v-model="ignoreText" type="textarea" :rows="2" size="small" placeholder="例如：有限公司， 集团..." class="custom-small-textarea" />
                     </div>
                 </div>
 
@@ -158,7 +158,7 @@
           <!-- Bottom Action -->
           <footer class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
                     <el-button type="primary" class="w-full !h-12 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="startComparison" :loading="isProcessing">
-                      {{ isProcessing ? 'AI 鍒嗘瀽涓?..' : '启动智能比对' }}
+                      {{ isProcessing ? 'AI 分析中...' : '启动智能比对' }}
                     </el-button>
           </footer>
         </aside>
@@ -191,7 +191,7 @@
                                  导出锁定 ({{ lockedItems.size }})
                               </el-button>
                               <el-button type="primary" size="small" plain @click="exportComplex">
-                                 鍏ㄩ噺鎶ュ憡
+                                 全局报告
                               </el-button>
                               <input type="file" ref="importRef" class="hidden" accept=".csv" @change="handleImport" />
                            </div>
@@ -202,7 +202,7 @@
                           <div class="flex-1 min-w-[200px] flex gap-1">
                               <el-input
                                   v-model="filterOptions.searchQuery"
-                                  placeholder="鎼滅储婧愭垨鐩爣鏂囨湰..."
+                                  placeholder="搜索源或目标文本..."
                                   size="small"
                                   clearable
                                   class="premium-search-input"
@@ -225,7 +225,7 @@
                           <div class="flex items-center gap-2">
                               <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">锁定状态?</span>
                               <el-radio-group v-model="filterOptions.lockStatus" size="small" class="premium-filter-radio">
-                                  <el-radio-button value="all">鍏ㄩ儴</el-radio-button>
+                                  <el-radio-button value="all">全部</el-radio-button>
                                   <el-radio-button value="locked">Locked</el-radio-button>
                                   <el-radio-button value="unlocked">Unlocked</el-radio-button>
                               </el-radio-group>
@@ -234,7 +234,7 @@
                           <div class="flex items-center gap-2">
                               <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">匹配状态?</span>
                               <el-radio-group v-model="filterOptions.matchStatus" size="small" class="premium-filter-radio">
-                                  <el-radio-button value="all">鍏ㄩ儴</el-radio-button>
+                                  <el-radio-button value="all">全部</el-radio-button>
                                   <el-radio-button value="matched">Matched</el-radio-button>
                                   <el-radio-button value="unmatched">Unmatched</el-radio-button>
                               </el-radio-group>
@@ -242,7 +242,7 @@
                           
                           <div class="ml-auto flex items-center gap-1" v-if="filterOptions.searchQuery || filterOptions.lockStatus !== 'all' || filterOptions.matchStatus !== 'all'">
                              <el-button link size="small" @click="filterOptions = { lockStatus: 'all', matchStatus: 'all', searchQuery: '', isRegexSearch: false }" class="!text-rose-500 !text-[10px] font-bold">
-                                閲嶇疆绛涢€?
+                                重置筛选
                              </el-button>
                           </div>
                       </div>
