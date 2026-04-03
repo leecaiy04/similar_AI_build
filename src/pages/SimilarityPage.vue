@@ -43,7 +43,7 @@
                     <div class="flex justify-between items-center mb-2 px-1">
                       <label class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                        鐩爣搴?({{ targetCount }})
+                        目标库({{ targetCount }})
                       </label>
                     </div>
                     <el-input
