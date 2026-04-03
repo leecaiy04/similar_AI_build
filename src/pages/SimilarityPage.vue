@@ -32,7 +32,7 @@
                       v-model="sourceText"
                       type="textarea"
                       :rows="4"
-                      placeholder="姣忚杈撳叆涓€涓緟鍖归厤鐨勬簮鏂囨湰..."
+                      placeholder="每行输入一个待匹配的源文本..."
                       resize="none"
                       class="premium-textarea"
                     />
@@ -50,7 +50,7 @@
                       v-model="targetText"
                       type="textarea"
                       :rows="4"
-                      placeholder="姣忚杈撳叆涓€涓熀鍑嗘爣鍑嗘枃鏈?.."
+                      placeholder="每行输入一个基准标准文本..."
                       resize="none"
                       class="premium-textarea"
                     />
@@ -62,7 +62,7 @@
             <section class="space-y-4">
               <div class="flex items-center gap-2 mb-4">
                  <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">姣斿寮曟搸楂樼骇閰嶇疆</span>
+                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">比对算法高级配置</span>
                  <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
               </div>
 
@@ -168,8 +168,8 @@
            <!-- Empty State -->
            <div v-if="results.length === 0" class="absolute inset-0 flex items-center justify-center text-gray-400 select-none">
               <div class="text-center">
-                <div class="text-6xl mb-4 text-gray-200 dark:text-gray-700">馃攳</div>
-                <p class="text-lg font-medium">鍑嗗灏辩华</p>
+                <div class="text-6xl mb-4 text-gray-200 dark:text-gray-700">🎯</div>
+                <p class="text-lg font-medium">准备完成</p>
                 <p class="text-sm mt-2">Add source and target data, then start the comparison.</p>
               </div>
            </div>
@@ -208,7 +208,7 @@
                                   class="premium-search-input"
                               >
                                   <template #prefix>
-                                      <span class="text-gray-400">馃攳</span>
+                                      <span class="text-gray-400">🎯</span>
                                   </template>
                               </el-input>
                               <el-tooltip content="Regex mode" placement="top">
@@ -255,7 +255,7 @@
                          <div class="w-14 flex flex-col items-center justify-center border-r border-gray-100 dark:border-gray-700"
                               :class="isLocked(item) ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-700/30'">
                             <span class="font-mono text-gray-400 text-sm">{{ idx + 1 }}</span>
-                            <span v-if="isLocked(item)" class="text-green-500 text-lg mt-1">馃敀</span>
+                            <span v-if="isLocked(item)" class="text-green-500 text-lg mt-1">🔒</span>
                          </div>
                          <div class="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -323,7 +323,7 @@
                                    </div>
                                </div>
                                <div v-else class="h-full flex flex-col items-center justify-center py-8 opacity-30 select-none">
-                                   <div class="text-2xl mb-2">馃</div>
+                                   <div class="text-2xl mb-2">💡</div>
                                    <div class="text-[10px] font-black uppercase tracking-widest">No Strong Matches</div>
                                </div>
                             </div>
