@@ -151,6 +151,13 @@ npm run test:watch
 - **Release工作流** - 自动构建和发布新版本
 - 所有工作流在构建前运行 `npm test` 确保代码质量
 
+## 飞牛 OS 部署
+
+- 已提供手动部署到飞牛的工作流：`.github/workflows/deploy-fnos.yml`
+- 飞牛部署目录：`/vol1/1000/code/deplay/similar_AI_build`
+- 飞牛访问端口：`53120`
+- 详细说明见 `docs/fnos-deploy.md`
+
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
