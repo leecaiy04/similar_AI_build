@@ -1,0 +1,89 @@
+name: Deploy to FNOS
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-fnos-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy main to FNOS
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - fnos
+    env:
+      DEPLOY_DIR: /vol1/1000/code/deplay/similar_AI_build
+      DEPLOY_BRANCH: main
+      SERVICE_NAME: similar-ai-build
+      APP_PORT: 53120
+    steps:
+      - name: Ensure workflow runs for main only
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::This workflow only deploys the main branch. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+
+      - name: Check deployment directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "${DEPLOY_DIR}"
+          test -d "${DEPLOY_DIR}/.git"
+
+      - name: Update repository to latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C "${DEPLOY_DIR}" fetch --prune origin "${DEPLOY_BRANCH}"
+          git -C "${DEPLOY_DIR}" checkout "${DEPLOY_BRANCH}"
+          git -C "${DEPLOY_DIR}" pull --ff-only origin "${DEPLOY_BRANCH}"
+          echo "Deploying commit: $(git -C "${DEPLOY_DIR}" rev-parse --short HEAD)"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "${DEPLOY_DIR}"
+          npm ci
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "${DEPLOY_DIR}"
+          npm test
+
+      - name: Build production bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "${DEPLOY_DIR}"
+          npm run build
+
+      - name: Restart service
+        shell: bash
+        env:
+          FOS_SUDO_PASSWORD: ${{ secrets.FOS_SUDO_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FOS_SUDO_PASSWORD:-}" ]; then
+            echo "::error::Missing secret FOS_SUDO_PASSWORD"
+            exit 1
+          fi
+          printf '%s\n' "${FOS_SUDO_PASSWORD}" | sudo -S -p '' systemctl restart "${SERVICE_NAME}"
+
+      - name: Verify homepage
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 3
+          curl -fsS "http://127.0.0.1:${APP_PORT}/" > /tmp/similar-ai-build.html
+          grep -qi "similar ai build" /tmp/similar-ai-build.html
+
