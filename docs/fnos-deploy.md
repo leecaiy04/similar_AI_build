@@ -46,12 +46,13 @@ WantedBy=multi-user.target
 
 工作流会自动执行：
 
-1. 更新飞牛本地仓库到最新 `main`
+1. 在 runner 工作区拉取最新 `main`
 2. 执行 `npm ci`
 3. 执行 `npm test`
 4. 执行 `npm run build`
-5. 重启 `similar-ai-build`
-6. 验证 `http://127.0.0.1:53120/`
+5. 将 `dist/` 同步到飞牛部署目录
+6. 重启 `similar-ai-build`
+7. 验证 `http://127.0.0.1:53120/`
 
 ## 飞牛手动维护命令
 
@@ -79,10 +80,10 @@ curl http://127.0.0.1:53120/
 
 推荐步骤：
 
-1. `git clone --branch main --single-branch <repo> <deploy_dir>`
+1. 准备一个固定部署目录 `<deploy_dir>`
 2. `npm ci`
 3. `npm test`
 4. `npm run build`
-5. 用 `systemd` 托管静态目录
-6. 增加一个手动触发的 `deploy-fnos.yml`
-
+5. 将 `dist/` 同步到 `<deploy_dir>/dist`
+6. 用 `systemd` 托管静态目录
+7. 增加一个手动触发的 `deploy-fnos.yml`
