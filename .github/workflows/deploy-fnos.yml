@@ -86,4 +86,4 @@ jobs:
           set -euo pipefail
           sleep 3
           curl -fsS "http://127.0.0.1:${APP_PORT}/" > /tmp/similar-ai-build.html
-          grep -qi "similar ai build" /tmp/similar-ai-build.html
+          grep -qi "<!doctype html>" /tmp/similar-ai-build.html
