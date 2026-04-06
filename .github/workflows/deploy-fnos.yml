@@ -41,9 +41,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git -C "${DEPLOY_DIR}" fetch --prune origin "${DEPLOY_BRANCH}"
+          for attempt in 1 2 3; do
+            if git -C "${DEPLOY_DIR}" fetch --prune origin "${DEPLOY_BRANCH}"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::git fetch failed after ${attempt} attempts"
+              exit 1
+            fi
+            sleep 5
+          done
           git -C "${DEPLOY_DIR}" checkout "${DEPLOY_BRANCH}"
-          git -C "${DEPLOY_DIR}" pull --ff-only origin "${DEPLOY_BRANCH}"
+          for attempt in 1 2 3; do
+            if git -C "${DEPLOY_DIR}" pull --ff-only origin "${DEPLOY_BRANCH}"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::git pull failed after ${attempt} attempts"
+              exit 1
+            fi
+            sleep 5
+          done
           echo "Deploying commit: $(git -C "${DEPLOY_DIR}" rev-parse --short HEAD)"
 
       - name: Install dependencies
@@ -86,4 +104,3 @@ jobs:
           sleep 3
           curl -fsS "http://127.0.0.1:${APP_PORT}/" > /tmp/similar-ai-build.html
           grep -qi "similar ai build" /tmp/similar-ai-build.html
-
