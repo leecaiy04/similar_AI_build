@@ -17,10 +17,18 @@ jobs:
       - fnos
     env:
       DEPLOY_DIR: /vol1/1000/code/deplay/similar_AI_build
-      DEPLOY_BRANCH: main
       SERVICE_NAME: similar-ai-build
       APP_PORT: 53120
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Ensure workflow runs for main only
         shell: bash
         run: |
@@ -30,51 +38,35 @@ jobs:
             exit 1
           fi
 
-      - name: Check deployment directory
+      - name: Prepare deployment directory
         shell: bash
         run: |
           set -euo pipefail
-          test -d "${DEPLOY_DIR}"
-          test -d "${DEPLOY_DIR}/.git"
-
-      - name: Update repository to latest main
-        shell: bash
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if git -C "${DEPLOY_DIR}" fetch --prune origin "${DEPLOY_BRANCH}"; then
-              break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "::error::git fetch failed after ${attempt} attempts"
-              exit 1
-            fi
-            sleep 5
-          done
-          git -C "${DEPLOY_DIR}" checkout "${DEPLOY_BRANCH}"
-          git -C "${DEPLOY_DIR}" reset --hard "origin/${DEPLOY_BRANCH}"
-          echo "Deploying commit: $(git -C "${DEPLOY_DIR}" rev-parse --short HEAD)"
+          mkdir -p "${DEPLOY_DIR}/dist"
 
       - name: Install dependencies
         shell: bash
         run: |
           set -euo pipefail
-          cd "${DEPLOY_DIR}"
           npm ci
 
       - name: Run tests
         shell: bash
         run: |
           set -euo pipefail
-          cd "${DEPLOY_DIR}"
           npm test
 
       - name: Build production bundle
         shell: bash
         run: |
           set -euo pipefail
-          cd "${DEPLOY_DIR}"
           npm run build
+
+      - name: Sync dist to deployment directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a --delete dist/ "${DEPLOY_DIR}/dist/"
 
       - name: Restart service
         shell: bash
