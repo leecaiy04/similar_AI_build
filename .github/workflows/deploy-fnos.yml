@@ -52,16 +52,7 @@ jobs:
             sleep 5
           done
           git -C "${DEPLOY_DIR}" checkout "${DEPLOY_BRANCH}"
-          for attempt in 1 2 3; do
-            if git -C "${DEPLOY_DIR}" pull --ff-only origin "${DEPLOY_BRANCH}"; then
-              break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "::error::git pull failed after ${attempt} attempts"
-              exit 1
-            fi
-            sleep 5
-          done
+          git -C "${DEPLOY_DIR}" reset --hard "origin/${DEPLOY_BRANCH}"
           echo "Deploying commit: $(git -C "${DEPLOY_DIR}" rev-parse --short HEAD)"
 
       - name: Install dependencies
