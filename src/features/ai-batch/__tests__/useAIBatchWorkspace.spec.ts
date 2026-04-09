@@ -53,4 +53,16 @@ describe('useAIBatchWorkspace', () => {
     expect(workspace.isProcessing.value).toBe(false)
     expect(workspace.outputResults.value[0]?.error).toBe('Aborted')
   })
+
+  it('clamps concurrent count to 1-3', async () => {
+    const workspace = useAIBatchWorkspace()
+
+    workspace.concurrentCount.value = 9
+    await nextTick()
+    expect(workspace.concurrentCount.value).toBe(3)
+
+    workspace.concurrentCount.value = 0
+    await nextTick()
+    expect(workspace.concurrentCount.value).toBe(1)
+  })
 })

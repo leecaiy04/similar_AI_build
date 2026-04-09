@@ -38,6 +38,7 @@ export interface AIBatchRunner {
 }
 
 const STORAGE_KEY = 'premium_ai_batch_v1'
+const MAX_CONCURRENT_COUNT = 3
 
 const defaultPresets: AIPreset[] = [
   {
@@ -136,6 +137,12 @@ function canUseLocalStorage() {
   return typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function' && typeof localStorage.setItem === 'function'
 }
 
+function clampConcurrentCount(value: unknown) {
+  const normalized = Math.floor(Number(value))
+  if (!Number.isFinite(normalized)) return 1
+  return Math.min(MAX_CONCURRENT_COUNT, Math.max(1, normalized))
+}
+
 export function useAIBatchWorkspace(runner?: AIBatchRunner) {
   const presets = ref<AIPreset[]>(JSON.parse(JSON.stringify(defaultPresets)))
   const activePresetIndex = ref(0)
@@ -143,7 +150,7 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
   const textData = ref<Record<string, string>>({})
   const splitMode = ref<'newline' | 'blankline'>('newline')
   const outputResults = ref<OutputResult[]>([])
-  const concurrentCount = ref(3)
+  const concurrentCount = ref(MAX_CONCURRENT_COUNT)
   const isProcessing = ref(false)
   const fetchingModels = ref(false)
   const modelList = ref<string[]>([])
@@ -287,7 +294,7 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
 
     const invoke = config.mode === 'test' ? createTestInvoke() : createLlmInvoke(config.mode)
     const service = createBatchInferenceService({
-      concurrency: Math.min(concurrentCount.value, listACount.value),
+      concurrency: Math.min(clampConcurrentCount(concurrentCount.value), listACount.value),
       invoke,
     })
     const runBatch = runner?.runBatch ?? service.runBatch
@@ -381,12 +388,19 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
       if (parsed.activePresetIndex !== undefined && parsed.activePresetIndex < presets.value.length) {
         activePresetIndex.value = parsed.activePresetIndex
       }
-      if (parsed.concurrentCount !== undefined) concurrentCount.value = parsed.concurrentCount
+      if (parsed.concurrentCount !== undefined) concurrentCount.value = clampConcurrentCount(parsed.concurrentCount)
       if (parsed.textData) textData.value = parsed.textData
       else if (parsed.textA) textData.value = { input: parsed.textA }
       if (parsed.splitMode) splitMode.value = parsed.splitMode
     } catch {
       // ignore malformed local state
+    }
+  })
+
+  watch(concurrentCount, (value) => {
+    const normalized = clampConcurrentCount(value)
+    if (value !== normalized) {
+      concurrentCount.value = normalized
     }
   })
 

@@ -99,7 +99,7 @@
                 
                 <div class="space-y-1 pt-2">
                     <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">并发请求数量 (Max Concurrent)</label>
-                    <el-slider v-model="concurrentCount" :min="1" :max="10" size="small" />
+                    <el-slider v-model="concurrentCount" :min="1" :max="3" size="small" />
                 </div>
             </div>
           </section>

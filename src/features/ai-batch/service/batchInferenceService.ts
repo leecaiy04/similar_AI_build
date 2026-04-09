@@ -52,9 +52,11 @@ async function invokeWithRetry(
 }
 
 export function createBatchInferenceService({ concurrency, invoke }: BatchInferenceServiceOptions) {
+  const normalizedConcurrency = Math.min(3, Math.max(1, Math.floor(concurrency)))
+
   return {
     async runBatch(inputs: InputRecord[], options: BatchRunOptions, externalSignal?: AbortSignal): Promise<ProcessResult[]> {
-      const queue = createBatchQueue({ concurrency })
+      const queue = createBatchQueue({ concurrency: normalizedConcurrency })
       const results = inputs.map((input) => createProcessResult(input.id))
       const abortListener = () => queue.cancelAll('Aborted')
 
