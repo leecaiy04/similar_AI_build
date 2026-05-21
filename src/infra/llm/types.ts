@@ -1,4 +1,4 @@
-export type LlmProvider = 'openai' | 'claude' | 'gemini'
+export type LlmProvider = 'openai' | 'claude' | 'gemini' | 'claude-code'
 
 export interface LlmRequest {
   baseUrl: string

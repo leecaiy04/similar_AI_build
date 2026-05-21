@@ -8,7 +8,7 @@ import { splitTextData } from '../../../utils/textParser'
 
 export interface AIPreset {
   name?: string
-  mode: 'openai' | 'claude' | 'gemini' | 'test'
+  mode: 'openai' | 'claude' | 'gemini' | 'claude-code' | 'test'
   baseUrl: string
   apiKey: string
   model: string
@@ -54,6 +54,24 @@ const defaultPresets: AIPreset[] = [
     name: 'Claude',
     mode: 'claude',
     baseUrl: 'https://api123.icu/v1',
+    apiKey: '',
+    model: 'claude-sonnet-4-6',
+    systemPrompt: '你是强大的分析助手。',
+    promptTemplate: '分析下列内容并提取关键词，以逗号分隔：\n{{input}}',
+  },
+  {
+    name: 'Claude Code (Opus 4.7)',
+    mode: 'claude-code',
+    baseUrl: '/api/cc-vibe/v1',
+    apiKey: '',
+    model: 'claude-opus-4-7',
+    systemPrompt: '你是强大的分析助手。',
+    promptTemplate: '分析下列内容并提取关键词，以逗号分隔：\n{{input}}',
+  },
+  {
+    name: 'Claude Code (Sonnet 4.6)',
+    mode: 'claude-code',
+    baseUrl: '/api/cc-vibe/v1',
     apiKey: '',
     model: 'claude-sonnet-4-6',
     systemPrompt: '你是强大的分析助手。',

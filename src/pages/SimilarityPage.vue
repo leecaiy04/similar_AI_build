@@ -4,8 +4,8 @@
       <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-1.5 flex justify-between items-center h-10 shrink-0">
         <div class="flex items-center gap-3">
           <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">加载示例</el-button>
-          <el-button @click="exportStateJson" link class="!text-blue-500 hover:!text-blue-600" size="small">Export workspace</el-button>
-          <el-button @click="triggerImportJson" link class="!text-blue-500 hover:!text-blue-600" size="small">Import workspace</el-button>
+          <el-button @click="exportStateJson" link class="!text-blue-500 hover:!text-blue-600" size="small">导出工作区</el-button>
+          <el-button @click="triggerImportJson" link class="!text-blue-500 hover:!text-blue-600" size="small">导入工作区</el-button>
           <input type="file" ref="importJsonRef" class="hidden" accept=".json" @change="handleImportJson" />
           <el-button @click="resetAll" link class="!text-rose-500 hover:!text-rose-600" size="small">清除缓存</el-button>
         </div>
@@ -87,7 +87,7 @@
                 <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-4">
                     <div class="space-y-1">
                         <div class="flex justify-between items-center mb-1">
-                           <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Threshold</span>
+                           <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">相似度阈值</span>
                            <span class="text-xs font-mono font-black text-blue-600">{{ options.threshold }}%</span>
                         </div>
                         <el-slider v-model="options.threshold" :min="0" :max="100" />
@@ -125,30 +125,119 @@
                         <el-input v-model="synonymText" type="textarea" :rows="2" size="small" placeholder="词?, 词? (分组)..." class="custom-small-textarea" />
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">Ignore Terms</label>
+                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">忽略词项</label>
                         <el-input v-model="ignoreText" type="textarea" :rows="2" size="small" placeholder="例如：有限公司， 集团..." class="custom-small-textarea" />
                     </div>
                 </div>
 
                 <!-- Join Mode Selection -->
-                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-4">
+                <div class="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-gray-700/30 dark:to-gray-700/30 p-5 rounded-2xl border border-blue-100 dark:border-gray-700/50 space-y-4">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">数据连接视角</span>
-                        <el-tag size="small" type="info" round class="scale-90 origin-right transition-all">{{ joinMode }}</el-tag>
+                        <span class="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide flex items-center gap-2">
+                            <span class="text-sm">🎯</span>
+                            匹配模式
+                        </span>
+                        <el-tag size="small" type="primary" effect="dark" round class="scale-90 origin-right transition-all font-mono">
+                            {{ joinMode === 'left' ? '源为主' : joinMode === 'inner' ? '求同' : joinMode === 'right' ? '标为主' : '全集' }}
+                        </el-tag>
                     </div>
-                    
-                    <el-radio-group v-model="joinMode" size="small" class="w-full flex premium-radio-group">
-                        <el-radio-button value="left" class="flex-1">Left</el-radio-button>
-                        <el-radio-button value="inner" class="flex-1">Inner</el-radio-button>
-                        <el-radio-button value="right" class="flex-1">Right</el-radio-button>
-                        <el-radio-button value="outer" class="flex-1">Outer</el-radio-button>
-                    </el-radio-group>
-                    
-                    <div class="text-[10px] text-gray-400 mt-2 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-100 dark:border-gray-700 leading-relaxed shadow-inner">
-                        <span v-if="joinMode === 'left'">Show every source item with its recommended matches.</span>
-                        <span v-else-if="joinMode === 'inner'">Only show source rows that have suggested matches.</span>
-                        <span v-else-if="joinMode === 'right'">Use target rows as the primary view and match sources against them.</span>
-                        <span v-else-if="joinMode === 'outer'">Show all source rows plus unmatched target rows.</span>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div
+                            @click="joinMode = 'left'"
+                            class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                            :class="joinMode === 'left'
+                                ? 'bg-blue-500 border-blue-600 shadow-lg shadow-blue-500/30'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300'">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-lg">📋</span>
+                                <span class="text-xs font-black uppercase tracking-wide"
+                                      :class="joinMode === 'left' ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
+                                    源为主 Left
+                                </span>
+                            </div>
+                            <p class="text-[10px] leading-relaxed"
+                               :class="joinMode === 'left' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'">
+                                显示所有源列表项及其匹配结果
+                            </p>
+                        </div>
+
+                        <div
+                            @click="joinMode = 'inner'"
+                            class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                            :class="joinMode === 'inner'
+                                ? 'bg-green-500 border-green-600 shadow-lg shadow-green-500/30'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-green-300'">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-lg">🎯</span>
+                                <span class="text-xs font-black uppercase tracking-wide"
+                                      :class="joinMode === 'inner' ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
+                                    求同 Inner
+                                </span>
+                            </div>
+                            <p class="text-[10px] leading-relaxed"
+                               :class="joinMode === 'inner' ? 'text-green-100' : 'text-gray-500 dark:text-gray-400'">
+                                只显示能匹配上的项（交集）
+                            </p>
+                        </div>
+
+                        <div
+                            @click="joinMode = 'right'"
+                            class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                            :class="joinMode === 'right'
+                                ? 'bg-purple-500 border-purple-600 shadow-lg shadow-purple-500/30'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-300'">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-lg">📌</span>
+                                <span class="text-xs font-black uppercase tracking-wide"
+                                      :class="joinMode === 'right' ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
+                                    标为主 Right
+                                </span>
+                            </div>
+                            <p class="text-[10px] leading-relaxed"
+                               :class="joinMode === 'right' ? 'text-purple-100' : 'text-gray-500 dark:text-gray-400'">
+                                以目标库为基准反向匹配源
+                            </p>
+                        </div>
+
+                        <div
+                            @click="joinMode = 'outer'"
+                            class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                            :class="joinMode === 'outer'
+                                ? 'bg-orange-500 border-orange-600 shadow-lg shadow-orange-500/30'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-orange-300'">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-lg">🔄</span>
+                                <span class="text-xs font-black uppercase tracking-wide"
+                                      :class="joinMode === 'outer' ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
+                                    全集 Outer
+                                </span>
+                            </div>
+                            <p class="text-[10px] leading-relaxed"
+                               :class="joinMode === 'outer' ? 'text-orange-100' : 'text-gray-500 dark:text-gray-400'">
+                                显示所有项+未匹配的目标项
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="text-[10px] text-gray-600 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 p-3 rounded-lg border border-gray-200 dark:border-gray-700 leading-relaxed">
+                        <div class="flex items-start gap-2">
+                            <span class="text-blue-500 shrink-0 mt-0.5">💡</span>
+                            <div>
+                                <span v-if="joinMode === 'left'" class="font-semibold text-gray-700 dark:text-gray-300">
+                                    适用场景：清洗源数据，为每个源项找最佳匹配。配合"未匹配"筛选可实现<strong class="text-blue-600 dark:text-blue-400">左差集</strong>（源有标无）。
+                                </span>
+                                <span v-else-if="joinMode === 'inner'" class="font-semibold text-gray-700 dark:text-gray-300">
+                                    适用场景：<strong class="text-green-600 dark:text-green-400">求交集</strong>，只关注能匹配上的数据，过滤掉无法匹配的项。
+                                </span>
+                                <span v-else-if="joinMode === 'right'" class="font-semibold text-gray-700 dark:text-gray-300">
+                                    适用场景：检查标准库覆盖率，看哪些标准项被源数据匹配到。配合"未匹配"筛选可实现<strong class="text-purple-600 dark:text-purple-400">右差集</strong>（标有源无）。
+                                </span>
+                                <span v-else-if="joinMode === 'outer'" class="font-semibold text-gray-700 dark:text-gray-300">
+                                    适用场景：<strong class="text-orange-600 dark:text-orange-400">全量对比</strong>，查看两边的并集，发现双方的差异项。配合"未匹配"筛选可实现<strong class="text-orange-600 dark:text-orange-400">对称差集</strong>。
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
               </div>
@@ -223,20 +312,20 @@
                           </div>
                           
                           <div class="flex items-center gap-2">
-                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">锁定状态?</span>
+                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">🔒 锁定状态</span>
                               <el-radio-group v-model="filterOptions.lockStatus" size="small" class="premium-filter-radio">
                                   <el-radio-button value="all">全部</el-radio-button>
-                                  <el-radio-button value="locked">Locked</el-radio-button>
-                                  <el-radio-button value="unlocked">Unlocked</el-radio-button>
+                                  <el-radio-button value="locked">已锁定</el-radio-button>
+                                  <el-radio-button value="unlocked">未锁定</el-radio-button>
                               </el-radio-group>
                           </div>
 
                           <div class="flex items-center gap-2">
-                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">匹配状态?</span>
+                              <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">🎯 匹配状态</span>
                               <el-radio-group v-model="filterOptions.matchStatus" size="small" class="premium-filter-radio">
                                   <el-radio-button value="all">全部</el-radio-button>
-                                  <el-radio-button value="matched">Matched</el-radio-button>
-                                  <el-radio-button value="unmatched">Unmatched</el-radio-button>
+                                  <el-radio-button value="matched">已匹配</el-radio-button>
+                                  <el-radio-button value="unmatched">未匹配（求异）</el-radio-button>
                               </el-radio-group>
                           </div>
                           

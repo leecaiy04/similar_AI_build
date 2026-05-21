@@ -13,7 +13,7 @@
 
         <el-button-group>
           <el-button size="small" :type="preventDuplicates ? 'warning' : 'default'" @click="togglePreventDuplicates">
-            {{ preventDuplicates ? 'Enabled' : 'Prevent Duplicates' }}
+            {{ preventDuplicates ? '已启用' : '防重复输入' }}
           </el-button>
           <el-button size="small" type="default" @click="clearPreventDuplicates" :disabled="!preventDuplicates">
             清除缓存 (R)
@@ -22,11 +22,11 @@
 
         <el-button-group>
           <el-button size="small" type="danger" plain @click="removeDuplicates">删除重复 (D)</el-button>
-          <el-button size="small" type="warning" plain @click="extractNumbers">Extract numbers</el-button>
+          <el-button size="small" type="warning" plain @click="extractNumbers">提取数字</el-button>
         </el-button-group>
-        
+
         <div class="flex-1"></div>
-        <el-button size="small" type="danger" text @click="clearAll" icon="Delete">Clear all</el-button>
+        <el-button size="small" type="danger" text @click="clearAll" icon="Delete">清空全部</el-button>
       </div>
 
       <!-- Row 2: Text Transformation -->
@@ -34,22 +34,22 @@
         <span class="text-xs font-bold text-gray-500 w-16 text-right">基础处理</span>
         <el-button-group>
           <el-button size="small" @click="trimSpaces">去除首尾空</el-button>
-          <el-button size="small" @click="removeEmpty">Remove empty</el-button>
-          <el-button size="small" @click="sortData('asc')">Sort asc</el-button>
-          <el-button size="small" @click="sortData('desc')">Sort desc</el-button>
+          <el-button size="small" @click="removeEmpty">删除空行</el-button>
+          <el-button size="small" @click="sortData('asc')">升序排序</el-button>
+          <el-button size="small" @click="sortData('desc')">降序排序</el-button>
         </el-button-group>
 
         <el-button-group>
-          <el-button size="small" @click="convertCase('lower')">Lowercase</el-button>
-          <el-button size="small" @click="convertCase('upper')">Uppercase</el-button>
+          <el-button size="small" @click="convertCase('lower')">转小写</el-button>
+          <el-button size="small" @click="convertCase('upper')">转大写</el-button>
         </el-button-group>
 
         <span class="text-xs font-bold text-gray-500 ml-4">正则操作</span>
         <div class="flex items-center gap-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-1 py-1">
           <el-input v-model="regexPattern" size="small" placeholder="如：\d{3,} 或 ^A.*" class="w-40 !mx-0" clearable />
           <el-button size="small" type="primary" plain @click="applyRegex('match')">提取匹配</el-button>
-          <el-button size="small" type="danger" plain @click="applyRegex('filter')">Filter rows</el-button>
-          <el-button size="small" type="success" plain @click="applyRegex('keep')">Keep rows</el-button>
+          <el-button size="small" type="danger" plain @click="applyRegex('filter')">过滤行</el-button>
+          <el-button size="small" type="success" plain @click="applyRegex('keep')">保留行</el-button>
         </div>
       </div>
 
@@ -60,7 +60,7 @@
         <!-- Find & Replace -->
         <div class="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded px-1 py-1">
           <el-input v-model="findText" size="small" placeholder="查找内容" class="w-24 !mx-0" clearable />
-          <el-input v-model="replaceText" size="small" placeholder="Replace with" class="w-24 !mx-0" clearable />
+          <el-input v-model="replaceText" size="small" placeholder="替换为" class="w-24 !mx-0" clearable />
           <el-button size="small" type="warning" plain @click="batchReplace" class="!border-amber-300">批量替换</el-button>
         </div>
 
@@ -74,31 +74,31 @@
         <!-- Masking & Spilt & Extract -->
         <el-button-group>
            <el-dropdown trigger="click" @command="handleExtract">
-              <el-button size="small" type="warning" plain>Smart extract</el-button>
+              <el-button size="small" type="warning" plain>智能提取</el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="phone">Phone numbers</el-dropdown-item>
+                  <el-dropdown-item command="phone">📱 提取手机号</el-dropdown-item>
                   <el-dropdown-item command="email">✉️ 提取邮箱</el-dropdown-item>
-                  <el-dropdown-item command="url">URLs</el-dropdown-item>
+                  <el-dropdown-item command="url">🔗 提取网址</el-dropdown-item>
                   <el-dropdown-item command="idcard">📇 提取身份证 (18位)</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
            </el-dropdown>
            <el-dropdown trigger="click" @command="handleMask">
-              <el-button size="small" type="warning" plain>Mask data</el-button>
+              <el-button size="small" type="warning" plain>数据脱敏</el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="phone">138****1234 phone</el-dropdown-item>
-                  <el-dropdown-item command="idcard">110105******1234 ID</el-dropdown-item>
-                  <el-dropdown-item command="name">李*明 (基于姓氏)</el-dropdown-item>
+                  <el-dropdown-item command="phone">📱 138****1234 手机号</el-dropdown-item>
+                  <el-dropdown-item command="idcard">📇 110105******1234 身份证</el-dropdown-item>
+                  <el-dropdown-item command="name">👤 李*明 (基于姓氏)</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
            </el-dropdown>
         </el-button-group>
-        
+
         <div class="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded px-1 py-1">
-           <el-input v-model="splitChar" size="small" placeholder="Delimiter" class="w-24 !mx-0" clearable />
-           <el-button size="small" type="warning" plain @click="splitToRows" class="!border-amber-300">Split rows</el-button>
+           <el-input v-model="splitChar" size="small" placeholder="分隔符" class="w-24 !mx-0" clearable />
+           <el-button size="small" type="warning" plain @click="splitToRows" class="!border-amber-300">拆分行</el-button>
         </div>
       </div>
     </div>
@@ -120,7 +120,7 @@
         <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
           <div class="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <div class="flex justify-between items-center mb-2">
-               <span class="text-xs text-gray-500 font-bold tracking-widest uppercase">Add input</span>
+               <span class="text-xs text-gray-500 font-bold tracking-widest uppercase">添加输入</span>
                <el-radio-group v-model="splitMode" size="small">
                  <el-radio-button value="newline">按行分隔</el-radio-button>
                  <el-radio-button value="blankline">按空行分隔 (支持多段数据)</el-radio-button>
@@ -145,7 +145,7 @@
             <div v-if="dataList.length === 0" class="h-full flex flex-col items-center justify-center text-gray-400 select-none pb-12">
                <div class="text-5xl mb-4 text-gray-200 dark:text-gray-700">📋</div>
                <p class="text-sm font-medium">暂无数据</p>
-               <p class="text-xs mt-1">Paste content above and append it to the list.</p>
+               <p class="text-xs mt-1">在上方粘贴内容并追加到列表</p>
             </div>
 
             <div v-else class="space-y-1">

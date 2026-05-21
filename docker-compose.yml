@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: similar-ai-build
+    ports:
+      - "52044:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PROXY_URL=http://192.168.9.2:1082
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

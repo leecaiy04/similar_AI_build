@@ -12,10 +12,19 @@
     "build:all": "npm run build && npm run build:single && node -e \"const fs=require('fs'); fs.copyFileSync('dist-single/index.html', 'dist/single.html'); fs.mkdirSync('dist/index', {recursive:true}); fs.copyFileSync('dist-single/index.html', 'dist/index/single.html')\"",
     "preview": "vite preview",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "start": "node server.js",
+    "docker:build": "docker build -t similar-ai-build .",
+    "docker:run": "docker run -p 3000:3000 similar-ai-build",
+    "docker:compose": "docker-compose up -d",
+    "docker:stop": "docker-compose down"
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "element-plus": "^2.13.1",
+    "express": "^4.22.2",
+    "https-proxy-agent": "^9.0.0",
+    "undici": "^8.3.0",
     "vue": "^3.5.24",
     "vue-router": "^4.6.4"
   },
