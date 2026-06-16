@@ -9,19 +9,19 @@
           </h1>
           <!-- Navigation Tabs -->
           <nav class="flex items-center gap-1 h-12">
-            <router-link 
-              v-for="tab in navTabs" 
-              :key="tab.name" 
+            <router-link
+              v-for="tab in navTabs"
+              :key="tab.name"
               :to="tab.path"
               class="nav-tab group relative flex items-center gap-1.5 px-4 h-full text-sm font-medium transition-colors"
-              :class="$route.name === tab.name 
-                ? 'text-blue-600 dark:text-blue-400' 
+              :class="$route.name === tab.name
+                ? 'text-blue-600 dark:text-blue-400'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'"
             >
               <span class="text-base pointer-events-none">{{ tab.icon }}</span>
               <span class="pointer-events-none">{{ tab.label }}</span>
               <!-- Active indicator -->
-              <span 
+              <span
                 v-if="$route.name === tab.name"
                 class="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
               ></span>
@@ -34,7 +34,7 @@
           </el-button>
         </div>
       </header>
-      
+
       <!-- Route Content -->
       <div class="flex-1 overflow-hidden">
         <router-view v-slot="{ Component }">
@@ -60,8 +60,6 @@ const navTabs = [
     { name: 'diff', path: '/diff', label: '数据Diff', icon: '⚡' },
     { name: 'process', path: '/process', label: '数据处理', icon: '⚙️' },
     { name: 'merge', path: '/merge', label: '表格合并', icon: '📊' },
-    { name: 'aibatch', path: '/ai-batch', label: '批量AI', icon: '🤖' },
-    { name: 'chat', path: '/chat', label: 'AI对话', icon: '💬' },
 ]
 
 const toggleTheme = () => {

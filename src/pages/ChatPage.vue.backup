@@ -1,0 +1,370 @@
+<template>
+  <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-between items-center shrink-0">
+      <div class="flex items-center gap-3">
+        <h2 class="text-sm font-bold flex items-center gap-2">
+          <span>💬 AI 对话</span>
+        </h2>
+      </div>
+      <div class="flex items-center gap-3">
+        <el-button @click="clearCurrentChat" link class="!text-rose-500 hover:!text-rose-600" size="small">清空当前对话</el-button>
+        <el-popover placement="bottom-end" :width="320" trigger="click">
+          <template #reference>
+            <el-button type="primary" size="small" plain>
+              <span class="flex items-center gap-1">
+                <span>⚙️</span>
+                <span>设置</span>
+              </span>
+            </el-button>
+          </template>
+          <div class="space-y-3">
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-gray-500 uppercase">模式</label>
+              <el-select v-model="config.mode" size="small" class="w-full">
+                <el-option label="Claude Code (本地)" value="claude-code" />
+                <el-option label="OpenAI" value="openai" />
+                <el-option label="Anthropic (Claude)" value="claude" />
+              </el-select>
+            </div>
+            <div class="space-y-1" v-if="config.mode !== 'claude-code'">
+              <label class="text-xs font-bold text-gray-500 uppercase">API 地址</label>
+              <el-input v-model="config.baseUrl" size="small" placeholder="https://api.openai.com/v1" />
+            </div>
+            <div class="space-y-1" v-if="config.mode !== 'claude-code'">
+              <label class="text-xs font-bold text-gray-500 uppercase">API Key</label>
+              <el-input v-model="config.apiKey" size="small" type="password" show-password placeholder="sk-..." />
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-gray-500 uppercase">模型</label>
+              <div class="flex gap-2">
+                <el-select v-model="config.model" size="small" class="flex-1" filterable allow-create>
+                  <el-option v-for="m in modelList" :key="m" :label="m" :value="m" />
+                </el-select>
+                <el-button v-if="config.mode === 'claude-code'" size="small" type="primary" @click="fetchModels" :loading="fetchingModels">
+                  刷新
+                </el-button>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-gray-500 uppercase">系统提示词</label>
+              <el-input v-model="config.systemPrompt" type="textarea" :rows="3" size="small" placeholder="你是一个有帮助的助手..." />
+            </div>
+          </div>
+        </el-popover>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 flex items-center gap-2 overflow-x-auto shrink-0">
+      <div
+        v-for="tab in tabs"
+        :key="tab.id"
+        @click="activeTabId = tab.id"
+        class="group flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors border-b-2 shrink-0"
+        :class="activeTabId === tab.id
+          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+      >
+        <span class="text-sm">{{ tab.name }}</span>
+        <button
+          v-if="tabs.length > 1"
+          @click.stop="closeTab(tab.id)"
+          class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <button
+        @click="addNewTab"
+        class="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors shrink-0"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Chat Messages -->
+    <div ref="messagesContainer" class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div v-if="currentTab && currentTab.messages.length === 0" class="h-full flex flex-col items-center justify-center text-gray-400 select-none">
+        <div class="text-6xl mb-4">💬</div>
+        <p class="text-lg font-medium">开始对话</p>
+        <p class="text-sm mt-2">输入消息开始与 AI 交流</p>
+      </div>
+
+      <div v-for="msg in (currentTab?.messages || [])" :key="msg.role + msg.content" class="flex gap-3" :class="msg.role === 'user' ? 'justify-end' : 'justify-start'">
+        <div v-if="msg.role === 'assistant'" class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+          AI
+        </div>
+        <div
+          class="max-w-[70%] rounded-2xl px-4 py-3 shadow-sm"
+          :class="msg.role === 'user'
+            ? 'bg-blue-500 text-white'
+            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'"
+        >
+          <div v-if="msg.role === 'assistant' && msg.isStreaming" class="text-sm leading-relaxed whitespace-pre-wrap">
+            {{ msg.content }}<span class="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1"></span>
+          </div>
+          <div v-else class="text-sm leading-relaxed whitespace-pre-wrap">{{ msg.content }}</div>
+          <div v-if="msg.error" class="mt-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1">
+            {{ msg.error }}
+          </div>
+        </div>
+        <div v-if="msg.role === 'user'" class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-sm font-bold">
+          U
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4 shrink-0">
+      <div class="max-w-4xl mx-auto flex gap-3">
+        <el-input
+          v-model="inputMessage"
+          type="textarea"
+          :rows="3"
+          placeholder="输入消息..."
+          @keydown.ctrl.enter="sendMessage"
+          @keydown.meta.enter="sendMessage"
+          :disabled="isGenerating"
+          class="flex-1"
+        />
+        <div class="flex flex-col gap-2">
+          <el-button
+            type="primary"
+            @click="sendMessage"
+            :loading="isGenerating"
+            :disabled="!inputMessage.trim() || isGenerating"
+            class="!h-full"
+          >
+            {{ isGenerating ? '生成中...' : '发送' }}
+          </el-button>
+          <el-button
+            v-if="isGenerating"
+            type="danger"
+            @click="stopGeneration"
+            plain
+            size="small"
+          >
+            停止
+          </el-button>
+        </div>
+      </div>
+      <div class="max-w-4xl mx-auto mt-2 text-xs text-gray-400 text-center">
+        按 Ctrl+Enter 或 ⌘+Enter 发送
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, nextTick, onMounted, watch, computed } from 'vue'
+import { createLlmInvoke } from '../infra/llm'
+import { useSharedAIConfig } from '../composables/useSharedAIConfig'
+
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  isStreaming?: boolean
+  error?: string
+}
+
+interface ChatTab {
+  id: string
+  name: string
+  messages: Message[]
+}
+
+const messagesContainer = ref<HTMLElement | null>(null)
+const inputMessage = ref('')
+const tabs = ref<ChatTab[]>([])
+const activeTabId = ref('')
+const isGenerating = ref(false)
+const fetchingModels = ref(false)
+const modelList = ref<string[]>([])
+let abortController: AbortController | null = null
+let tabCounter = 0
+
+// 使用共享配置
+const { config } = useSharedAIConfig()
+
+const currentTab = computed(() => {
+  return tabs.value.find(t => t.id === activeTabId.value) || tabs.value[0]
+})
+
+const TABS_KEY = 'chat-tabs'
+const ACTIVE_TAB_KEY = 'chat-active-tab'
+
+onMounted(() => {
+  const savedTabs = localStorage.getItem(TABS_KEY)
+  const savedActiveTab = localStorage.getItem(ACTIVE_TAB_KEY)
+
+  if (savedTabs) {
+    try {
+      tabs.value = JSON.parse(savedTabs)
+      tabCounter = Math.max(...tabs.value.map(t => parseInt(t.id.replace('tab-', '')) || 0), 0)
+    } catch (e) {
+      console.error('Failed to load tabs:', e)
+    }
+  }
+
+  if (tabs.value.length === 0) {
+    addNewTab()
+  } else if (savedActiveTab && tabs.value.find(t => t.id === savedActiveTab)) {
+    activeTabId.value = savedActiveTab
+  } else if (tabs.value.length > 0 && tabs.value[0]) {
+    activeTabId.value = tabs.value[0].id
+  }
+
+  if (config.value.mode === 'claude-code') {
+    fetchModels()
+  }
+})
+
+watch([tabs, activeTabId], () => {
+  localStorage.setItem(TABS_KEY, JSON.stringify(tabs.value.map(t => ({
+    id: t.id,
+    name: t.name,
+    messages: t.messages.map(m => ({
+      role: m.role,
+      content: m.content,
+      error: m.error
+    }))
+  }))))
+  localStorage.setItem(ACTIVE_TAB_KEY, activeTabId.value)
+}, { deep: true })
+
+function addNewTab() {
+  tabCounter++
+  const newTab: ChatTab = {
+    id: `tab-${tabCounter}`,
+    name: `对话 ${tabCounter}`,
+    messages: []
+  }
+  tabs.value.push(newTab)
+  activeTabId.value = newTab.id
+}
+
+function closeTab(tabId: string) {
+  const index = tabs.value.findIndex(t => t.id === tabId)
+  if (index === -1) return
+
+  tabs.value.splice(index, 1)
+
+  if (tabs.value.length === 0) {
+    addNewTab()
+  } else if (activeTabId.value === tabId) {
+    const newIndex = Math.max(0, index - 1)
+    if (tabs.value[newIndex]) {
+      activeTabId.value = tabs.value[newIndex].id
+    }
+  }
+}
+
+async function fetchModels() {
+  if (config.value.mode !== 'claude-code') return
+
+  fetchingModels.value = true
+  try {
+    const response = await fetch('http://localhost:42000/v1/models')
+    const data = await response.json()
+    if (data.data && Array.isArray(data.data)) {
+      modelList.value = data.data.map((m: any) => m.id)
+    }
+  } catch (error) {
+    console.error('Failed to fetch models:', error)
+  } finally {
+    fetchingModels.value = false
+  }
+}
+
+async function sendMessage() {
+  if (!inputMessage.value.trim() || isGenerating.value || !currentTab.value) return
+
+  const userMessage = inputMessage.value.trim()
+  inputMessage.value = ''
+
+  currentTab.value.messages.push({
+    role: 'user',
+    content: userMessage
+  })
+
+  const assistantMessage: Message = {
+    role: 'assistant',
+    content: '',
+    isStreaming: true
+  }
+  currentTab.value.messages.push(assistantMessage)
+
+  await nextTick()
+  scrollToBottom()
+
+  isGenerating.value = true
+  abortController = new AbortController()
+
+  try {
+    const invoke = createLlmInvoke(config.value.mode)
+
+    const response = await invoke(
+      {
+        baseUrl: config.value.baseUrl,
+        apiKey: config.value.apiKey,
+        model: config.value.model,
+        prompt: userMessage,
+        systemPrompt: config.value.systemPrompt
+      },
+      abortController.signal
+    )
+
+    assistantMessage.content = response.content
+    assistantMessage.isStreaming = false
+  } catch (error: any) {
+    assistantMessage.isStreaming = false
+    if (error.name === 'AbortError') {
+      assistantMessage.content = assistantMessage.content || '(已停止)'
+    } else {
+      assistantMessage.error = error.message || '生成失败'
+      console.error('Chat error:', error)
+    }
+  } finally {
+    isGenerating.value = false
+    abortController = null
+  }
+}
+
+function stopGeneration() {
+  if (abortController) {
+    abortController.abort()
+  }
+}
+
+function clearCurrentChat() {
+  if (currentTab.value) {
+    currentTab.value.messages = []
+  }
+}
+
+function scrollToBottom() {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+</script>
+
+<style scoped>
+.animate-pulse {
+  animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+</style>

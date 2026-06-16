@@ -1,16 +1,17 @@
 ﻿<template>
   <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <!-- Header -->
-    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-1.5 flex justify-between items-center h-12 shrink-0">
+    <div class="app-header-gradient px-6 py-3 flex justify-between items-center shrink-0">
       <div class="flex items-center gap-3">
-        <h2 class="text-sm font-bold flex items-center gap-2">
-          <span>📊 批量 AI 助手</span>
+        <h2 class="text-base font-bold flex items-center gap-2 text-white">
+          <span class="text-2xl">🤖</span>
+          <span>批量 AI 助手</span>
         </h2>
-        <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">加载示例</el-button>
-        <el-button @click="clearData" link class="!text-rose-500 hover:!text-rose-600" size="small">清除数据</el-button>
+        <el-button @click="loadSample" link class="!text-white/80 hover:!text-white" size="small">加载示例</el-button>
+        <el-button @click="clearData" link class="!text-red-200 hover:!text-white" size="small">清除数据</el-button>
       </div>
       <div class="flex items-center gap-2">
-        <el-tag size="small" type="success" effect="plain" round v-if="isProcessing">
+        <el-tag size="large" type="success" effect="light" round v-if="isProcessing" class="!bg-white/20 !text-white !border-white/30">
           正在处理: {{ processedCount }} / {{ listACount }}
         </el-tag>
       </div>
@@ -19,97 +20,199 @@
     <!-- Main Content Area -->
     <main class="flex-1 flex overflow-hidden">
       <!-- Config Panel (Sidebar) -->
-      <aside class="w-full md:w-[380px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-2xl relative z-10 shrink-0">
-        <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5 scrollbar-hide">
-          <section class="space-y-4">
+      <aside class="app-sidebar w-[400px]">
+        <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6 scrollbar-hide">
+          <section class="space-y-5">
             <!-- Preset Selection -->
-            <div class="flex justify-between items-center">
-              <label class="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">配置预设 (主流大模型)</label>
-              <el-radio-group v-model="activePresetIndex" size="small">
-                 <el-radio-button v-for="(p, n) in presets" :key="n" :value="n" class="px-0">
-                   {{ p.name || `P${n+1}` }}
-                 </el-radio-button>
-              </el-radio-group>
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-5 rounded-xl border border-blue-200 dark:border-blue-800/50 shadow-sm">
+              <div class="flex items-center gap-2 mb-4">
+                <label class="text-sm font-bold text-blue-700 dark:text-blue-400">配置预设</label>
+              </div>
+              <div class="grid grid-cols-3 gap-3">
+                <div
+                  v-for="(p, n) in presets"
+                  :key="n"
+                  @click="activePresetIndex = n"
+                  class="relative cursor-pointer group"
+                >
+                  <div
+                    class="p-4 rounded-xl border-2 transition-all duration-200 h-14 flex items-center justify-center shadow-sm hover:shadow-md"
+                    :class="activePresetIndex === n
+                      ? 'bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600 shadow-lg shadow-blue-500/30 scale-105'
+                      : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:scale-105'"
+                  >
+                    <div class="text-sm font-bold text-center" :class="activePresetIndex === n ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
+                      {{ p.name || `P${n+1}` }}
+                    </div>
+                    <div v-if="activePresetIndex === n" class="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Configuration Form -->
-            <div class="space-y-4 bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50">
+            <div class="space-y-4 bg-gray-50/80 dark:bg-gray-700/40 p-5 rounded-2xl border border-gray-200 dark:border-gray-700/50 shadow-sm">
               <div class="space-y-1">
-                 <label class="text-[10px] font-bold text-gray-400 uppercase text-blue-500">Preset label</label>
-                 <el-input v-model="currentPreset.name" size="small" placeholder="例如：我的 DeepSeek 分析专用" />
+                 <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
+                   <span>📝</span>
+                   <span>预设名称</span>
+                 </label>
+                 <el-input v-model="currentPreset.name" size="default" placeholder="例如：DeepSeek 分析" class="!rounded-xl" />
               </div>
 
               <div class="space-y-1">
-                 <div class="flex justify-between items-center">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">接口模式</label>
-                 </div>
-                 <el-select v-model="currentPreset.mode" size="small" class="w-full">
+                 <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
+                   <span>🔌</span>
+                   <span>接口模式</span>
+                 </label>
+                 <el-select v-model="currentPreset.mode" size="default" class="w-full" @change="handleModeChange">
                     <el-option label="OpenAI (通用格式)" value="openai" />
                     <el-option label="Anthropic (Claude)" value="claude" />
-                    <el-option label="Google (Gemini)" value="gemini" />
-                    <el-option label="本地测试 (原样返回)" value="test" />
+                    <el-option label="Claude Code (本地)" value="claude-code" />
+                    <el-option label="测试模式" value="test" />
                  </el-select>
               </div>
 
-              <div class="space-y-1">
-                 <label class="text-[10px] font-bold text-gray-400 uppercase">Base URL (API 地址 / 代理网关)</label>
-                 <el-input v-model="currentPreset.baseUrl" size="small" placeholder="https://api.openai.com/v1" />
-                 <div class="text-[9px] text-gray-400 mt-1 leading-tight">
-                    <span class="text-orange-400 font-bold">Proxy note:</span> Frontend requests cannot attach a system HTTP proxy directly. Use a reachable base URL or a relay such as Cloudflare or OneAPI.
+              <div class="space-y-1" v-if="currentPreset.mode === 'claude'">
+                 <div class="flex items-center justify-between">
+                   <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
+                     <span>🌐</span>
+                     <span>API 服务器</span>
+                   </label>
+                   <el-button
+                      size="small"
+                      type="primary"
+                      link
+                      @click="testAllServers"
+                      :loading="testingSpeed"
+                      class="!text-blue-600 hover:!text-blue-700 dark:!text-blue-400"
+                   >
+                     <span class="flex items-center gap-1">
+                       <span>⚡</span>
+                       <span>一键测速</span>
+                     </span>
+                   </el-button>
+                 </div>
+                 <el-select v-model="currentPreset.baseUrl" size="default" class="w-full">
+                    <el-option
+                      v-for="server in claudeServers"
+                      :key="server.url"
+                      :label="getServerLabel(server)"
+                      :value="server.url"
+                    >
+                      <div class="flex items-center justify-between w-full">
+                        <span>{{ server.name }}</span>
+                        <span v-if="server.latency !== null" class="text-xs ml-2 font-mono font-bold" :class="getLatencyColor(server.latency)">
+                          {{ server.latency }}ms
+                        </span>
+                        <span v-else-if="server.testing" class="text-xs text-blue-500 ml-2 animate-pulse">测试中...</span>
+                      </div>
+                    </el-option>
+                 </el-select>
+                 <div class="text-xs mt-2 p-2 rounded-lg" v-if="recommendedServer" :class="'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'">
+                    <span class="text-green-700 dark:text-green-400 font-semibold flex items-center gap-1">
+                      <span>💡</span>
+                      <span>推荐: {{ recommendedServer.name }} ({{ recommendedServer.latency }}ms)</span>
+                    </span>
+                 </div>
+              </div>
+
+              <div class="space-y-1" v-if="currentPreset.mode === 'openai'">
+                 <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
+                   <span>🔗</span>
+                   <span>API 地址</span>
+                 </label>
+                 <el-input v-model="currentPreset.baseUrl" size="default" placeholder="https://api.openai.com/v1" />
+              </div>
+
+              <div class="space-y-1" v-if="currentPreset.mode !== 'claude-code' && currentPreset.mode !== 'test'">
+                 <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
+                   <span>🔑</span>
+                   <span>API Key</span>
+                 </label>
+                 <el-input v-model="currentPreset.apiKey" size="default" type="password" show-password placeholder="sk-..." @input="saveApiKey" />
+                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1" v-if="currentPreset.mode === 'claude'">
+                    <span>💾</span>
+                    <span>API Key 会自动保存到浏览器</span>
                  </div>
               </div>
 
               <div class="space-y-1">
-                 <label class="text-[10px] font-bold text-gray-400 uppercase">API Key / Token</label>
-                 <el-input v-model="currentPreset.apiKey" size="small" type="password" show-password placeholder="sk-..." />
-              </div>
-              
-              <div class="space-y-1">
-                 <div class="flex justify-between items-center">
-                   <label class="text-[10px] font-bold text-gray-400 uppercase">模型名称 (Model)</label>
-                   <el-button size="small" type="primary" link @click="fetchModels" :loading="fetchingModels">获取模型列表</el-button>
+                 <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
+                   <span>🎯</span>
+                   <span>模型名称</span>
+                 </label>
+                 <div class="flex gap-2">
+                   <el-select
+                      v-model="currentPreset.model"
+                      size="default"
+                      class="flex-1"
+                      filterable
+                      allow-create
+                      default-first-option
+                      :placeholder="currentPreset.mode === 'claude-code' ? '选择或输入模型' : '输入模型名称...'"
+                   >
+                      <el-option v-for="m in modelList" :key="m" :label="m" :value="m" />
+                   </el-select>
+                   <el-button
+                      v-if="currentPreset.mode === 'claude-code' || currentPreset.mode === 'claude'"
+                      size="default"
+                      type="primary"
+                      @click="fetchModels"
+                      :loading="fetchingModels"
+                   >
+                     {{ currentPreset.mode === 'claude' ? '获取' : '刷新' }}
+                   </el-button>
                  </div>
-                 <el-select 
-                    v-model="currentPreset.model" 
-                    size="small" 
-                    class="w-full"
-                    filterable
-                    allow-create
-                    default-first-option
-                    placeholder="可选择或自行输入模型名称..."
-                 >
-                    <el-option v-for="m in modelList" :key="m" :label="m" :value="m" />
-                 </el-select>
+                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1" v-if="currentPreset.mode === 'claude-code'">
+                    <span>💻</span>
+                    <span>使用 Claude Code 本地模型进行推理</span>
+                 </div>
               </div>
             </div>
 
             <!-- Prompt Settings -->
-            <div class="space-y-3 pt-2">
-                <div class="space-y-1">
-                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">系统提示词 (System Prompt)</label>
-                    <el-input v-model="currentPreset.systemPrompt" type="textarea" :rows="2" size="small" placeholder="例如：你是一个翻译专家..." class="custom-small-textarea" />
-                </div>
-                <div class="space-y-1">
-                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">
-                        用户提示词模板<span class="text-blue-500 bg-blue-50 dark:bg-blue-900/40 px-1 rounded ml-1" v-pre>{{input}}</span>
+            <div class="space-y-4 pt-2">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
+                      <span>💬</span>
+                      <span>系统提示词 (System Prompt)</span>
                     </label>
-                    <el-input v-model="currentPreset.promptTemplate" type="textarea" :rows="3" size="small" placeholder="请处理以下数据：\n{{input}}" class="custom-small-textarea" />
-                    <div class="text-[9px] text-gray-400 mt-1">Include <span v-pre>{{input}}</span> in the template. It will be replaced with each input row.</div>
+                    <el-input v-model="currentPreset.systemPrompt" type="textarea" :rows="2" size="default" placeholder="例如：你是一个翻译专家..." class="custom-small-textarea" />
                 </div>
-                
-                <div class="space-y-1 pt-2">
-                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">并发请求数量 (Max Concurrent)</label>
-                    <el-slider v-model="concurrentCount" :min="1" :max="3" size="small" />
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
+                      <span>📋</span>
+                      <span>用户提示词模板</span>
+                      <span class="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 rounded text-[10px] font-mono" v-pre>{{input}}</span>
+                    </label>
+                    <el-input v-model="currentPreset.promptTemplate" type="textarea" :rows="3" size="default" placeholder="请处理以下数据：&#10;{{input}}" class="custom-small-textarea" />
+                    <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <span>💡</span>
+                      <span>模板中使用 <code class="px-1 bg-gray-200 dark:bg-gray-700 rounded" v-pre>{{input}}</code> 表示每行输入内容</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-2">
+                    <label class="text-sm font-bold text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                      <span>并发请求数量</span>
+                      <span class="text-blue-600 dark:text-blue-400 font-mono text-sm ml-auto">{{ concurrentCount }}</span>
+                    </label>
+                    <el-slider v-model="concurrentCount" :min="1" :max="3" size="default" />
                 </div>
             </div>
           </section>
         </div>
 
-        <footer class="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 space-y-2">
-          <el-button v-if="!isProcessing" type="primary" class="w-full !h-10 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="startBatchRequest">
+        <footer class="p-5 bg-gradient-to-t from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <el-button v-if="!isProcessing" type="primary" class="w-full !h-11 !rounded-lg !text-base font-bold shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 active:scale-95 transition-all" @click="startBatchRequest">
             开始批量请求
           </el-button>
-          <el-button v-else type="danger" class="w-full !h-10 !rounded-xl !text-sm font-black shadow-lg shadow-rose-500/10 active:scale-95 transition-all" @click="stopBatchRequest">
+          <el-button v-else type="danger" class="w-full !h-11 !rounded-lg !text-base font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all" @click="stopBatchRequest">
             停止任务
           </el-button>
         </footer>
@@ -123,19 +226,19 @@
              <div class="bg-white dark:bg-gray-800 flex flex-col h-full overflow-hidden">
                  <div class="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm z-10">
                      <div class="flex items-center gap-2">
-                         <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">源数据 (输入)</span>
+                         <span class="text-sm font-bold text-gray-500">源数据 (输入)</span>
                          <el-select v-model="splitMode" size="small" class="w-32" placeholder="分隔模式">
                              <el-option label="按行处理" value="newline"></el-option>
                              <el-option label="按空行处理 (多段)" value="blankline"></el-option>
                          </el-select>
                      </div>
-                     <span class="text-[10px] font-mono text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ listACount }} items</span>
+                     <span class="text-sm font-mono text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ listACount }} items</span>
                  </div>
                  <div class="flex-1 flex overflow-hidden">
-                     <div v-for="(name, idx) in inputNames" :key="name" 
+                     <div v-for="(name, idx) in inputNames" :key="name"
                           class="flex-1 flex flex-col h-full overflow-hidden"
                           :class="{'border-r border-gray-200 dark:border-gray-700': idx < inputNames.length - 1}">
-                         <div v-if="inputNames.length > 1" class="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30 text-[10px] font-bold text-blue-500 uppercase tracking-widest shrink-0">
+                         <div v-if="inputNames.length > 1" class="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30 text-sm font-bold text-blue-500 shrink-0">
                              变量: {{ name }}
                          </div>
                          <el-input
@@ -187,7 +290,35 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useAIBatchWorkspace } from '../features/ai-batch/composables/useAIBatchWorkspace'
+
+interface ClaudeServer {
+  name: string
+  url: string
+  latency: number | null
+  testing: boolean
+}
+
+const testingSpeed = ref(false)
+const claudeServers = ref<ClaudeServer[]>([
+  { name: '组1 (cc-vibe.com)', url: 'https://cc-vibe.com', latency: null, testing: false },
+  { name: '组2 (118.89.81.103:8081)', url: 'http://118.89.81.103:8081', latency: null, testing: false },
+  { name: '组3 (49.232.5.23:8081)', url: 'http://49.232.5.23:8081', latency: null, testing: false },
+  { name: '组4 (154.92.5.72:8080)', url: 'http://154.92.5.72:8080', latency: null, testing: false },
+  { name: '组5 (154.12.179.181:8080)', url: 'http://154.12.179.181:8080', latency: null, testing: false },
+])
+
+const recommendedServer = computed(() => {
+  const tested = claudeServers.value.filter(s => s.latency !== null)
+  if (tested.length === 0) return null
+  return tested.reduce((fastest, current) =>
+    (current.latency! < fastest.latency!) ? current : fastest
+  )
+})
+
+const CLAUDE_API_KEY_STORAGE = 'claude-api-key'
 
 const {
   activePresetIndex,
@@ -211,6 +342,106 @@ const {
   stopBatchRequest,
   textData,
 } = useAIBatchWorkspace()
+
+onMounted(() => {
+  // 恢复保存的 Claude API Key
+  const savedKey = localStorage.getItem(CLAUDE_API_KEY_STORAGE)
+  if (savedKey && currentPreset.value.mode === 'claude' && !currentPreset.value.apiKey) {
+    currentPreset.value.apiKey = savedKey
+  }
+})
+
+function handleModeChange() {
+  if (currentPreset.value.mode === 'claude') {
+    // 设置默认服务器为组1
+    if (!currentPreset.value.baseUrl || !isClaudeServer(currentPreset.value.baseUrl)) {
+      currentPreset.value.baseUrl = 'https://cc-vibe.com'
+    }
+
+    // 恢复保存的 API Key
+    const savedKey = localStorage.getItem(CLAUDE_API_KEY_STORAGE)
+    if (savedKey) {
+      currentPreset.value.apiKey = savedKey
+    }
+
+    fetchModels()
+  }
+}
+
+function isClaudeServer(url: string): boolean {
+  return claudeServers.value.some(s => s.url === url)
+}
+
+function saveApiKey() {
+  if (currentPreset.value.mode === 'claude' && currentPreset.value.apiKey) {
+    localStorage.setItem(CLAUDE_API_KEY_STORAGE, currentPreset.value.apiKey)
+  }
+}
+
+function getServerLabel(server: ClaudeServer): string {
+  if (server.latency !== null) {
+    return `${server.name} (${server.latency}ms)`
+  }
+  return server.name
+}
+
+function getLatencyColor(latency: number): string {
+  if (latency < 200) return 'text-green-600 dark:text-green-400'
+  if (latency < 500) return 'text-amber-600 dark:text-amber-400'
+  return 'text-red-600 dark:text-red-400'
+}
+
+async function testSingleServer(server: ClaudeServer): Promise<void> {
+  server.testing = true
+  server.latency = null
+
+  const startTime = Date.now()
+
+  try {
+    const url = server.url.endsWith('/') ? server.url : server.url + '/'
+
+    await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors',
+      cache: 'no-cache',
+    })
+
+    const elapsed = Date.now() - startTime
+    server.latency = elapsed
+  } catch (error) {
+    const elapsed = Date.now() - startTime
+    // 即使出错，如果响应快速也说明服务器可达
+    if (elapsed < 10000) {
+      server.latency = elapsed
+    } else {
+      server.latency = 9999 // 超时标记
+    }
+  } finally {
+    server.testing = false
+  }
+}
+
+async function testAllServers() {
+  testingSpeed.value = true
+
+  try {
+    // 并行测试所有服务器
+    await Promise.all(claudeServers.value.map(server => testSingleServer(server)))
+
+    const fastest = recommendedServer.value
+    if (fastest) {
+      ElMessage.success(`测速完成！推荐使用: ${fastest.name} (${fastest.latency}ms)`)
+      // 自动切换到最快的服务器
+      currentPreset.value.baseUrl = fastest.url
+    } else {
+      ElMessage.warning('所有服务器测速失败')
+    }
+  } catch (error: any) {
+    ElMessage.error(`测速失败: ${error.message}`)
+  } finally {
+    testingSpeed.value = false
+  }
+}
 </script>
 
 <style scoped>

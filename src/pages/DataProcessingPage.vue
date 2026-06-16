@@ -1,105 +1,90 @@
 ﻿<template>
   <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <!-- Action Header Toolbar -->
-    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex flex-col gap-3 shrink-0 shadow-sm z-10 text-sm">
-      <!-- Row 1: Duplicate Management -->
-      <div class="flex flex-wrap gap-2 items-center">
-        <span class="text-xs font-bold text-gray-500 w-16 text-right">重复处理</span>
-        <el-button-group>
-          <el-button size="small" type="primary" plain @click="highlightDuplicates">高亮重复 (S)</el-button>
-          <el-button size="small" type="info" plain @click="clearHighlights">清除高亮 (C)</el-button>
-          <el-button size="small" type="success" plain @click="countDuplicates">统计次数 (N)</el-button>
-        </el-button-group>
-
-        <el-button-group>
-          <el-button size="small" :type="preventDuplicates ? 'warning' : 'default'" @click="togglePreventDuplicates">
-            {{ preventDuplicates ? '已启用' : '防重复输入' }}
-          </el-button>
-          <el-button size="small" type="default" @click="clearPreventDuplicates" :disabled="!preventDuplicates">
-            清除缓存 (R)
-          </el-button>
-        </el-button-group>
-
-        <el-button-group>
-          <el-button size="small" type="danger" plain @click="removeDuplicates">删除重复 (D)</el-button>
-          <el-button size="small" type="warning" plain @click="extractNumbers">提取数字</el-button>
-        </el-button-group>
-
-        <div class="flex-1"></div>
-        <el-button size="small" type="danger" text @click="clearAll" icon="Delete">清空全部</el-button>
+    <div class="app-header-gradient px-6 py-3 flex justify-between items-center shrink-0">
+      <div class="flex items-center gap-3">
+        <h2 class="text-base font-bold flex items-center gap-2 text-white">
+          <span class="text-2xl">⚙️</span>
+          <span>数据处理</span>
+        </h2>
+        <el-button @click="clearAll" link class="!text-red-200 hover:!text-white" size="small">清空全部</el-button>
       </div>
 
-      <!-- Row 2: Text Transformation -->
-      <div class="flex flex-wrap gap-2 items-center">
-        <span class="text-xs font-bold text-gray-500 w-16 text-right">基础处理</span>
-        <el-button-group>
-          <el-button size="small" @click="trimSpaces">去除首尾空</el-button>
-          <el-button size="small" @click="removeEmpty">删除空行</el-button>
-          <el-button size="small" @click="sortData('asc')">升序排序</el-button>
-          <el-button size="small" @click="sortData('desc')">降序排序</el-button>
+      <div class="flex items-center gap-3">
+        <!-- 常用功能 -->
+        <el-button-group size="small">
+          <el-button @click="highlightDuplicates" class="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20">高亮重复</el-button>
+          <el-button @click="removeDuplicates" class="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20">删除重复</el-button>
+          <el-button @click="removeEmpty" class="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20">删除空行</el-button>
         </el-button-group>
 
-        <el-button-group>
-          <el-button size="small" @click="convertCase('lower')">转小写</el-button>
-          <el-button size="small" @click="convertCase('upper')">转大写</el-button>
-        </el-button-group>
+        <el-divider direction="vertical" class="!border-white/30" />
 
-        <span class="text-xs font-bold text-gray-500 ml-4">正则操作</span>
-        <div class="flex items-center gap-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-1 py-1">
-          <el-input v-model="regexPattern" size="small" placeholder="如：\d{3,} 或 ^A.*" class="w-40 !mx-0" clearable />
-          <el-button size="small" type="primary" plain @click="applyRegex('match')">提取匹配</el-button>
-          <el-button size="small" type="danger" plain @click="applyRegex('filter')">过滤行</el-button>
-          <el-button size="small" type="success" plain @click="applyRegex('keep')">保留行</el-button>
-        </div>
-      </div>
+        <!-- 高级工具下拉 -->
+        <el-dropdown trigger="click" @command="handleAdvancedTool">
+          <el-button size="small" class="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20">
+            高级工具 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="trimSpaces">去除首尾空格</el-dropdown-item>
+              <el-dropdown-item command="extractNumbers">提取数字</el-dropdown-item>
+              <el-dropdown-item command="countDuplicates">统计重复次数</el-dropdown-item>
+              <el-dropdown-item command="clearHighlights">清除高亮</el-dropdown-item>
+              <el-dropdown-item divided command="sortAsc">升序排序</el-dropdown-item>
+              <el-dropdown-item command="sortDesc">降序排序</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
 
-      <!-- Row 3: Premium Tools -->
-      <div class="flex flex-wrap gap-2 items-center mt-2 border-t border-gray-100 dark:border-gray-800 pt-3">
-        <span class="text-xs font-bold text-amber-500 w-16 text-right">高级功能</span>
-        
-        <!-- Find & Replace -->
-        <div class="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded px-1 py-1">
-          <el-input v-model="findText" size="small" placeholder="查找内容" class="w-24 !mx-0" clearable />
-          <el-input v-model="replaceText" size="small" placeholder="替换为" class="w-24 !mx-0" clearable />
-          <el-button size="small" type="warning" plain @click="batchReplace" class="!border-amber-300">批量替换</el-button>
-        </div>
+        <!-- 转换工具下拉 -->
+        <el-dropdown trigger="click" @command="handleConvert">
+          <el-button size="small" class="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20">
+            批量转换 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="lower">转小写</el-dropdown-item>
+              <el-dropdown-item command="upper">转大写</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
 
-        <!-- Prefix / Suffix -->
-        <div class="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded px-1 py-1">
-          <el-input v-model="prefixText" size="small" placeholder="统一前缀" class="w-24 !mx-0" clearable />
-          <el-input v-model="suffixText" size="small" placeholder="统一后缀" class="w-24 !mx-0" clearable />
-          <el-button size="small" type="warning" plain @click="addFixes" class="!border-amber-300">追加</el-button>
-        </div>
+        <!-- 智能提取下拉 -->
+        <el-dropdown trigger="click" @command="handleExtract">
+          <el-button size="small" class="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20">
+            智能提取 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="phone">提取手机号</el-dropdown-item>
+              <el-dropdown-item command="email">提取邮箱</el-dropdown-item>
+              <el-dropdown-item command="url">提取网址</el-dropdown-item>
+              <el-dropdown-item command="idcard">提取身份证号</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
 
-        <!-- Masking & Spilt & Extract -->
-        <el-button-group>
-           <el-dropdown trigger="click" @command="handleExtract">
-              <el-button size="small" type="warning" plain>智能提取</el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="phone">📱 提取手机号</el-dropdown-item>
-                  <el-dropdown-item command="email">✉️ 提取邮箱</el-dropdown-item>
-                  <el-dropdown-item command="url">🔗 提取网址</el-dropdown-item>
-                  <el-dropdown-item command="idcard">📇 提取身份证 (18位)</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-           </el-dropdown>
-           <el-dropdown trigger="click" @command="handleMask">
-              <el-button size="small" type="warning" plain>数据脱敏</el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="phone">📱 138****1234 手机号</el-dropdown-item>
-                  <el-dropdown-item command="idcard">📇 110105******1234 身份证</el-dropdown-item>
-                  <el-dropdown-item command="name">👤 李*明 (基于姓氏)</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-           </el-dropdown>
-        </el-button-group>
+        <!-- 数据脱敏下拉 -->
+        <el-dropdown trigger="click" @command="handleMask">
+          <el-button size="small" class="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20">
+            数据脱敏 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="phone">手机号脱敏</el-dropdown-item>
+              <el-dropdown-item command="idcard">身份证脱敏</el-dropdown-item>
+              <el-dropdown-item command="name">姓名脱敏</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
 
-        <div class="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded px-1 py-1">
-           <el-input v-model="splitChar" size="small" placeholder="分隔符" class="w-24 !mx-0" clearable />
-           <el-button size="small" type="warning" plain @click="splitToRows" class="!border-amber-300">拆分行</el-button>
-        </div>
+        <el-divider direction="vertical" class="!border-white/30" />
+
+        <!-- 导出 -->
+        <el-button type="success" size="small" @click="exportCsv" class="!bg-green-500 hover:!bg-green-600 !border-green-500">
+          导出CSV
+        </el-button>
       </div>
     </div>
 
@@ -108,22 +93,22 @@
       <!-- Data Input / Editor -->
       <div class="flex-1 p-4 overflow-hidden flex flex-col">
         <div class="flex justify-between items-center mb-2 px-1">
-          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+          <label class="text-sm font-bold text-gray-500 flex items-center gap-2">
             数据处理工作区
-            <el-tag size="small" type="info" round class="font-mono scale-90">{{ dataList.length }} rows</el-tag>
+            <el-tag size="small" type="info" round class="font-mono">{{ dataList.length }} rows</el-tag>
           </label>
           <el-button size="small" type="primary" plain @click="copyAllData" :disabled="dataList.length === 0">
-             一键复制 (完美还原 Excel)
+             一键复制
           </el-button>
         </div>
 
         <div class="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
           <div class="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <div class="flex justify-between items-center mb-2">
-               <span class="text-xs text-gray-500 font-bold tracking-widest uppercase">添加输入</span>
+               <span class="text-sm text-gray-500 font-bold">添加输入</span>
                <el-radio-group v-model="splitMode" size="small">
                  <el-radio-button value="newline">按行分隔</el-radio-button>
-                 <el-radio-button value="blankline">按空行分隔 (支持多段数据)</el-radio-button>
+                 <el-radio-button value="blankline">按空行分隔</el-radio-button>
                </el-radio-group>
             </div>
             <el-input
@@ -162,7 +147,7 @@
                 <!-- Row Number & Content -->
                 <div class="flex items-center gap-3 overflow-hidden">
                    <div class="w-6 text-right shrink-0">
-                     <span class="text-[10px] font-mono text-gray-400 select-none">{{ index + 1 }}</span>
+                     <span class="text-sm font-mono text-gray-400 select-none">{{ index + 1 }}</span>
                    </div>
                    <div class="font-mono text-sm truncate" :class="item.isHighlighted ? 'text-rose-700 dark:text-rose-400 font-medium' : 'text-gray-700 dark:text-gray-300'">
                      {{ item.value }}
@@ -189,38 +174,65 @@
 import { useDataProcessingWorkspace } from '../features/data-processing/composables/useDataProcessingWorkspace'
 
 const {
-  addFixes,
   addTypedData,
-  applyRegex,
-  batchReplace,
   clearAll,
   clearHighlights,
-  clearPreventDuplicates,
   convertCase,
   copyAllData,
   countDuplicates,
   dataList,
   extractNumbers,
-  findText,
   highlightDuplicates,
   handleExtract,
   handleMask,
   inputText,
-  prefixText,
-  preventDuplicates,
-  regexPattern,
   removeDuplicates,
   removeEmpty,
   removeRow,
-  replaceText,
   sortData,
-  splitChar,
   splitMode,
-  splitToRows,
-  suffixText,
-  togglePreventDuplicates,
   trimSpaces,
 } = useDataProcessingWorkspace()
+
+// Handler functions for dropdown menus
+const handleAdvancedTool = (command: string) => {
+  switch (command) {
+    case 'trimSpaces':
+      trimSpaces()
+      break
+    case 'extractNumbers':
+      extractNumbers()
+      break
+    case 'countDuplicates':
+      countDuplicates()
+      break
+    case 'clearHighlights':
+      clearHighlights()
+      break
+    case 'sortAsc':
+      sortData('asc')
+      break
+    case 'sortDesc':
+      sortData('desc')
+      break
+  }
+}
+
+const handleConvert = (command: string) => {
+  convertCase(command as 'lower' | 'upper')
+}
+
+// Export to CSV
+const exportCsv = () => {
+  if (dataList.value.length === 0) return
+  const csvContent = dataList.value.map(row => row.value).join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `data_${Date.now()}.csv`
+  link.click()
+}
+
 </script>
 
 <style scoped>

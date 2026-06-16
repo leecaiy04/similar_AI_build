@@ -1,0 +1,50 @@
+# 1Panel 部署配置文件
+# 项目名称: Similar AI Build
+# 部署方式: Docker Compose
+
+version: '3.8'
+
+services:
+  similar-ai-build:
+    image: similar-ai-build:latest
+    container_name: similar-ai-build
+    ports:
+      - "56600:3000"
+    volumes:
+      # 映射所有code项目到容器内的/code目录（只读）
+      - /vol1/1000/code:/code:ro
+      # 如果需要持久化数据，可以添加数据卷
+      # - /vol1/1000/1panel/apps/similar-ai-build/data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PROXY_URL=http://192.168.9.2:1082
+      # 可以添加更多环境变量
+      # - API_KEY=${API_KEY}
+    restart: unless-stopped
+    networks:
+      - 1panel-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    labels:
+      # 1Panel 标签
+      - "1panel.app=similar-ai-build"
+      - "1panel.app.version=v0.1.1"
+      - "1panel.app.description=Similar AI Build - AI相似度构建工具"
+
+networks:
+  1panel-network:
+    external: true
+
+# 部署说明:
+# 1. 在1Panel中创建应用 -> 选择"自定义应用"
+# 2. 上传此配置文件或复制内容
+# 3. 设置应用名称: similar-ai-build
+# 4. 设置端口映射: 52044:3000
+# 5. 点击部署
+#
+# 访问地址: http://your-server-ip:52044

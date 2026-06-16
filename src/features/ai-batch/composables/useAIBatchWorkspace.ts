@@ -5,6 +5,7 @@ import { type InputRecord, type ProcessResult } from '../../../core/contracts'
 import { createBatchInferenceService } from '../service/batchInferenceService'
 import { createLlmInvoke, type LlmInvoke } from '../../../infra/llm'
 import { splitTextData } from '../../../utils/textParser'
+import { useSharedAIConfig } from '../../../composables/useSharedAIConfig'
 
 export interface AIPreset {
   name?: string
@@ -53,65 +54,20 @@ const defaultPresets: AIPreset[] = [
   {
     name: 'Claude',
     mode: 'claude',
-    baseUrl: 'https://api123.icu/v1',
+    baseUrl: 'http://118.89.81.103:8081',
     apiKey: '',
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-8',
     systemPrompt: '你是强大的分析助手。',
     promptTemplate: '分析下列内容并提取关键词，以逗号分隔：\n{{input}}',
   },
   {
-    name: 'Claude Code (Opus 4.7)',
-    mode: 'claude-code',
-    baseUrl: '/api/cc-vibe/v1',
-    apiKey: '',
-    model: 'claude-opus-4-7',
-    systemPrompt: '你是强大的分析助手。',
-    promptTemplate: '分析下列内容并提取关键词，以逗号分隔：\n{{input}}',
-  },
-  {
-    name: 'Claude Code (Sonnet 4.6)',
-    mode: 'claude-code',
-    baseUrl: '/api/cc-vibe/v1',
-    apiKey: '',
-    model: 'claude-sonnet-4-6',
-    systemPrompt: '你是强大的分析助手。',
-    promptTemplate: '分析下列内容并提取关键词，以逗号分隔：\n{{input}}',
-  },
-  {
-    name: '本地测试 (Echo)',
+    name: '本地测试',
     mode: 'test',
     baseUrl: 'http://localhost/test',
     apiKey: 'test-key',
     model: 'echo-test-model',
     systemPrompt: '本地测试模式',
     promptTemplate: '这是模拟的原样返回内容：\n{{input}}',
-  },
-  {
-    name: 'DeepSeek',
-    mode: 'openai',
-    baseUrl: 'https://api.deepseek.com',
-    apiKey: '',
-    model: 'deepseek-chat',
-    systemPrompt: '你是专业的文本助手。',
-    promptTemplate: '纠正下列文本中的错别字：\n{{input}}',
-  },
-  {
-    name: 'Kimi',
-    mode: 'openai',
-    baseUrl: 'https://api.moonshot.cn/v1',
-    apiKey: '',
-    model: 'moonshot-v1-8k',
-    systemPrompt: '你是一名擅长精细文本处理的助手。',
-    promptTemplate: '请对以下文本进行信息摘要：\n{{input}}',
-  },
-  {
-    name: 'Gemini',
-    mode: 'gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    apiKey: '',
-    model: 'gemini-1.5-flash',
-    systemPrompt: '你是一位高效的数据分析师。',
-    promptTemplate: '将以下内容转换成积极正向的语调：\n{{input}}',
   },
 ]
 
@@ -163,7 +119,7 @@ function clampConcurrentCount(value: unknown) {
 
 export function useAIBatchWorkspace(runner?: AIBatchRunner) {
   const presets = ref<AIPreset[]>(JSON.parse(JSON.stringify(defaultPresets)))
-  const activePresetIndex = ref(0)
+  const activePresetIndex = ref(1) // 默认选择 Claude
   const currentPreset = computed(() => presets.value[activePresetIndex.value]!)
   const textData = ref<Record<string, string>>({})
   const splitMode = ref<'newline' | 'blankline'>('newline')
@@ -174,6 +130,30 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
   const modelList = ref<string[]>([])
   const activeInputLines = ref<string[]>([])
   let abortController: AbortController | null = null
+
+  // 获取共享配置
+  const { config: sharedConfig } = useSharedAIConfig()
+
+  // 监听当前预设变化，同步到共享配置
+  watch(currentPreset, (preset) => {
+    if (preset.mode === 'claude' || preset.mode === 'openai' || preset.mode === 'claude-code') {
+      sharedConfig.value = {
+        mode: preset.mode,
+        baseUrl: preset.baseUrl,
+        apiKey: preset.apiKey,
+        model: preset.model,
+        systemPrompt: preset.systemPrompt
+      }
+    }
+  }, { deep: true })
+
+  // 从共享配置初始化Claude预设
+  if (sharedConfig.value.mode === 'claude' && currentPreset.value.mode === 'claude') {
+    currentPreset.value.baseUrl = sharedConfig.value.baseUrl
+    currentPreset.value.apiKey = sharedConfig.value.apiKey
+    currentPreset.value.model = sharedConfig.value.model
+    currentPreset.value.systemPrompt = sharedConfig.value.systemPrompt
+  }
 
   const inputNames = computed(() => {
     const names = extractPromptVariables(currentPreset.value.promptTemplate)
@@ -217,10 +197,6 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
 
   const fetchModels = async () => {
     const config = currentPreset.value
-    if (!config.apiKey || !config.baseUrl) {
-      ElMessage.warning('需先填写 Base URL 和 API Key')
-      return
-    }
 
     fetchingModels.value = true
     modelList.value = []
@@ -229,6 +205,10 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
       if (config.mode === 'test') {
         modelList.value = ['echo-test-model']
       } else if (config.mode === 'openai') {
+        if (!config.apiKey || !config.baseUrl) {
+          ElMessage.warning('需先填写 Base URL 和 API Key')
+          return
+        }
         const url = config.baseUrl.endsWith('/') ? `${config.baseUrl}models` : `${config.baseUrl}/models`
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${config.apiKey}` },
@@ -237,6 +217,10 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
         const json = await response.json()
         modelList.value = Array.isArray(json.data) ? json.data.map((item: { id: string }) => item.id).sort() : []
       } else if (config.mode === 'gemini') {
+        if (!config.apiKey || !config.baseUrl) {
+          ElMessage.warning('需先填写 Base URL 和 API Key')
+          return
+        }
         const url = `${config.baseUrl.replace(/\/$/, '')}/models?key=${config.apiKey}`
         const response = await fetch(url)
         if (!response.ok) throw new Error(response.statusText || `HTTP ${response.status}`)
@@ -245,14 +229,24 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
           ? json.models.map((item: { name: string }) => item.name.replace('models/', '')).sort()
           : []
       } else if (config.mode === 'claude') {
-        if (config.baseUrl.includes('api123.icu')) {
-          modelList.value = [
-            'claude-haiku-4-5-20251001',
-            'claude-sonnet-4-6',
-            'claude-opus-4-6',
-            'claude-sonnet-4-5-20250929',
-          ]
+        modelList.value = [
+          'claude-fable-5',
+          'claude-opus-4-8',
+          'claude-opus-4-7',
+          'claude-opus-4-7-thinking',
+          'claude-sonnet-4-6',
+          'claude-haiku-4-5-20251001',
+        ]
+      } else if (config.mode === 'claude-code') {
+        if (!config.baseUrl) {
+          ElMessage.warning('需先填写 Base URL')
+          return
         }
+        const url = config.baseUrl.endsWith('/') ? `${config.baseUrl}models` : `${config.baseUrl}/models`
+        const response = await fetch(url)
+        if (!response.ok) throw new Error(response.statusText || `HTTP ${response.status}`)
+        const json = await response.json()
+        modelList.value = Array.isArray(json.data) ? json.data.map((item: { id: string }) => item.id).sort() : []
       }
       ElMessage.success(`成功获取 ${modelList.value.length} 个模型`)
     } catch (error) {

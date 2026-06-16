@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # 后端服务
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: similar-ai-backend
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PROXY_URL=http://192.168.9.2:1082
+    restart: unless-stopped
+    networks:
+      - app-network
+      - 1panel-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "1panel.app=similar-ai-backend"
+      - "1panel.app.version=v0.1.1"
+
+  # 前端服务
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: similar-ai-frontend
+    ports:
+      - "56600:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - app-network
+      - 1panel-network
+    labels:
+      - "1panel.app=similar-ai-frontend"
+      - "1panel.app.version=v0.1.1"
+
+networks:
+  app-network:
+    driver: bridge
+  1panel-network:
+    external: true
+
+# 前后端分离架构说明:
+# - 前端: Nginx + Vue3 静态文件 (端口 56600)
+# - 后端: Node.js Express API 服务 (内部端口 3000)
+# - 前端通过 /api/ 路径代理到后端
+# - 两个服务通过 app-network 内部网络通信

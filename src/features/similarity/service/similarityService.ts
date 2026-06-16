@@ -4,6 +4,7 @@ export interface LockedItem {
   matchIndex: number
   text: string
   similarity: number
+  note?: string
 }
 
 export interface SimilarityFilterOptions {
@@ -11,6 +12,7 @@ export interface SimilarityFilterOptions {
   matchStatus: 'all' | 'matched' | 'unmatched'
   searchQuery: string
   isRegexSearch: boolean
+  hideSubThreshold: boolean
 }
 
 export interface SimilarityCompareInput {
@@ -69,7 +71,7 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
       calculator.setSynonymGroups(input.synonymText)
       calculator.setIgnoreTerms(input.ignoreText)
 
-      return calculator.batchCalculate(
+      const results = calculator.batchCalculate(
         input.sourceList,
         input.targetList,
         'left',
@@ -80,6 +82,12 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
         },
         input.onProgress ?? null,
       )
+
+      // 性能优化：每个源项只保留前10个最相似的匹配项
+      return results.map((result) => ({
+        ...result,
+        matches: result.matches.slice(0, 10),
+      }))
     },
     buildDisplayResults(input: BuildDisplayResultsInput): BatchResult[] {
       const threshold = input.thresholdPercent / 100
@@ -130,6 +138,15 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
       }
 
       return baseResults.filter((item) => {
+        // If hideSubThreshold is enabled, filter out items without matches AND without locked items
+        if (input.filterOptions.hideSubThreshold) {
+          const hasMatches = item.matches.length > 0
+          const hasLocked = isLocked(item, input.joinMode, input.lockedItems)
+          if (!hasMatches && !hasLocked) {
+            return false
+          }
+        }
+
         if (input.filterOptions.lockStatus === 'locked' && !isLocked(item, input.joinMode, input.lockedItems)) {
           return false
         }

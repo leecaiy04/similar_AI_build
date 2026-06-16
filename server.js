@@ -9,13 +9,82 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 56600;
 const PROXY_URL = process.env.PROXY_URL || ''; // 可选的上游代理
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// API 代理路由
+// GitHub代理路由
+app.get('/api/github-proxy', async (req, res) => {
+  try {
+    const url = req.query.url;
+    if (!url || !url.startsWith('https://github.com')) {
+      return res.status(400).json({ error: 'Invalid GitHub URL' });
+    }
+
+    console.log(`[GitHub代理] 请求: ${url}`);
+
+    const response = await fetch(url);
+    const html = await response.text();
+
+    res.send(html);
+  } catch (error) {
+    console.error('[GitHub代理错误]', error.message);
+    res.status(500).json({
+      error: 'GitHub proxy error',
+      message: error.message
+    });
+  }
+});
+
+// 通用 Claude API 代理路由
+app.post('/api/claude-proxy', async (req, res) => {
+  try {
+    const { baseUrl, apiKey, model, systemPrompt, prompt } = req.body;
+
+    if (!baseUrl || !apiKey || !model || !prompt) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    console.log(`[Claude代理] 请求到 ${baseUrl}`);
+
+    const targetUrl = baseUrl.endsWith('/') ? `${baseUrl}v1/messages` : `${baseUrl}/v1/messages`;
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: model,
+        system: systemPrompt || '',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1024,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('[Claude代理] 错误:', response.status, data);
+      return res.status(response.status).json(data);
+    }
+
+    console.log('[Claude代理] 成功');
+    res.json(data);
+  } catch (error) {
+    console.error('[Claude代理错误]', error.message);
+    res.status(500).json({
+      error: 'Proxy error',
+      message: error.message
+    });
+  }
+});
+
+// API 代理路由 (保留原有的cc-vibe代理)
 app.all('/api/cc-vibe/*', async (req, res) => {
   try {
     const targetPath = req.path.replace('/api/cc-vibe', '');

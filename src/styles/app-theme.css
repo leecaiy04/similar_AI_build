@@ -1,0 +1,50 @@
+/* App主题变量 */
+:root {
+  --app-primary-from: #3b82f6;  /* blue-500 */
+  --app-primary-to: #4f46e5;    /* indigo-600 */
+  --app-sidebar-width: 400px;
+  --app-header-height: 48px;
+}
+
+/* 统一组件样式 */
+.app-header-gradient {
+  @apply bg-gradient-to-r from-blue-500 to-indigo-600 border-b border-blue-600;
+}
+
+.app-sidebar {
+  @apply w-[400px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-xl relative z-10;
+}
+
+.app-input-group {
+  @apply space-y-2;
+}
+
+.app-textarea textarea {
+  @apply rounded-lg border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400;
+}
+
+.app-card {
+  @apply bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4;
+}
+
+.app-section-title {
+  @apply text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+}
+
+.app-label {
+  @apply text-sm font-medium text-gray-600 dark:text-gray-400;
+}
+
+.app-radio-group :deep(.el-radio-button__inner) {
+  @apply bg-transparent;
+}
+
+/* 滚动条样式 */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

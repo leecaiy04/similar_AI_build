@@ -1,30 +1,75 @@
 ﻿<template>
     <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <!-- Sub Header -->
-      <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-1.5 flex justify-between items-center h-10 shrink-0">
+      <div class="app-header-gradient px-6 py-3 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <el-button @click="loadSample" link class="!text-gray-500 hover:!text-blue-600" size="small">加载示例</el-button>
-          <el-button @click="exportStateJson" link class="!text-blue-500 hover:!text-blue-600" size="small">导出工作区</el-button>
-          <el-button @click="triggerImportJson" link class="!text-blue-500 hover:!text-blue-600" size="small">导入工作区</el-button>
+          <h2 class="text-base font-bold flex items-center gap-2 text-white">
+            <span class="text-2xl">🔍</span>
+            <span>相似度比对</span>
+          </h2>
+          <el-button @click="showGuide" link class="!text-white/80 hover:!text-white" size="small">使用指南</el-button>
+          <el-button @click="loadSample" link class="!text-white/80 hover:!text-white" size="small">加载示例</el-button>
+          <el-button @click="exportStateJson" link class="!text-white/80 hover:!text-white" size="small">导出工作区</el-button>
+          <el-button @click="triggerImportJson" link class="!text-white/80 hover:!text-white" size="small">导入工作区</el-button>
           <input type="file" ref="importJsonRef" class="hidden" accept=".json" @change="handleImportJson" />
-          <el-button @click="resetAll" link class="!text-rose-500 hover:!text-rose-600" size="small">清除缓存</el-button>
+          <el-button @click="resetAll" link class="!text-red-200 hover:!text-white" size="small">清除缓存</el-button>
         </div>
       </div>
-      
+
+      <!-- Guide Component -->
+      <SimilarityGuide ref="guideRef" />
+
+      <!-- AI Config Dialog -->
+      <el-dialog v-model="aiConfigVisible" title="AI 配置" width="500px">
+        <el-form label-width="100px" label-position="left">
+          <el-form-item label="API 模式">
+            <el-radio-group v-model="aiConfig.mode" size="small">
+              <el-radio-button value="claude">Claude API</el-radio-button>
+              <el-radio-button value="openai">OpenAI API</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="Base URL">
+            <el-input v-model="aiConfig.baseUrl" placeholder="例如: http://118.89.81.103:8081" />
+          </el-form-item>
+
+          <el-form-item label="API Key">
+            <el-input v-model="aiConfig.apiKey" type="password" show-password placeholder="输入你的 API Key" />
+          </el-form-item>
+
+          <el-form-item label="Model">
+            <el-input v-model="aiConfig.model" placeholder="例如: claude-opus-4-8" />
+          </el-form-item>
+
+          <el-alert
+            title="提示"
+            type="info"
+            :closable="false"
+            class="mb-4"
+          >
+            配置会自动保存到本地，与"批量 AI"页面共享
+          </el-alert>
+        </el-form>
+
+        <template #footer>
+          <el-button @click="aiConfigVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveAIConfig">保存配置</el-button>
+        </template>
+      </el-dialog>
+
       <!-- Main Content -->
       <main class="flex-1 flex overflow-hidden">
         <!-- Sidebar / Configuration Panel -->
-        <aside class="w-full md:w-96 lg:w-[450px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-2xl relative z-10">
-          <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5 scrollbar-hide">
-            
+        <aside class="app-sidebar">
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6 scrollbar-hide">
+
             <!-- Inputs Section -->
             <section class="space-y-6">
                 <div class="space-y-6">
                   <!-- Source Input Card -->
-                  <div class="premium-input-group @container">
-                    <div class="flex justify-between items-center mb-2 px-1">
-                      <label class="text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                  <div class="app-input-group">
+                    <div class="flex justify-between items-center mb-2">
+                      <label class="text-sm font-medium text-blue-600 dark:text-blue-400">
                         源列表 ({{ sourceCount }})
                       </label>
                     </div>
@@ -34,16 +79,15 @@
                       :rows="4"
                       placeholder="每行输入一个待匹配的源文本..."
                       resize="none"
-                      class="premium-textarea"
+                      class="app-textarea"
                     />
                   </div>
 
                   <!-- Target Input Card -->
-                  <div class="premium-input-group @container">
-                    <div class="flex justify-between items-center mb-2 px-1">
-                      <label class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                        目标库({{ targetCount }})
+                  <div class="app-input-group">
+                    <div class="flex justify-between items-center mb-2">
+                      <label class="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                        目标库 ({{ targetCount }})
                       </label>
                     </div>
                     <el-input
@@ -52,7 +96,7 @@
                       :rows="4"
                       placeholder="每行输入一个基准标准文本..."
                       resize="none"
-                      class="premium-textarea"
+                      class="app-textarea"
                     />
                   </div>
                 </div>
@@ -62,49 +106,49 @@
             <section class="space-y-4">
               <div class="flex items-center gap-2 mb-4">
                  <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">比对算法高级配置</span>
+                 <span class="text-sm font-bold text-gray-400">算法配置</span>
                  <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
               </div>
 
               <div class="grid grid-cols-1 gap-4">
                 <!-- Toggle Switches Group -->
-                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 grid grid-cols-2 gap-y-3 gap-x-1">
+                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50 grid grid-cols-2 gap-y-3 gap-x-1">
                    <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.ignorePunctuation = !options.ignorePunctuation">
                       <el-checkbox v-model="options.ignorePunctuation" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">忽略符号</span>
+                      <span class="text-sm text-gray-600 dark:text-gray-400">忽略标点符号</span>
                    </div>
                    <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.fullwidthToHalfwidth = !options.fullwidthToHalfwidth">
                       <el-checkbox v-model="options.fullwidthToHalfwidth" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">全角转</span>
+                      <span class="text-sm text-gray-600 dark:text-gray-400">全角转半角</span>
                    </div>
                    <div class="col-span-2 flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.ignoreInvisibleChars = !options.ignoreInvisibleChars">
                       <el-checkbox v-model="options.ignoreInvisibleChars" size="small" @click.stop />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">忽略不可见字符?<span class="text-[10px] text-gray-400 font-normal">(BOM/控制符?</span></span>
+                      <span class="text-sm text-gray-600 dark:text-gray-400">忽略不可见字符</span>
                    </div>
                 </div>
 
                 <!-- Slider Group -->
-                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-4">
+                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50 space-y-4">
                     <div class="space-y-1">
                         <div class="flex justify-between items-center mb-1">
-                           <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">相似度阈值</span>
-                           <span class="text-xs font-mono font-black text-blue-600">{{ options.threshold }}%</span>
+                           <span class="text-sm font-bold text-gray-500">相似度阈值</span>
+                           <span class="text-sm font-mono font-black text-blue-600">{{ options.threshold }}%</span>
                         </div>
                         <el-slider v-model="options.threshold" :min="0" :max="100" />
                     </div>
                 </div>
 
                 <!-- Algorithm Settings -->
-                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-5 rounded-xl border border-gray-100 dark:border-gray-700/50">
                     <div class="flex items-center justify-between mb-4">
-                       <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">优化策略</span>
-                       <el-tag size="small" effect="dark" round class="scale-90 origin-right">Premium</el-tag>
+                       <span class="text-sm font-bold text-gray-500">算法权重</span>
+                       <el-tag size="small" effect="dark" round>高级</el-tag>
                     </div>
-                    
-                    <el-radio-group v-model="selectedAlgorithm" size="small" class="w-full flex !mb-4 premium-radio-group">
-                       <el-radio-button value="edit" class="flex-1">基础强度</el-radio-button>
-                       <el-radio-button value="hybrid" class="flex-1">混合动能</el-radio-button>
-                       <el-radio-button value="jaro" class="flex-1">优先</el-radio-button>
+
+                    <el-radio-group v-model="selectedAlgorithm" size="small" class="w-full flex !mb-4 app-radio-group">
+                       <el-radio-button value="edit" class="flex-1">编辑距离</el-radio-button>
+                       <el-radio-button value="hybrid" class="flex-1">混合模式</el-radio-button>
+                       <el-radio-button value="jaro" class="flex-1">Jaro优先</el-radio-button>
                     </el-radio-group>
                     
                     <transition name="el-fade-in-linear">
@@ -245,9 +289,12 @@
           </div>
 
           <!-- Bottom Action -->
-          <footer class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-                    <el-button type="primary" class="w-full !h-12 !rounded-xl !text-sm font-black shadow-lg shadow-blue-500/10 active:scale-95 transition-all" @click="startComparison" :loading="isProcessing">
-                      {{ isProcessing ? 'AI 分析中...' : '启动智能比对' }}
+          <footer class="p-5 bg-gradient-to-t from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800 border-t border-gray-200 dark:border-gray-700">
+                    <el-button type="primary" class="w-full !h-12 !rounded-xl !text-base font-bold shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 active:scale-95 transition-all" @click="startComparison" :loading="isProcessing">
+                      <span class="flex items-center justify-center gap-2">
+                        <span class="text-xl">🚀</span>
+                        <span>{{ isProcessing ? 'AI 分析中...' : '启动智能比对' }}</span>
+                      </span>
                     </el-button>
           </footer>
         </aside>
@@ -274,10 +321,22 @@
                                 <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none">{{ joinMode }} Perspective Enabled</span>
                              </div>
                           </div>
-                           <div class="flex gap-2">
+                           <div class="flex gap-2 items-center">
+                              <el-button type="warning" size="small" plain @click="batchAISuggestion" :loading="isAIProcessing" :disabled="displayResults.length === 0">
+                                 🤖 AI 批量建议
+                              </el-button>
+                              <el-tooltip content="AI 会分析相似度在 60%-90% 之间且未锁定的项" placement="top">
+                                 <span class="text-[10px] text-gray-400 cursor-help">❓</span>
+                              </el-tooltip>
+                              <el-button size="small" text @click="aiConfigVisible = true" class="!text-[10px]">
+                                 ⚙️ AI配置
+                              </el-button>
                               <el-button type="info" size="small" plain @click="triggerImport">导入锁定</el-button>
-                              <el-button type="success" size="small" plain @click="exportSimple" :disabled="lockedItems.size === 0">
-                                 导出锁定 ({{ lockedItems.size }})
+                              <el-button type="success" size="small" plain @click="exportSimple" :disabled="displayLockedCount === 0">
+                                 导出锁定 ({{ displayLockedCount }})
+                              </el-button>
+                              <el-button type="primary" size="small" plain @click="copyToClipboard">
+                                 📋 复制到剪贴板
                               </el-button>
                               <el-button type="primary" size="small" plain @click="exportComplex">
                                  全局报告
@@ -301,7 +360,7 @@
                                   </template>
                               </el-input>
                               <el-tooltip content="Regex mode" placement="top">
-                                  <div 
+                                  <div
                                       class="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all border border-gray-100 dark:border-gray-700"
                                       :class="filterOptions.isRegexSearch ? 'bg-blue-500 text-white border-blue-600' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'"
                                       @click="filterOptions.isRegexSearch = !filterOptions.isRegexSearch"
@@ -309,8 +368,18 @@
                                       <span class="text-[10px] font-black italic">.*</span>
                                   </div>
                               </el-tooltip>
+                              <el-tooltip :content="filterOptions.hideSubThreshold ? '显示全部项' : '隐藏低于阈值的项'" placement="top">
+                                  <div
+                                      class="flex items-center gap-1 px-2 h-8 rounded-lg cursor-pointer transition-all border border-gray-100 dark:border-gray-700 whitespace-nowrap"
+                                      :class="filterOptions.hideSubThreshold ? 'bg-orange-500 text-white border-orange-600' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 hover:border-orange-300'"
+                                      @click="filterOptions.hideSubThreshold = !filterOptions.hideSubThreshold"
+                                  >
+                                      <span class="text-sm">🚫</span>
+                                      <span class="text-[10px] font-bold">{{ filterOptions.hideSubThreshold ? '已隐藏' : '隐藏' }}</span>
+                                  </div>
+                              </el-tooltip>
                           </div>
-                          
+
                           <div class="flex items-center gap-2">
                               <span class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">🔒 锁定状态</span>
                               <el-radio-group v-model="filterOptions.lockStatus" size="small" class="premium-filter-radio">
@@ -328,9 +397,9 @@
                                   <el-radio-button value="unmatched">未匹配（求异）</el-radio-button>
                               </el-radio-group>
                           </div>
-                          
-                          <div class="ml-auto flex items-center gap-1" v-if="filterOptions.searchQuery || filterOptions.lockStatus !== 'all' || filterOptions.matchStatus !== 'all'">
-                             <el-button link size="small" @click="filterOptions = { lockStatus: 'all', matchStatus: 'all', searchQuery: '', isRegexSearch: false }" class="!text-rose-500 !text-[10px] font-bold">
+
+                          <div class="ml-auto flex items-center gap-1" v-if="filterOptions.searchQuery || filterOptions.lockStatus !== 'all' || filterOptions.matchStatus !== 'all' || filterOptions.hideSubThreshold">
+                             <el-button link size="small" @click="filterOptions = { lockStatus: 'all', matchStatus: 'all', searchQuery: '', isRegexSearch: false, hideSubThreshold: false }" class="!text-rose-500 !text-[10px] font-bold">
                                 重置筛选
                              </el-button>
                           </div>
@@ -350,12 +419,13 @@
                             <div>
                                <div class="text-[10px] font-black text-gray-400 mb-1 uppercase tracking-widest">{{ joinMode === 'right' ? 'Target Standard' : 'Source Input' }}</div>
                                <div class="text-gray-900 dark:text-gray-100 text-base leading-relaxed break-all font-semibold italic">{{ item.source }}</div>
-                               
+
+                               <!-- Locked Status Display -->
                                <div v-if="isLocked(item)" class="mt-4 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
                                   <div class="flex items-center justify-between mb-1">
                                      <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest flex items-center gap-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        已确认匹配?
+                                        已确认匹配
                                      </span>
                                      <el-button type="danger" size="small" link @click="unlockMatch(item)">解除</el-button>
                                   </div>
@@ -368,14 +438,56 @@
                                </div>
                             </div>
                             <div>
+                               <!-- AI Suggestion Panel -->
+                               <div v-if="aiSuggestions.has(item.source) && !isLocked(item)" class="mb-4 p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl border-2 border-purple-300 dark:border-purple-700 animate-pulse-once">
+                                  <div class="flex items-start justify-between mb-2">
+                                     <div class="flex items-center gap-2">
+                                        <span class="text-base">🤖</span>
+                                        <span class="text-[11px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-wide">AI 建议</span>
+                                        <el-tag :type="aiSuggestions.get(item.source)!.confidence === '高' ? 'success' : aiSuggestions.get(item.source)!.confidence === '中' ? 'warning' : 'info'"
+                                                size="small" effect="dark" class="scale-75">
+                                          {{ aiSuggestions.get(item.source)!.confidence }}置信度
+                                        </el-tag>
+                                     </div>
+                                  </div>
+                                  <div v-if="aiSuggestions.get(item.source)!.matchIndex !== -1" class="space-y-2">
+                                     <div class="text-sm font-bold text-purple-800 dark:text-purple-200 break-all">
+                                        {{ aiSuggestions.get(item.source)!.suggestion }}
+                                     </div>
+                                     <div class="text-xs text-gray-600 dark:text-gray-400 italic">
+                                        理由: {{ aiSuggestions.get(item.source)!.reason }}
+                                     </div>
+                                     <div class="flex gap-2 mt-3">
+                                        <el-button type="success" size="small" @click="acceptAISuggestion(item)" class="flex-1">
+                                          ✓ 接受建议
+                                        </el-button>
+                                        <el-button type="info" size="small" plain @click="rejectAISuggestion(item)" class="flex-1">
+                                          ✗ 拒绝
+                                        </el-button>
+                                     </div>
+                                  </div>
+                                  <div v-else class="text-sm text-gray-600 dark:text-gray-400">
+                                     {{ aiSuggestions.get(item.source)!.reason }}
+                                  </div>
+                               </div>
+
                                <div class="flex items-center justify-between mb-1">
                                   <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ joinMode === 'right' ? 'Matched Source' : 'Matched Target' }} Rank #1</div>
-                                  <el-button v-if="item.matches.length > 0 && !isLocked(item)" 
-                                             type="primary" size="small" text
-                                             class="!bg-blue-50 dark:!bg-blue-900/30 !font-black !text-[10px]"
-                                             @click="lockMatch(item, item.matches[0]!)">
-                                    锁定建议
-                                  </el-button>
+                                  <div class="flex gap-2">
+                                     <el-button v-if="item.matches.length > 0 && !isLocked(item) && !aiSuggestions.has(item.source)"
+                                                type="success" size="small" text
+                                                class="!bg-purple-50 dark:!bg-purple-900/30 !font-black !text-[10px]"
+                                                @click="getAISuggestion(item)"
+                                                :loading="isAIProcessing">
+                                       🤖 AI建议
+                                     </el-button>
+                                     <el-button v-if="item.matches.length > 0 && !isLocked(item)"
+                                                type="primary" size="small" text
+                                                class="!bg-blue-50 dark:!bg-blue-900/30 !font-black !text-[10px]"
+                                                @click="lockMatch(item, item.matches[0]!)">
+                                       锁定建议
+                                     </el-button>
+                                  </div>
                                </div>
                                <div v-if="item.matches.length > 0">
                                    <div class="flex items-center justify-between mb-2">
@@ -393,11 +505,11 @@
                                         <div class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-tighter opacity-50">Visual Check</div>
                                         <span v-html="renderDiffHTML(item.source, item.matches[0]!.text)"></span>
                                     </div>
-                                   
+
                                    <div v-if="item.matches.length > 1" class="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
                                        <div class="text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">其他匹配建议 ({{ Math.min(item.matches.length - 1, 5) }})</div>
                                        <div class="grid grid-cols-1 gap-2">
-                                           <div v-for="(match, matchIndex) in item.matches.slice(1, 6)" :key="matchIndex" 
+                                           <div v-for="(match, matchIndex) in item.matches.slice(1, 6)" :key="matchIndex"
                                                 class="px-3 py-2 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg border border-transparent hover:border-blue-400 dark:hover:border-blue-500 transition cursor-pointer flex items-center justify-between"
                                                 @click="!isLocked(item) && lockMatch(item, match)">
                                                <div class="flex items-center gap-2 overflow-hidden">
@@ -409,6 +521,26 @@
                                                <span v-if="!isLocked(item)" class="text-[10px] font-bold text-blue-500 whitespace-nowrap ml-2">Lock</span>
                                            </div>
                                        </div>
+                                   </div>
+
+                                   <!-- Note Section -->
+                                   <div v-if="isLocked(item)" class="mt-4 pt-4 border-t border-dashed border-emerald-200 dark:border-emerald-800">
+                                       <div class="flex items-center justify-between mb-2">
+                                          <div class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1">
+                                             <span>📝</span>
+                                             <span>备注</span>
+                                          </div>
+                                          <span class="text-[9px] text-gray-400">已锁定 ✓</span>
+                                       </div>
+                                       <el-input
+                                          :model-value="getNote(item)"
+                                          @input="(val: string) => updateNote(item, val)"
+                                          type="textarea"
+                                          :rows="2"
+                                          placeholder="记录对比过程、判断依据或特殊说明..."
+                                          size="small"
+                                          class="note-textarea"
+                                       />
                                    </div>
                                </div>
                                <div v-else class="h-full flex flex-col items-center justify-center py-8 opacity-30 select-none">
@@ -423,8 +555,15 @@
            </div>
            
            <!-- Progress Bar -->
-           <div v-if="isProcessing" class="absolute top-0 left-0 w-full h-1 bg-blue-100 dark:bg-gray-700 z-50">
-              <div class="h-full bg-blue-600 transition-all duration-300 shadow-[0_0_10px_rgba(37,99,235,0.5)]" :style="{ width: progress + '%' }"></div>
+           <div v-if="isProcessing" class="absolute top-0 left-0 w-full z-50">
+              <div class="h-1 bg-blue-100 dark:bg-gray-700">
+                <div class="h-full bg-blue-600 transition-all duration-300 shadow-[0_0_10px_rgba(37,99,235,0.5)]" :style="{ width: progress + '%' }"></div>
+              </div>
+              <div class="bg-blue-600 text-white px-4 py-2 text-xs font-mono flex items-center justify-between shadow-lg">
+                <span>正在比对中...</span>
+                <span class="font-bold">{{ currentProcessingIndex }} / {{ totalProcessingCount }}</span>
+                <span>{{ progress.toFixed(1) }}%</span>
+              </div>
            </div>
         </div>
       </main>
@@ -432,10 +571,20 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useSimilarityWorkspace } from '../features/similarity/composables/useSimilarityWorkspace'
+import SimilarityGuide from '../components/SimilarityGuide.vue'
+import { useSharedAIConfig } from '../composables/useSharedAIConfig'
+import { ElMessage } from 'element-plus'
+
+const guideRef = ref<InstanceType<typeof SimilarityGuide> | null>(null)
+
+const { config: aiConfig } = useSharedAIConfig()
+const aiConfigVisible = ref(false)
 
 const {
   displayResults,
+  displayLockedCount,
   editWeight,
   exportComplex,
   exportSimple,
@@ -454,9 +603,10 @@ const {
   joinMode,
   loadSample,
   lockMatch,
-  lockedItems,
   options,
   progress,
+  currentProcessingIndex,
+  totalProcessingCount,
   renderDiffHTML,
   resetAll,
   results,
@@ -470,11 +620,57 @@ const {
   triggerImport,
   triggerImportJson,
   unlockMatch,
+  copyToClipboard,
+  updateNote,
+  getNote,
+  getAISuggestion,
+  batchAISuggestion,
+  isAIProcessing,
+  aiSuggestions,
+  acceptAISuggestion,
+  rejectAISuggestion,
 } = useSimilarityWorkspace()
+
+function showGuide() {
+  guideRef.value?.show()
+}
+
+function saveAIConfig() {
+  if (!aiConfig.value.apiKey) {
+    ElMessage.warning('请输入 API Key')
+    return
+  }
+  if (!aiConfig.value.baseUrl) {
+    ElMessage.warning('请输入 Base URL')
+    return
+  }
+  if (!aiConfig.value.model) {
+    ElMessage.warning('请输入 Model')
+    return
+  }
+
+  aiConfigVisible.value = false
+  ElMessage.success('AI 配置已保存')
+}
 
 void importJsonRef
 void importRef
 </script>
+
+<style>
+@keyframes pulse-once {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.animate-pulse-once {
+  animation: pulse-once 0.8s ease-in-out 1;
+}
+</style>
 
 <style>
 /* Premium Styles */
@@ -558,6 +754,33 @@ void importRef
 .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* Note Textarea */
+.note-textarea :deep(.el-textarea__inner) {
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    padding: 8px;
+    transition: all 0.3s ease;
+}
+
+.dark .note-textarea :deep(.el-textarea__inner) {
+    background: rgba(6, 78, 59, 0.2);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: rgb(167, 243, 208);
+}
+
+.note-textarea :deep(.el-textarea__inner:focus) {
+    border-color: rgb(16, 185, 129);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.dark .note-textarea :deep(.el-textarea__inner:focus) {
+    background: rgba(6, 78, 59, 0.4);
+    border-color: rgb(16, 185, 129);
 }
 </style>
 

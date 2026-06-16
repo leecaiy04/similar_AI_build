@@ -6,6 +6,7 @@ export interface DiffRowResult {
   b: string
   diff: DifferenceItem[]
   sim: number
+  originalLineB?: number
 }
 
 export interface DiffCompareInput {

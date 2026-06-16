@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据处理工具集 - 单文件版</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+    
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+      padding: 1rem 2rem;
+      color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .nav {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .nav-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.875rem;
+    }
+    
+    .nav-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .nav-btn.active {
+      background: white;
+      color: #3b82f6;
+      font-weight: 600;
+    }
+    
+    .content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    
+    .page {
+      display: none;
+      flex: 1;
+      overflow: auto;
+    }
+    
+    .page.active {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      width: 100%;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
+    }
+    
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #1f2937;
+    }
+    
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.875rem;
+      resize: vertical;
+      min-height: 120px;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #d1d5db;
+      background: white;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    .btn-primary:hover {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+    
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+    
+    .btn-danger:hover {
+      background: #dc2626;
+      border-color: #dc2626;
+    }
+    
+    .btn-success {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    
+    .btn-success:hover {
+      background: #059669;
+      border-color: #059669;
+    }
+    
+    .result {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 0.5rem;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .result-item {
+      padding: 0.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.875rem;
+    }
+    
+    .result-item:last-child {
+      border-bottom: none;
+    }
+    
+    .highlight {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    
+    .split-view {
+      display: flex;
+      gap: 1rem;
+      flex: 1;
+    }
+    
+    .split-panel {
+      flex: 1;
+    }
+    
+    .label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    
+    .toast {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: white;
+      padding: 1rem 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .toast.success {
+      border-left: 4px solid #10b981;
+    }
+    
+    .toast.error {
+      border-left: 4px solid #ef4444;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #9ca3af;
+    }
+    
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <h1>🛠️ 数据处理工具集</h1>
+      <div class="nav">
+        <button class="nav-btn active" onclick="switchPage('similarity')">相似度比对</button>
+        <button class="nav-btn" onclick="switchPage('diff')">数据Diff</button>
+        <button class="nav-btn" onclick="switchPage('processing')">数据处理</button>
+        <button class="nav-btn" onclick="switchPage('merge')">表格合并</button>
+      </div>
+    </div>
+    
+    <!-- Content -->
+    <div class="content">
+      <!-- 相似度比对 -->
+      <div id="page-similarity" class="page active">
+        <div class="container">
+          <div class="split-view">
+            <div class="split-panel">
+              <div class="card">
+                <h2 class="card-title">源列表</h2>
+                <textarea id="sim-source" placeholder="每行一个待匹配的文本..."></textarea>
+              </div>
+              <div class="card">
+                <h2 class="card-title">目标库</h2>
+                <textarea id="sim-target" placeholder="每行一个基准文本..."></textarea>
+              </div>
+              <div class="card">
+                <h2 class="card-title">设置</h2>
+                <div class="input-group">
+                  <label class="label">相似度阈值: <span id="threshold-value">80</span>%</label>
+                  <input type="range" id="threshold" min="0" max="100" value="80" style="width: 100%" oninput="document.getElementById('threshold-value').textContent=this.value">
+                </div>
+                <div class="btn-group">
+                  <button class="btn btn-primary" onclick="calculateSimilarity()">开始比对</button>
+                  <button class="btn" onclick="clearSimilarity()">清空</button>
+                </div>
+              </div>
+            </div>
+            <div class="split-panel">
+              <div class="card" style="height: 100%;">
+                <h2 class="card-title">比对结果</h2>
+                <div id="sim-result" class="result" style="max-height: 600px; overflow-y: auto;">
+                  <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <p>等待比对...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 数据Diff -->
+      <div id="page-diff" class="page">
+        <div class="container">
+          <div class="split-view">
+            <div class="split-panel">
+              <div class="card">
+                <h2 class="card-title">左侧数据</h2>
+                <textarea id="diff-left" placeholder="输入左侧数据，每行一个..."></textarea>
+              </div>
+            </div>
+            <div class="split-panel">
+              <div class="card">
+                <h2 class="card-title">右侧数据</h2>
+                <textarea id="diff-right" placeholder="输入右侧数据，每行一个..."></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="calculateDiff()">计算差异</button>
+              <button class="btn" onclick="clearDiff()">清空</button>
+            </div>
+            <div id="diff-result" class="result" style="margin-top: 1rem; display: none;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 数据处理 -->
+      <div id="page-processing" class="page">
+        <div class="container">
+          <div class="card">
+            <h2 class="card-title">数据输入</h2>
+            <textarea id="proc-input" placeholder="输入数据，每行一个..."></textarea>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="highlightDuplicates()">高亮重复</button>
+              <button class="btn btn-danger" onclick="removeDuplicates()">删除重复</button>
+              <button class="btn" onclick="trimSpaces()">去除空格</button>
+              <button class="btn" onclick="removeEmpty()">删除空行</button>
+              <button class="btn" onclick="sortAsc()">升序排序</button>
+              <button class="btn" onclick="sortDesc()">降序排序</button>
+              <button class="btn" onclick="toLowerCase()">转小写</button>
+              <button class="btn" onclick="toUpperCase()">转大写</button>
+              <button class="btn btn-success" onclick="copyResult()">复制结果</button>
+              <button class="btn" onclick="clearProcessing()">清空</button>
+            </div>
+          </div>
+          <div class="card">
+            <h2 class="card-title">处理结果</h2>
+            <div id="proc-result" class="result" style="max-height: 400px; overflow-y: auto;">
+              <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <p>暂无数据</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 表格合并 -->
+      <div id="page-merge" class="page">
+        <div class="container">
+          <div class="card">
+            <h2 class="card-title">表格1 (CSV格式)</h2>
+            <textarea id="merge-table1" placeholder="姓名,年龄&#10;张三,25&#10;李四,30"></textarea>
+          </div>
+          <div class="card">
+            <h2 class="card-title">表格2 (CSV格式)</h2>
+            <textarea id="merge-table2" placeholder="姓名,城市&#10;张三,北京&#10;李四,上海"></textarea>
+          </div>
+          <div class="card">
+            <div class="input-group">
+              <label class="label">合并键（列名）</label>
+              <input type="text" id="merge-key" value="姓名" placeholder="用于匹配的列名">
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="mergeTables()">合并表格</button>
+              <button class="btn" onclick="clearMerge()">清空</button>
+            </div>
+          </div>
+          <div class="card">
+            <h2 class="card-title">合并结果</h2>
+            <div id="merge-result" style="overflow-x: auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Page switching
+    function switchPage(pageName) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`page-${pageName}`).classList.add('active');
+      event.target.classList.add('active');
+    }
+    
+    // Toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // Levenshtein distance
+    function levenshtein(a, b) {
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+      }
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+      return matrix[b.length][a.length];
+    }
+    
+    function similarity(a, b) {
+      const maxLen = Math.max(a.length, b.length);
+      if (maxLen === 0) return 100;
+      const distance = levenshtein(a, b);
+      return ((1 - distance / maxLen) * 100).toFixed(2);
+    }
+    
+    // Similarity comparison
+    function calculateSimilarity() {
+      const source = document.getElementById('sim-source').value.trim().split('\n').filter(s => s);
+      const target = document.getElementById('sim-target').value.trim().split('\n').filter(s => s);
+      const threshold = parseInt(document.getElementById('threshold').value);
+      
+      if (!source.length || !target.length) {
+        showToast('请输入源列表和目标库', 'error');
+        return;
+      }
+      
+      const results = [];
+      source.forEach(src => {
+        let bestMatch = { target: '', score: 0 };
+        target.forEach(tgt => {
+          const score = parseFloat(similarity(src, tgt));
+          if (score > bestMatch.score) {
+            bestMatch = { target: tgt, score };
+          }
+        });
+        results.push({ source: src, match: bestMatch.target, score: bestMatch.score });
+      });
+      
+      const resultDiv = document.getElementById('sim-result');
+      resultDiv.innerHTML = results
+        .map(r => `
+          <div class="result-item ${r.score >= threshold ? '' : 'highlight'}">
+            <strong>${r.source}</strong> → ${r.match} 
+            <span style="float: right; color: ${r.score >= threshold ? '#10b981' : '#ef4444'}">
+              ${r.score}%
+            </span>
+          </div>
+        `)
+        .join('');
+      
+      showToast(`比对完成，共 ${results.length} 条`);
+    }
+    
+    function clearSimilarity() {
+      document.getElementById('sim-source').value = '';
+      document.getElementById('sim-target').value = '';
+      document.getElementById('sim-result').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>等待比对...</p></div>';
+    }
+    
+    // Diff
+    function calculateDiff() {
+      const left = new Set(document.getElementById('diff-left').value.trim().split('\n').filter(s => s));
+      const right = new Set(document.getElementById('diff-right').value.trim().split('\n').filter(s => s));
+      
+      const onlyLeft = [...left].filter(x => !right.has(x));
+      const onlyRight = [...right].filter(x => !left.has(x));
+      const common = [...left].filter(x => right.has(x));
+      
+      const resultDiv = document.getElementById('diff-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <h3 style="margin-bottom: 0.5rem;">仅在左侧 (${onlyLeft.length})</h3>
+        ${onlyLeft.map(x => `<div class="result-item" style="color: #ef4444;">${x}</div>`).join('') || '<p style="color: #9ca3af;">无</p>'}
+        <h3 style="margin: 1rem 0 0.5rem 0;">仅在右侧 (${onlyRight.length})</h3>
+        ${onlyRight.map(x => `<div class="result-item" style="color: #3b82f6;">${x}</div>`).join('') || '<p style="color: #9ca3af;">无</p>'}
+        <h3 style="margin: 1rem 0 0.5rem 0;">共同项 (${common.length})</h3>
+        ${common.map(x => `<div class="result-item" style="color: #10b981;">${x}</div>`).join('') || '<p style="color: #9ca3af;">无</p>'}
+      `;
+      
+      showToast('Diff计算完成');
+    }
+    
+    function clearDiff() {
+      document.getElementById('diff-left').value = '';
+      document.getElementById('diff-right').value = '';
+      document.getElementById('diff-result').style.display = 'none';
+    }
+    
+    // Data processing
+    let processingData = [];
+    
+    function getProcessingData() {
+      const text = document.getElementById('proc-input').value;
+      return text.split('\n');
+    }
+    
+    function setProcessingData(data) {
+      processingData = data;
+      renderProcessingResult();
+    }
+    
+    function renderProcessingResult() {
+      const resultDiv = document.getElementById('proc-result');
+      if (processingData.length === 0) {
+        resultDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>暂无数据</p></div>';
+        return;
+      }
+      resultDiv.innerHTML = processingData.map((item, idx) => 
+        `<div class="result-item">${idx + 1}. ${item}</div>`
+      ).join('');
+    }
+    
+    function highlightDuplicates() {
+      const data = getProcessingData();
+      const counts = {};
+      data.forEach(item => counts[item] = (counts[item] || 0) + 1);
+      
+      const resultDiv = document.getElementById('proc-result');
+      resultDiv.innerHTML = data.map((item, idx) => 
+        `<div class="result-item ${counts[item] > 1 ? 'highlight' : ''}">${idx + 1}. ${item} ${counts[item] > 1 ? `(重复 ${counts[item]} 次)` : ''}</div>`
+      ).join('');
+      
+      showToast('高亮完成');
+    }
+    
+    function removeDuplicates() {
+      const data = getProcessingData();
+      const unique = [...new Set(data.filter(s => s))];
+      setProcessingData(unique);
+      document.getElementById('proc-input').value = unique.join('\n');
+      showToast(`删除了 ${data.length - unique.length} 个重复项`);
+    }
+    
+    function trimSpaces() {
+      const data = getProcessingData().map(s => s.trim());
+      setProcessingData(data);
+      document.getElementById('proc-input').value = data.join('\n');
+      showToast('去除空格完成');
+    }
+    
+    function removeEmpty() {
+      const data = getProcessingData().filter(s => s.trim());
+      setProcessingData(data);
+      document.getElementById('proc-input').value = data.join('\n');
+      showToast('删除空行完成');
+    }
+    
+    function sortAsc() {
+      const data = getProcessingData().sort();
+      setProcessingData(data);
+      document.getElementById('proc-input').value = data.join('\n');
+      showToast('升序排序完成');
+    }
+    
+    function sortDesc() {
+      const data = getProcessingData().sort().reverse();
+      setProcessingData(data);
+      document.getElementById('proc-input').value = data.join('\n');
+      showToast('降序排序完成');
+    }
+    
+    function toLowerCase() {
+      const data = getProcessingData().map(s => s.toLowerCase());
+      setProcessingData(data);
+      document.getElementById('proc-input').value = data.join('\n');
+      showToast('转小写完成');
+    }
+    
+    function toUpperCase() {
+      const data = getProcessingData().map(s => s.toUpperCase());
+      setProcessingData(data);
+      document.getElementById('proc-input').value = data.join('\n');
+      showToast('转大写完成');
+    }
+    
+    function copyResult() {
+      const text = document.getElementById('proc-input').value;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('已复制到剪贴板');
+      });
+    }
+    
+    function clearProcessing() {
+      document.getElementById('proc-input').value = '';
+      setProcessingData([]);
+    }
+    
+    // Table merge
+    function parseCsv(text) {
+      const lines = text.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      const data = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = values[i] || '');
+        return obj;
+      });
+      return { headers, data };
+    }
+    
+    function mergeTables() {
+      const table1Text = document.getElementById('merge-table1').value.trim();
+      const table2Text = document.getElementById('merge-table2').value.trim();
+      const mergeKey = document.getElementById('merge-key').value.trim();
+      
+      if (!table1Text || !table2Text || !mergeKey) {
+        showToast('请输入完整信息', 'error');
+        return;
+      }
+      
+      const t1 = parseCsv(table1Text);
+      const t2 = parseCsv(table2Text);
+      
+      if (!t1.headers.includes(mergeKey) || !t2.headers.includes(mergeKey)) {
+        showToast('合并键不存在', 'error');
+        return;
+      }
+      
+      const t2Map = {};
+      t2.data.forEach(row => {
+        t2Map[row[mergeKey]] = row;
+      });
+      
+      const allHeaders = [...new Set([...t1.headers, ...t2.headers])];
+      const merged = t1.data.map(row1 => {
+        const key = row1[mergeKey];
+        const row2 = t2Map[key] || {};
+        const merged = {};
+        allHeaders.forEach(h => {
+          merged[h] = row1[h] || row2[h] || '';
+        });
+        return merged;
+      });
+      
+      const resultDiv = document.getElementById('merge-result');
+      resultDiv.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              ${allHeaders.map(h => `<th style="border: 1px solid #d1d5db; padding: 0.5rem; background: #f9fafb;">${h}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${merged.map(row => `
+              <tr>
+                ${allHeaders.map(h => `<td style="border: 1px solid #d1d5db; padding: 0.5rem;">${row[h]}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      
+      showToast('表格合并完成');
+    }
+    
+    function clearMerge() {
+      document.getElementById('merge-table1').value = '';
+      document.getElementById('merge-table2').value = '';
+      document.getElementById('merge-result').innerHTML = '';
+    }
+  </script>
+</body>
+</html>

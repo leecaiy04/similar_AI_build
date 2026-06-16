@@ -40,6 +40,7 @@ describe('similarityService', () => {
         matchStatus: 'all',
         searchQuery: '',
         isRegexSearch: false,
+        hideSubThreshold: false,
       },
     })
 

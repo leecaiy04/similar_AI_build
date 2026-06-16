@@ -1,13 +1,11 @@
 /**
- * 路由配置
+ * 路由配置（无AI版本）
  *
  * 页面说明：
  * - /         : 字符串相似度比对工具（原始主页）
  * - /diff     : 数据差异对比工具
  * - /process  : 页面数据处理 (查重去重提取等)
  * - /merge    : 表格合并工具
- * - /ai-batch : 批量AI请求工具 (OpenAI/Claude API)
- * - /chat     : AI 对话工具
  */
 
 import { createRouter, createWebHashHistory } from 'vue-router'
@@ -38,18 +36,6 @@ const router = createRouter({
             name: 'merge',
             component: () => import('../pages/TableMergePage.vue'),
             meta: { title: '表格合并', icon: '📊' }
-        },
-        {
-            path: '/ai-batch',
-            name: 'aibatch',
-            component: () => import('../pages/AIBatchPage.vue'),
-            meta: { title: '批量AI', icon: '🤖' }
-        },
-        {
-            path: '/chat',
-            name: 'chat',
-            component: () => import('../pages/ChatPage.vue'),
-            meta: { title: 'AI对话', icon: '💬' }
         }
     ]
 })
