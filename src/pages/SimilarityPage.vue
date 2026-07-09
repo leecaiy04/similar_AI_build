@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <!-- Sub Header -->
       <div class="app-header-gradient px-6 py-3 flex justify-between items-center shrink-0">
@@ -14,6 +14,14 @@
           <input type="file" ref="importJsonRef" class="hidden" accept=".json" @change="handleImportJson" />
           <el-button @click="resetAll" link class="!text-red-200 hover:!text-white" size="small">清除缓存</el-button>
         </div>
+        <div class="hidden xl:flex items-center gap-2 text-xs text-white/85">
+          <span class="rounded-full border border-white/25 bg-white/10 px-3 py-1 font-mono font-bold backdrop-blur">
+            {{ similarityUiVersion }}
+          </span>
+          <span class="rounded-full border border-emerald-200/40 bg-emerald-400/15 px-3 py-1 font-bold">
+            项目锚点增强
+          </span>
+        </div>
       </div>
 
       <!-- Guide Component -->
@@ -24,13 +32,24 @@
         <el-form label-width="100px" label-position="left">
           <el-form-item label="API 模式">
             <el-radio-group v-model="aiConfig.mode" size="small">
+              <el-radio-button value="openai">OpenAI 兼容</el-radio-button>
               <el-radio-button value="claude">Claude API</el-radio-button>
-              <el-radio-button value="openai">OpenAI API</el-radio-button>
             </el-radio-group>
           </el-form-item>
 
+          <el-form-item v-if="aiConfig.mode === 'openai' || aiConfig.mode === 'claude'" label="预设线路">
+            <el-select v-model="aiConfig.baseUrl" class="w-full" filterable>
+              <el-option
+                v-for="preset in aiEndpointPresets.filter((preset) => preset.provider === aiConfig.mode)"
+                :key="preset.id"
+                :label="getAIPresetDetailLabel(preset)"
+                :value="preset.baseUrl"
+              />
+            </el-select>
+          </el-form-item>
+
           <el-form-item label="Base URL">
-            <el-input v-model="aiConfig.baseUrl" placeholder="例如: http://118.89.81.103:8081" />
+            <el-input v-model="aiConfig.baseUrl" placeholder="例如: https://cc-vibe.com/v1" />
           </el-form-item>
 
           <el-form-item label="API Key">
@@ -38,7 +57,7 @@
           </el-form-item>
 
           <el-form-item label="Model">
-            <el-input v-model="aiConfig.model" placeholder="例如: claude-opus-4-8" />
+            <el-input v-model="aiConfig.model" placeholder="例如: gpt-5.5" />
           </el-form-item>
 
           <el-alert
@@ -54,6 +73,94 @@
         <template #footer>
           <el-button @click="aiConfigVisible = false">取消</el-button>
           <el-button type="primary" @click="saveAIConfig">保存配置</el-button>
+        </template>
+      </el-dialog>
+
+      <!-- Preprocessing Results Dialog -->
+      <el-dialog v-model="preprocessDialogVisible" title="🔬 预处理效果展示" width="800px">
+        <div class="space-y-4">
+          <el-alert type="info" :closable="false">
+            展示本次比对前实际启用的预处理规则和结果影响
+          </el-alert>
+
+          <div v-if="displayResults.length > 0" class="space-y-4">
+            <!-- Show preprocessing options used -->
+            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">⚙️ 当前预处理配置</h4>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="flex items-center gap-2">
+                  <span class="text-gray-500">预处理总开关:</span>
+                  <el-tag size="small" :type="preprocessEnabled ? 'success' : 'info'">{{ preprocessEnabled ? '启用' : '关闭' }}</el-tag>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-gray-500">版本号归一化:</span>
+                  <el-tag size="small" :type="preprocessOptions.enableVersionNormalization ? 'success' : 'info'">{{ preprocessOptions.enableVersionNormalization ? '启用' : '关闭' }}</el-tag>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-gray-500">地块名识别:</span>
+                  <el-tag size="small" :type="preprocessOptions.enableLandParcelRule ? 'success' : 'info'">{{ preprocessOptions.enableLandParcelRule ? '启用' : '关闭' }}</el-tag>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-gray-500">路段识别:</span>
+                  <el-tag size="small" :type="preprocessOptions.enableRoadSectionRule ? 'success' : 'info'">{{ preprocessOptions.enableRoadSectionRule ? '启用' : '关闭' }}</el-tag>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-gray-500">项目强锚点:</span>
+                  <el-tag size="small" type="success">自动启用</el-tag>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-gray-500">附属词过滤:</span>
+                  <el-tag size="small" type="warning">{{ preprocessOptions.noiseWordAggressiveness === 'low' ? '轻度' : preprocessOptions.noiseWordAggressiveness === 'medium' ? '中度' : '强度' }}</el-tag>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sample results showcase -->
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h4 class="text-sm font-bold text-blue-700 dark:text-blue-300 mb-3">📊 预处理效果统计</h4>
+              <div class="text-sm space-y-2">
+                <div>共处理 <span class="font-mono font-bold text-blue-600">{{ displayResults.length }}</span> 项比对</div>
+                <div class="text-xs text-gray-500 mt-2">
+                  预处理可以识别项目代码、杭政储出编号、控规单元地块号、道路起止点等领域特征，提升匹配准确度
+                </div>
+              </div>
+            </div>
+
+            <!-- Show examples from actual results -->
+            <div class="space-y-3">
+              <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300">💡 预处理示例（来自当前结果）</h4>
+              <div v-for="(item, idx) in displayResults.slice(0, 3)" :key="idx" class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div class="space-y-3">
+                  <div>
+                    <div class="text-xs text-gray-500 mb-1">源文本</div>
+                    <div class="p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700 text-sm break-all">
+                      {{ item.source }}
+                    </div>
+                  </div>
+                  <div v-if="item.matches.length > 0">
+                    <div class="text-xs text-gray-500 mb-1">最佳匹配目标</div>
+                    <div class="p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700 text-sm break-all">
+                      {{ item.matches[0]?.text }}
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                      <span class="text-xs text-gray-500">相似度:</span>
+                      <el-tag :type="getScoreColor(item.matches[0]!.similarity)" size="small">
+                        {{ (item.matches[0]!.similarity * 100).toFixed(1) }}%
+                      </el-tag>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="text-center text-gray-400 py-8">
+            暂无比对结果，请先进行相似度比对
+          </div>
+        </div>
+
+        <template #footer>
+          <el-button @click="preprocessDialogVisible = false">关闭</el-button>
         </template>
       </el-dialog>
 
@@ -104,84 +211,167 @@
 
             <!-- Settings Section -->
             <section class="space-y-4">
-              <div class="flex items-center gap-2 mb-4">
-                 <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                 <span class="text-sm font-bold text-gray-400">算法配置</span>
-                 <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+              <!-- Preprocessing Configuration -->
+              <el-collapse v-model="activeCollapse" class="border-0">
+                <el-collapse-item name="preprocess" class="!border-0">
+                  <template #title>
+                    <div class="flex items-center gap-2 w-full py-1">
+                      <span class="text-lg">🔬</span>
+                      <span class="text-sm font-bold text-gray-700 dark:text-gray-300">智能预处理</span>
+                      <el-tag v-if="preprocessEnabled" type="success" size="small" effect="dark" class="ml-auto">已启用</el-tag>
+                      <el-tag v-else type="info" size="small" effect="plain" class="ml-auto">未启用</el-tag>
+                    </div>
+                  </template>
+                  <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl border border-blue-200 dark:border-gray-700 space-y-4 -mt-2">
+                    <!-- Enable Switch -->
+                    <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">启用预处理</span>
+                        <el-tooltip content="启动比对时先执行规则预处理，再用处理结果参与相似度计算" placement="top">
+                          <span class="text-xs text-gray-400 cursor-help">❓</span>
+                        </el-tooltip>
+                      </div>
+                      <el-switch v-model="preprocessEnabled" />
+                    </div>
+
+                    <!-- Preprocessing Options -->
+                    <div v-if="preprocessEnabled" class="space-y-3">
+                      <div class="space-y-2">
+                        <div class="flex items-center gap-2 p-2 hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg transition-colors cursor-pointer" @click="preprocessOptions.enableVersionNormalization = !preprocessOptions.enableVersionNormalization">
+                          <el-checkbox v-model="preprocessOptions.enableVersionNormalization" size="small" @click.stop />
+                          <span class="text-sm text-gray-700 dark:text-gray-300">版本号归一化</span>
+                          <el-tag size="small" type="success" effect="plain" class="ml-auto text-xs">v1.0 ≈ v2.0</el-tag>
+                        </div>
+
+                        <div class="flex items-center gap-2 p-2 hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg transition-colors cursor-pointer" @click="preprocessOptions.enableLandParcelRule = !preprocessOptions.enableLandParcelRule">
+                          <el-checkbox v-model="preprocessOptions.enableLandParcelRule" size="small" @click.stop />
+                          <span class="text-sm text-gray-700 dark:text-gray-300">地块名识别</span>
+                          <el-tag size="small" type="success" effect="plain" class="ml-auto text-xs">滨江-01</el-tag>
+                        </div>
+
+                        <div class="flex items-center gap-2 p-2 hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg transition-colors cursor-pointer" @click="preprocessOptions.enableRoadSectionRule = !preprocessOptions.enableRoadSectionRule">
+                          <el-checkbox v-model="preprocessOptions.enableRoadSectionRule" size="small" @click.stop />
+                          <span class="text-sm text-gray-700 dark:text-gray-300">路段识别</span>
+                          <el-tag size="small" type="success" effect="plain" class="ml-auto text-xs">K1+000</el-tag>
+                        </div>
+
+                        <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 shadow-sm dark:border-amber-700/60 dark:bg-amber-950/20 dark:text-amber-100">
+                          <div class="mb-2 flex items-center justify-between gap-2">
+                            <span class="font-bold">项目强锚点</span>
+                            <el-tag size="small" type="warning" effect="dark" class="!text-[10px]">自动参与</el-tag>
+                          </div>
+                          <p class="leading-relaxed">
+                            自动捕捉项目代码、杭政储出编号、控规单元地块号、学校医院主体、道路起止点等关键线索；强锚点一致会优先抬高分数，强锚点冲突会压低候选。
+                          </p>
+                          <div class="mt-2 flex flex-wrap gap-1">
+                            <span class="rounded-full bg-white/70 px-2 py-0.5 font-mono text-[10px] text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">杭政储出2026 33号</span>
+                            <span class="rounded-full bg-white/70 px-2 py-0.5 font-mono text-[10px] text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">XH020104-22</span>
+                            <span class="rounded-full bg-white/70 px-2 py-0.5 font-mono text-[10px] text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">云创路-云洪路</span>
+                          </div>
+                        </div>
+
+                        <div class="p-2">
+                          <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">附属词过滤</span>
+                            <el-tag size="small">{{ preprocessOptions.noiseWordAggressiveness === 'low' ? '轻度' : preprocessOptions.noiseWordAggressiveness === 'medium' ? '中度' : '强度' }}</el-tag>
+                          </div>
+                          <el-radio-group v-model="preprocessOptions.noiseWordAggressiveness" size="small" class="w-full grid grid-cols-3 gap-1">
+                            <el-radio-button value="low" class="text-center">轻度</el-radio-button>
+                            <el-radio-button value="medium" class="text-center">中度</el-radio-button>
+                            <el-radio-button value="high" class="text-center">强度</el-radio-button>
+                          </el-radio-group>
+                        </div>
+                      </div>
+
+                      <div class="text-xs text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-900/50 p-2 rounded-lg">
+                        💡 预处理可大幅提升特定场景的匹配准确度
+                      </div>
+                    </div>
+                  </div>
+                </el-collapse-item>
+              </el-collapse>
+
+              <div class="flex items-center gap-2 mt-4 mb-3">
+                 <div class="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
+                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">基础配置</span>
+                 <div class="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
               </div>
 
               <div class="grid grid-cols-1 gap-4">
                 <!-- Toggle Switches Group -->
-                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50 grid grid-cols-2 gap-y-3 gap-x-1">
-                   <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.ignorePunctuation = !options.ignorePunctuation">
-                      <el-checkbox v-model="options.ignorePunctuation" size="small" @click.stop />
-                      <span class="text-sm text-gray-600 dark:text-gray-400">忽略标点符号</span>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-2">
+                   <div class="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors cursor-pointer" @click="options.ignorePunctuation = !options.ignorePunctuation">
+                      <span class="text-sm text-gray-700 dark:text-gray-300">忽略标点符号</span>
+                      <el-switch v-model="options.ignorePunctuation" size="small" @click.stop />
                    </div>
-                   <div class="flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.fullwidthToHalfwidth = !options.fullwidthToHalfwidth">
-                      <el-checkbox v-model="options.fullwidthToHalfwidth" size="small" @click.stop />
-                      <span class="text-sm text-gray-600 dark:text-gray-400">全角转半角</span>
+                   <div class="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors cursor-pointer" @click="options.fullwidthToHalfwidth = !options.fullwidthToHalfwidth">
+                      <span class="text-sm text-gray-700 dark:text-gray-300">全角转半角</span>
+                      <el-switch v-model="options.fullwidthToHalfwidth" size="small" @click.stop />
                    </div>
-                   <div class="col-span-2 flex items-center gap-2 hover:bg-white dark:hover:bg-gray-800 p-1 rounded-lg transition-colors cursor-pointer" @click="options.ignoreInvisibleChars = !options.ignoreInvisibleChars">
-                      <el-checkbox v-model="options.ignoreInvisibleChars" size="small" @click.stop />
-                      <span class="text-sm text-gray-600 dark:text-gray-400">忽略不可见字符</span>
+                   <div class="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors cursor-pointer" @click="options.ignoreInvisibleChars = !options.ignoreInvisibleChars">
+                      <span class="text-sm text-gray-700 dark:text-gray-300">忽略不可见字符</span>
+                      <el-switch v-model="options.ignoreInvisibleChars" size="small" @click.stop />
                    </div>
                 </div>
 
-                <!-- Slider Group -->
-                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50 space-y-4">
-                    <div class="space-y-1">
-                        <div class="flex justify-between items-center mb-1">
-                           <span class="text-sm font-bold text-gray-500">相似度阈值</span>
-                           <span class="text-sm font-mono font-black text-blue-600">{{ options.threshold }}%</span>
-                        </div>
-                        <el-slider v-model="options.threshold" :min="0" :max="100" />
+                <!-- Threshold Slider -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div class="flex justify-between items-center mb-3">
+                       <span class="text-sm font-medium text-gray-700 dark:text-gray-300">相似度阈值</span>
+                       <span class="text-lg font-mono font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{{ options.threshold }}%</span>
+                    </div>
+                    <el-slider v-model="options.threshold" :min="0" :max="100" :show-tooltip="false" />
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
                     </div>
                 </div>
 
                 <!-- Algorithm Settings -->
-                <div class="bg-gray-50/50 dark:bg-gray-700/30 p-5 rounded-xl border border-gray-100 dark:border-gray-700/50">
-                    <div class="flex items-center justify-between mb-4">
-                       <span class="text-sm font-bold text-gray-500">算法权重</span>
-                       <el-tag size="small" effect="dark" round>高级</el-tag>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                       <span class="text-sm font-medium text-gray-700 dark:text-gray-300">算法模式</span>
+                       <el-tag size="small" type="warning" effect="dark">高级</el-tag>
                     </div>
 
-                    <el-radio-group v-model="selectedAlgorithm" size="small" class="w-full flex !mb-4 app-radio-group">
-                       <el-radio-button value="edit" class="flex-1">编辑距离</el-radio-button>
-                       <el-radio-button value="hybrid" class="flex-1">混合模式</el-radio-button>
-                       <el-radio-button value="jaro" class="flex-1">Jaro优先</el-radio-button>
+                    <el-radio-group v-model="selectedAlgorithm" size="small" class="w-full grid grid-cols-3 gap-2 mb-3">
+                       <el-radio-button value="edit" class="text-center">编辑距离</el-radio-button>
+                       <el-radio-button value="hybrid" class="text-center">混合</el-radio-button>
+                       <el-radio-button value="jaro" class="text-center">Jaro</el-radio-button>
                     </el-radio-group>
-                    
+
                     <transition name="el-fade-in-linear">
-                      <div v-if="selectedAlgorithm === 'hybrid'" class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm mt-2">
-                         <div class="flex justify-between text-[10px] text-gray-400 font-mono mb-2">
-                            <span>缂栬緫: {{ editWeight }}%</span>
+                      <div v-if="selectedAlgorithm === 'hybrid'" class="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                         <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+                            <span>编辑: {{ editWeight }}%</span>
                             <span>Jaro: {{ jaroWeight }}%</span>
                          </div>
-                         <el-slider v-model="editWeight" :min="0" :max="100" />
+                         <el-slider v-model="editWeight" :min="0" :max="100" :show-tooltip="false" />
                       </div>
                     </transition>
                 </div>
 
                 <!-- Textarea Rules -->
-                <div class="space-y-3 pt-2">
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">增强同义词组</label>
-                        <el-input v-model="synonymText" type="textarea" :rows="2" size="small" placeholder="词?, 词? (分组)..." class="custom-small-textarea" />
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3">
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">同义词组</label>
+                        <el-input v-model="synonymText" type="textarea" :rows="2" placeholder="词A, 词B (分组)..." />
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wide block ml-1">忽略词项</label>
-                        <el-input v-model="ignoreText" type="textarea" :rows="2" size="small" placeholder="例如：有限公司， 集团..." class="custom-small-textarea" />
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">忽略词项</label>
+                        <el-input v-model="ignoreText" type="textarea" :rows="2" placeholder="有限公司, 集团..." />
                     </div>
                 </div>
 
                 <!-- Join Mode Selection -->
-                <div class="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-gray-700/30 dark:to-gray-700/30 p-5 rounded-2xl border border-blue-100 dark:border-gray-700/50 space-y-4">
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-xl border border-blue-200 dark:border-gray-700 shadow-sm space-y-3">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide flex items-center gap-2">
-                            <span class="text-sm">🎯</span>
-                            匹配模式
-                        </span>
-                        <el-tag size="small" type="primary" effect="dark" round class="scale-90 origin-right transition-all font-mono">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🎯</span>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">匹配模式</span>
+                        </div>
+                        <el-tag size="small" type="primary" effect="dark">
                             {{ joinMode === 'left' ? '源为主' : joinMode === 'inner' ? '求同' : joinMode === 'right' ? '标为主' : '全集' }}
                         </el-tag>
                     </div>
@@ -189,98 +379,78 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div
                             @click="joinMode = 'left'"
-                            class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                            class="p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
                             :class="joinMode === 'left'
-                                ? 'bg-blue-500 border-blue-600 shadow-lg shadow-blue-500/30'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300'">
+                                ? 'bg-blue-500 border-blue-600 shadow-lg shadow-blue-500/50'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-400'">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-lg">📋</span>
-                                <span class="text-xs font-black uppercase tracking-wide"
+                                <span class="text-base">📋</span>
+                                <span class="text-xs font-bold"
                                       :class="joinMode === 'left' ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
-                                    源为主 Left
+                                    源为主
                                 </span>
                             </div>
-                            <p class="text-[10px] leading-relaxed"
+                            <p class="text-[10px] leading-tight"
                                :class="joinMode === 'left' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'">
-                                显示所有源列表项及其匹配结果
+                                显示所有源列表项
                             </p>
                         </div>
 
                         <div
                             @click="joinMode = 'inner'"
-                            class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                            class="p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
                             :class="joinMode === 'inner'
-                                ? 'bg-green-500 border-green-600 shadow-lg shadow-green-500/30'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-green-300'">
+                                ? 'bg-green-500 border-green-600 shadow-lg shadow-green-500/50'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-green-400'">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-lg">🎯</span>
-                                <span class="text-xs font-black uppercase tracking-wide"
+                                <span class="text-base">🎯</span>
+                                <span class="text-xs font-bold"
                                       :class="joinMode === 'inner' ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
-                                    求同 Inner
+                                    求同
                                 </span>
                             </div>
-                            <p class="text-[10px] leading-relaxed"
+                            <p class="text-[10px] leading-tight"
                                :class="joinMode === 'inner' ? 'text-green-100' : 'text-gray-500 dark:text-gray-400'">
-                                只显示能匹配上的项（交集）
+                                只显示匹配项
                             </p>
                         </div>
 
                         <div
                             @click="joinMode = 'right'"
-                            class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                            class="p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
                             :class="joinMode === 'right'
-                                ? 'bg-purple-500 border-purple-600 shadow-lg shadow-purple-500/30'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-300'">
+                                ? 'bg-purple-500 border-purple-600 shadow-lg shadow-purple-500/50'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-400'">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-lg">📌</span>
-                                <span class="text-xs font-black uppercase tracking-wide"
+                                <span class="text-base">📌</span>
+                                <span class="text-xs font-bold"
                                       :class="joinMode === 'right' ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
-                                    标为主 Right
+                                    标为主
                                 </span>
                             </div>
-                            <p class="text-[10px] leading-relaxed"
+                            <p class="text-[10px] leading-tight"
                                :class="joinMode === 'right' ? 'text-purple-100' : 'text-gray-500 dark:text-gray-400'">
-                                以目标库为基准反向匹配源
+                                以目标库为基准
                             </p>
                         </div>
 
                         <div
                             @click="joinMode = 'outer'"
-                            class="p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                            class="p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
                             :class="joinMode === 'outer'
-                                ? 'bg-orange-500 border-orange-600 shadow-lg shadow-orange-500/30'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-orange-300'">
+                                ? 'bg-orange-500 border-orange-600 shadow-lg shadow-orange-500/50'
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-orange-400'">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-lg">🔄</span>
-                                <span class="text-xs font-black uppercase tracking-wide"
+                                <span class="text-base">🔄</span>
+                                <span class="text-xs font-bold"
                                       :class="joinMode === 'outer' ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
-                                    全集 Outer
+                                    全集
                                 </span>
                             </div>
-                            <p class="text-[10px] leading-relaxed"
+                            <p class="text-[10px] leading-tight"
                                :class="joinMode === 'outer' ? 'text-orange-100' : 'text-gray-500 dark:text-gray-400'">
-                                显示所有项+未匹配的目标项
+                                显示所有项
                             </p>
-                        </div>
-                    </div>
-
-                    <div class="text-[10px] text-gray-600 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 p-3 rounded-lg border border-gray-200 dark:border-gray-700 leading-relaxed">
-                        <div class="flex items-start gap-2">
-                            <span class="text-blue-500 shrink-0 mt-0.5">💡</span>
-                            <div>
-                                <span v-if="joinMode === 'left'" class="font-semibold text-gray-700 dark:text-gray-300">
-                                    适用场景：清洗源数据，为每个源项找最佳匹配。配合"未匹配"筛选可实现<strong class="text-blue-600 dark:text-blue-400">左差集</strong>（源有标无）。
-                                </span>
-                                <span v-else-if="joinMode === 'inner'" class="font-semibold text-gray-700 dark:text-gray-300">
-                                    适用场景：<strong class="text-green-600 dark:text-green-400">求交集</strong>，只关注能匹配上的数据，过滤掉无法匹配的项。
-                                </span>
-                                <span v-else-if="joinMode === 'right'" class="font-semibold text-gray-700 dark:text-gray-300">
-                                    适用场景：检查标准库覆盖率，看哪些标准项被源数据匹配到。配合"未匹配"筛选可实现<strong class="text-purple-600 dark:text-purple-400">右差集</strong>（标有源无）。
-                                </span>
-                                <span v-else-if="joinMode === 'outer'" class="font-semibold text-gray-700 dark:text-gray-300">
-                                    适用场景：<strong class="text-orange-600 dark:text-orange-400">全量对比</strong>，查看两边的并集，发现双方的差异项。配合"未匹配"筛选可实现<strong class="text-orange-600 dark:text-orange-400">对称差集</strong>。
-                                </span>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -328,8 +498,11 @@
                               <el-tooltip content="AI 会分析相似度在 60%-90% 之间且未锁定的项" placement="top">
                                  <span class="text-[10px] text-gray-400 cursor-help">❓</span>
                               </el-tooltip>
-                              <el-button size="small" text @click="aiConfigVisible = true" class="!text-[10px]">
+                              <el-button type="primary" size="small" @click="aiConfigVisible = true">
                                  ⚙️ AI配置
+                              </el-button>
+                              <el-button type="info" size="small" @click="preprocessDialogVisible = true">
+                                 🔬 预处理
                               </el-button>
                               <el-button type="info" size="small" plain @click="triggerImport">导入锁定</el-button>
                               <el-button type="success" size="small" plain @click="exportSimple" :disabled="displayLockedCount === 0">
@@ -417,7 +590,10 @@
                          </div>
                          <div class="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                               <div class="text-[10px] font-black text-gray-400 mb-1 uppercase tracking-widest">{{ joinMode === 'right' ? 'Target Standard' : 'Source Input' }}</div>
+                               <div class="flex items-center gap-2 mb-1">
+                                  <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ joinMode === 'right' ? 'Target Standard' : 'Source Input' }}</div>
+                                  <el-tag v-if="preprocessEnabled" size="small" type="primary" effect="plain" class="!text-[10px]">已预处理计算</el-tag>
+                               </div>
                                <div class="text-gray-900 dark:text-gray-100 text-base leading-relaxed break-all font-semibold italic">{{ item.source }}</div>
 
                                <!-- Locked Status Display -->
@@ -491,15 +667,23 @@
                                </div>
                                <div v-if="item.matches.length > 0">
                                    <div class="flex items-center justify-between mb-2">
-                                       <el-tag :type="getScoreColor(item.matches[0]!.similarity)" effect="dark" size="small" class="font-mono font-black scale-90 origin-left">
-                                           {{ (item.matches[0]!.similarity * 100).toFixed(1) }}%
-                                       </el-tag>
+                                       <div class="flex flex-wrap items-center gap-2">
+                                           <el-tag :type="getScoreColor(item.matches[0]!.similarity)" effect="dark" size="small" class="font-mono font-black scale-90 origin-left">
+                                               {{ (item.matches[0]!.similarity * 100).toFixed(1) }}%
+                                           </el-tag>
+                                           <el-tag v-if="getMatchSignal(item.matches[0])" :type="getMatchSignal(item.matches[0])!.type" effect="plain" size="small" class="!text-[10px] font-bold">
+                                               {{ getMatchSignal(item.matches[0])!.label }}
+                                           </el-tag>
+                                       </div>
                                        <span class="text-[10px] text-gray-400 font-mono">ID: {{ item.matches[0]!.index }}</span>
                                    </div>
                                     <div class="mb-3">
                                         <div class="text-sm font-bold text-gray-700 dark:text-gray-200 break-all">
                                             {{ item.matches[0]!.text }}
                                         </div>
+                                    </div>
+                                    <div v-if="getMatchSignal(item.matches[0])" class="mb-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs leading-relaxed text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-200">
+                                        {{ getMatchSignal(item.matches[0])!.detail }}
                                     </div>
                                     <div class="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800/80 break-all text-sm leading-relaxed overflow-hidden">
                                         <div class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-tighter opacity-50">Visual Check</div>
@@ -576,15 +760,20 @@ import { useSimilarityWorkspace } from '../features/similarity/composables/useSi
 import SimilarityGuide from '../components/SimilarityGuide.vue'
 import { useSharedAIConfig } from '../composables/useSharedAIConfig'
 import { ElMessage } from 'element-plus'
+import { AI_ENDPOINT_PRESETS, getAIPresetDetailLabel } from '../config/aiProviders'
 
 const guideRef = ref<InstanceType<typeof SimilarityGuide> | null>(null)
 
 const { config: aiConfig } = useSharedAIConfig()
+const aiEndpointPresets = AI_ENDPOINT_PRESETS
 const aiConfigVisible = ref(false)
+const preprocessDialogVisible = ref(false)
+const similarityUiVersion = 'v0.3.0'
 
 const {
   displayResults,
   displayLockedCount,
+  activeCollapse,
   editWeight,
   exportComplex,
   exportSimple,
@@ -604,6 +793,8 @@ const {
   loadSample,
   lockMatch,
   options,
+  preprocessEnabled,
+  preprocessOptions,
   progress,
   currentProcessingIndex,
   totalProcessingCount,
@@ -651,6 +842,56 @@ function saveAIConfig() {
 
   aiConfigVisible.value = false
   ElMessage.success('AI 配置已保存')
+}
+
+function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?: string }) {
+  if (!match) return null
+
+  if (match.ruleType === 'projectAnchor') {
+    return {
+      label: '项目强锚点',
+      type: 'success' as const,
+      detail: match.reason || '项目代码、地块号、道路起止点等关键线索高度一致，可作为优先候选。',
+    }
+  }
+
+  if (match.ruleType === 'landParcel') {
+    return {
+      label: '地块规则命中',
+      type: 'success' as const,
+      detail: match.reason || '地块编号或地块名称一致，建议结合事项清单复核。',
+    }
+  }
+
+  if (match.ruleType === 'roadSection') {
+    return {
+      label: '路段规则命中',
+      type: 'success' as const,
+      detail: match.reason || '道路名称及起止点高度一致，适合优先锁定。',
+    }
+  }
+
+  if (match.similarity >= 0.92) {
+    return {
+      label: '高可信匹配',
+      type: 'success' as const,
+      detail: match.reason || '综合相似度很高，建议作为优先候选复核。',
+    }
+  }
+
+  if (match.similarity >= 0.78) {
+    return {
+      label: '建议复核',
+      type: 'warning' as const,
+      detail: match.reason || '名称相近但缺少强锚点，建议结合项目代码、事项或源文件位置确认。',
+    }
+  }
+
+  return {
+    label: '候选线索',
+    type: 'info' as const,
+    detail: match.reason || '相似度较低，仅作为排查线索保留。',
+  }
 }
 
 void importJsonRef
@@ -783,5 +1024,3 @@ void importRef
     border-color: rgb(16, 185, 129);
 }
 </style>
-
-

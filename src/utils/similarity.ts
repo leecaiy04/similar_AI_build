@@ -34,6 +34,12 @@ export interface MatchResult {
     similarity: number;
     /** 在目标列表中的索引位置 */
     index: number;
+    /** 规则层命中的领域类型，用于界面解释匹配依据 */
+    ruleType?: 'landParcel' | 'roadSection' | 'projectAnchor' | 'coreName';
+    /** 规则或算法给出的简短判断原因 */
+    reason?: string;
+    /** 详细解释，供后续展开查看 */
+    explanation?: string[];
 }
 
 /**

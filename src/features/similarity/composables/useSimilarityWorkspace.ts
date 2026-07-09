@@ -6,7 +6,7 @@ import type { BatchResult, MatchResult } from '../../../utils/similarity'
 import { splitExcelLines } from '../../../utils/textParser'
 import { createSimilarityService, type LockedItem } from '../service/similarityService'
 import { useSharedAIConfig } from '../../../composables/useSharedAIConfig'
-import { createClaudeAdapter } from '../../../infra/llm/claudeAdapter'
+import { createLlmInvoke } from '../../../infra/llm'
 
 type JoinMode = 'left' | 'right' | 'inner' | 'outer'
 
@@ -38,7 +38,6 @@ function downloadContent(content: string, filename: string, type: string) {
 export function useSimilarityWorkspace() {
   const service = createSimilarityService()
   const { config: aiConfig } = useSharedAIConfig()
-  const claudeAdapter = createClaudeAdapter()
 
   const isProcessing = ref(false)
   const progress = ref(0)
@@ -77,6 +76,15 @@ export function useSimilarityWorkspace() {
     searchQuery: '',
     isRegexSearch: false,
     hideSubThreshold: false,
+  })
+
+  const activeCollapse = ref<string[]>(['preprocess'])
+  const preprocessEnabled = ref(true)
+  const preprocessOptions = ref({
+    enableVersionNormalization: true,
+    enableLandParcelRule: true,
+    enableRoadSectionRule: true,
+    noiseWordAggressiveness: 'medium' as 'low' | 'medium' | 'high',
   })
 
   const sourceCount = computed(() => splitExcelLines(sourceText.value).filter((line) => line.trim()).length)
@@ -124,28 +132,28 @@ export function useSimilarityWorkspace() {
 
   const loadSample = () => {
     sourceText.value = [
-      '浙江阿里巴巴云计算有限公司',
-      '深圳市腾讯计算机系统有限公司',
-      '北京百度网讯科技有限公司',
-      '北京字节跳动科技有限公司',
-      '北京京东世纪贸易有限公司',
-      '小米科技有限责任公司',
-      '华为技术有限公司',
-      '网易（杭州）网络有限公司',
+      '关于杭政储出2026 33号地块住宅商业项目的批复',
+      '双桥单元XH020104-22地块安置房项建',
+      '云河环路云创路至云洪路道路工程可研',
+      '西湖区三墩北单元幼儿园新建项目',
+      '留下街道社区卫生服务中心迁建工程',
+      '岳湖泵站出水管改造工程初步设计',
+      'XH020104-21地块保障房政府投资计划',
+      '龙坞茶镇九街提升改造项目',
     ].join('\n')
     targetText.value = [
-      '阿里巴巴云计算',
-      '腾讯计算机系统',
-      '百度网讯科技',
-      '字节跳动科技',
-      '京东世纪贸易',
-      '小米科技',
-      '华为技术',
-      '网易网络',
+      '杭政储出【2026】33号地块住宅兼商业商务项目',
+      '双桥单元XH020104-22地块保障性住房项目',
+      '云河环路（云创路-云洪路）道路工程',
+      '三墩北单元幼儿园建设工程',
+      '留下街道社区卫生服务中心迁建项目',
+      '岳湖泵站出水管改造工程',
+      '双桥单元XH020104-21地块保障性住房项目',
+      '龙坞茶镇九街综合提升工程',
     ].join('\n')
-    synonymText.value = '阿里巴巴, 阿里\n腾讯, Tencent\n字节跳动, ByteDance\n京东, JD'
-    ignoreText.value = '有限公司, 股份有限公司, 有限责任公司, 集团, 分公司, 总部'
-    ElMessage.success('已加载高相似度行业示例')
+    synonymText.value = '安置房, 保障性住房\n住宅商业, 住宅兼商业商务\n建设工程, 新建项目\n提升改造, 综合提升'
+    ignoreText.value = '关于, 的批复, 批复, 批文, 项建, 可研, 初步设计, 政府投资计划'
+    ElMessage.success('已加载投资项目审批示例')
   }
 
   const startComparison = async () => {
@@ -180,6 +188,10 @@ export function useSimilarityWorkspace() {
           editWeight: editWeight.value,
           synonymText: synonymText.value,
           ignoreText: ignoreText.value,
+          preprocessOptions: {
+            enabled: preprocessEnabled.value,
+            ...preprocessOptions.value,
+          },
           onProgress: (current, total) => {
             currentProcessingIndex.value = current
             totalProcessingCount.value = total
@@ -264,6 +276,9 @@ export function useSimilarityWorkspace() {
         selectedAlgorithm: selectedAlgorithm.value,
         editWeight: editWeight.value,
         joinMode: joinMode.value,
+        preprocessEnabled: preprocessEnabled.value,
+        preprocessOptions: preprocessOptions.value,
+        activeCollapse: activeCollapse.value,
         lockedItems: Array.from(lockedItems.value.entries()),
       }),
     )
@@ -282,6 +297,11 @@ export function useSimilarityWorkspace() {
       selectedAlgorithm.value = data.selectedAlgorithm || 'edit'
       editWeight.value = data.editWeight || 60
       joinMode.value = data.joinMode || 'left'
+      if (typeof data.preprocessEnabled === 'boolean') preprocessEnabled.value = data.preprocessEnabled
+      if (data.preprocessOptions && typeof data.preprocessOptions === 'object') {
+        preprocessOptions.value = { ...preprocessOptions.value, ...data.preprocessOptions }
+      }
+      if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse
       if (data.lockedItems) lockedItems.value = new Map(data.lockedItems)
       return true
     } catch (error) {
@@ -312,6 +332,9 @@ export function useSimilarityWorkspace() {
       selectedAlgorithm: selectedAlgorithm.value,
       editWeight: editWeight.value,
       joinMode: joinMode.value,
+      preprocessEnabled: preprocessEnabled.value,
+      preprocessOptions: preprocessOptions.value,
+      activeCollapse: activeCollapse.value,
       lockedItems: Array.from(lockedItems.value.entries()),
       results: results.value,
     })
@@ -344,6 +367,11 @@ export function useSimilarityWorkspace() {
         editWeight.value = typeof data.editWeight === 'number' ? data.editWeight : 60
         joinMode.value =
           data.joinMode === 'right' || data.joinMode === 'inner' || data.joinMode === 'outer' ? data.joinMode : 'left'
+        if (typeof data.preprocessEnabled === 'boolean') preprocessEnabled.value = data.preprocessEnabled
+        if (data.preprocessOptions && typeof data.preprocessOptions === 'object') {
+          preprocessOptions.value = { ...preprocessOptions.value, ...(data.preprocessOptions as typeof preprocessOptions.value) }
+        }
+        if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse as string[]
         if (Array.isArray(data.lockedItems)) {
           lockedItems.value = new Map(data.lockedItems as Array<[string, LockedItem]>)
         }
@@ -716,24 +744,29 @@ export function useSimilarityWorkspace() {
 ${matchesText}
 
 重要判断规则：
-1. 地块名识别（最高优先级）：
+1. 项目强锚点（最高优先级）：
+   - 项目代码、杭政储出编号、控规单元地块号（如XH020104-22）一致时，应优先判定为强关联
+   - 同类强锚点编号冲突（如XH020104-22 vs XH020104-21）时，应优先判定为不同项目
+   - 道路工程要同时关注道路名称和起止点，起止点一致才可强匹配
+
+2. 地块名识别：
    - 地块编号格式如"XXX-R21-YY"、"XXX-YY"等，其中核心标识是"XXX"和"YY"
    - "XXX-R21-YY"和"XXX-YY"应视为同一地块（中间的R21等为地块类型代码，可忽略）
    - 不同地块名（如"A地块"vs"B地块"、"XX-01"vs"XX-02"）必定是不同项目
    - 同一地块名大概率是同一项目
 
-2. 道路/工程项目起止点：
+3. 道路/工程项目起止点：
    - 必须检查桩号起止点是否一致（如K1+000~K2+000）
    - 路名相同但起止点不同应判定为不同项目
    - 起止点信息缺失或明显不同的不应匹配
 
-3. 附属词语容忍度：
+4. 附属词语容忍度：
    - 标点符号差异（括号、引号、顿号等）可忽略
    - 助词差异（的、之、及等）可忽略
    - 项目类型词差异（工程、项目、建设、地下车库、地下停车场等）可适当容忍
    - 但主体名称必须一致
 
-4. 企业/单位主体：
+5. 企业/单位主体：
    - 关注主体是否一致（分公司、子公司视为不同主体）
 
 请提供：
@@ -747,7 +780,8 @@ ${matchesText}
 理由: [简短说明]`
 
       const abortController = new AbortController()
-      const response = await claudeAdapter(
+      const invoke = createLlmInvoke(aiConfig.value.mode)
+      const response = await invoke(
         {
           baseUrl: aiConfig.value.baseUrl,
           apiKey: aiConfig.value.apiKey,
@@ -888,7 +922,7 @@ ${matchesText}
     { deep: true },
   )
 
-  watch([sourceText, targetText, synonymText, ignoreText, options, selectedAlgorithm, editWeight, joinMode], saveState, {
+  watch([sourceText, targetText, synonymText, ignoreText, options, selectedAlgorithm, editWeight, joinMode, preprocessEnabled, preprocessOptions, activeCollapse], saveState, {
     deep: true,
   })
 
@@ -906,6 +940,7 @@ ${matchesText}
   return {
     displayResults,
     displayLockedCount,
+    activeCollapse,
     editWeight,
     exportComplex,
     exportSimple,
@@ -926,6 +961,8 @@ ${matchesText}
     lockMatch,
     lockedItems,
     options,
+    preprocessEnabled,
+    preprocessOptions,
     progress,
     currentProcessingIndex,
     totalProcessingCount,

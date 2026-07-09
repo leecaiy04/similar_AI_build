@@ -1,4 +1,6 @@
 import { SimilarityCalculator, type BatchResult, type JoinMode, type MatchResult, type SimilarityOptions } from '../../../utils/similarity'
+import { calculateEnhancedSimilarity } from '../../../utils/enhancedSimilarityService'
+import type { AdvancedSimilarityOptions } from '../../../utils/advancedSimilarity'
 
 export interface LockedItem {
   matchIndex: number
@@ -15,6 +17,14 @@ export interface SimilarityFilterOptions {
   hideSubThreshold: boolean
 }
 
+export interface PreprocessCompareOptions {
+  enabled: boolean
+  enableVersionNormalization: boolean
+  enableLandParcelRule: boolean
+  enableRoadSectionRule: boolean
+  noiseWordAggressiveness: 'low' | 'medium' | 'high'
+}
+
 export interface SimilarityCompareInput {
   sourceList: string[]
   targetList: string[]
@@ -23,6 +33,7 @@ export interface SimilarityCompareInput {
   editWeight: number
   synonymText: string
   ignoreText: string
+  preprocessOptions?: PreprocessCompareOptions
   onProgress?: (current: number, total: number, source: string) => void
 }
 
@@ -71,6 +82,47 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
       calculator.setSynonymGroups(input.synonymText)
       calculator.setIgnoreTerms(input.ignoreText)
 
+      if (input.preprocessOptions?.enabled) {
+        const weights = buildWeights(input.selectedAlgorithm, input.editWeight)
+        const advancedOptions: AdvancedSimilarityOptions = {
+          ...input.options,
+          threshold: 0.01,
+          weights,
+          enableVersionNormalization: input.preprocessOptions.enableVersionNormalization,
+          enableLandParcelRule: input.preprocessOptions.enableLandParcelRule,
+          enableRoadSectionRule: input.preprocessOptions.enableRoadSectionRule,
+          noiseWordAggressiveness: input.preprocessOptions.noiseWordAggressiveness,
+          enableTokenSet: true,
+          enableNgram: true,
+        }
+
+        return input.sourceList.map((source, sourceIndex) => {
+          const matches = input.targetList
+            .map((target, targetIndex) => {
+              const enhanced = calculateEnhancedSimilarity(source, target, calculator, advancedOptions)
+              return {
+                text: target,
+                similarity: enhanced.similarity,
+                index: targetIndex,
+                ruleType: enhanced.features.rule?.type,
+                reason: enhanced.reason,
+                explanation: enhanced.explanation,
+              }
+            })
+            .filter((match) => match.similarity >= 0.01)
+            .sort((left, right) => right.similarity - left.similarity)
+            .slice(0, 10)
+
+          input.onProgress?.(sourceIndex + 1, input.sourceList.length, source)
+
+          return {
+            source,
+            matches,
+            index: sourceIndex,
+          }
+        })
+      }
+
       const results = calculator.batchCalculate(
         input.sourceList,
         input.targetList,
@@ -110,7 +162,7 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
           filtered.forEach((result) => {
             const match = result.matches.find((candidate) => candidate.text === target)
             if (match) {
-              matches.push({ text: result.source, similarity: match.similarity, index: result.index })
+              matches.push({ ...match, text: result.source, index: result.index })
             }
             const locked = input.lockedItems.get(result.source)
             if (locked && locked.text === target && !matches.find((candidate) => candidate.text === result.source)) {

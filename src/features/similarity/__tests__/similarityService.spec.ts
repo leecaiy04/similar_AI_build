@@ -47,4 +47,33 @@ describe('similarityService', () => {
     expect(display).toHaveLength(1)
     expect(display[0]?.source).toBe('apple')
   })
+
+  it('exposes project anchor rule metadata for UI badges', () => {
+    const service = createSimilarityService()
+    const results = service.compare({
+      sourceList: ['关于杭政储出2026 33号地块住宅商业项目的批复'],
+      targetList: ['杭政储出【2026】33号地块住宅兼商业商务项目'],
+      options: {
+        threshold: 0.01,
+        ignorePunctuation: true,
+        fullwidthToHalfwidth: true,
+        ignoreInvisibleChars: true,
+      },
+      selectedAlgorithm: 'edit',
+      editWeight: 60,
+      synonymText: '',
+      ignoreText: '',
+      preprocessOptions: {
+        enabled: true,
+        enableVersionNormalization: true,
+        enableLandParcelRule: true,
+        enableRoadSectionRule: true,
+        noiseWordAggressiveness: 'medium',
+      },
+    })
+
+    expect(results[0]?.matches[0]?.similarity).toBeGreaterThanOrEqual(0.9)
+    expect(results[0]?.matches[0]?.ruleType).toBe('projectAnchor')
+    expect(results[0]?.matches[0]?.reason).toContain('项目')
+  })
 })
