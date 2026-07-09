@@ -63,7 +63,9 @@ export function calculateEnhancedSimilarity(
     enableVersionNormalization: options.enableVersionNormalization !== false,
     enableLandParcelRule: options.enableLandParcelRule !== false,
     enableRoadSectionRule: options.enableRoadSectionRule !== false,
-    noiseWordAggressiveness: options.noiseWordAggressiveness || 'none',
+    noiseWordAggressiveness: options.noiseWordAggressiveness && options.noiseWordAggressiveness !== 'none'
+      ? options.noiseWordAggressiveness
+      : undefined,
   })
 
   // 如果规则层有确定性判断，直接返回
@@ -73,6 +75,8 @@ export function calculateEnhancedSimilarity(
         ? 'landParcel'
         : preprocessing.features.isRoadSection
         ? 'roadSection'
+        : preprocessing.features.isProjectAnchor
+        ? 'projectAnchor'
         : 'coreName',
       score: preprocessing.definitive.score,
       reason: preprocessing.definitive.reason,
@@ -178,11 +182,11 @@ export function batchCalculateEnhanced(
   const results: EnhancedMatchResult[][] = []
 
   for (let i = 0; i < sourceList.length; i++) {
-    const source = sourceList[i]
+    const source = sourceList[i] || ''
     const matches: EnhancedMatchResult[] = []
 
     for (let j = 0; j < targetList.length; j++) {
-      const target = targetList[j]
+      const target = targetList[j] || ''
 
       const result = calculateEnhancedSimilarity(source, target, calculator, options)
 

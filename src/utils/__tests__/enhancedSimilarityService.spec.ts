@@ -198,6 +198,33 @@ describe('calculateEnhancedSimilarity', () => {
     expect(result.reason).toContain('已过滤附属词')
   })
 
+  it('应该通过项目名称强锚点识别同一投资项目', () => {
+    const result = calculateEnhancedSimilarity(
+      '杭政储出2026 33号住宅商业',
+      '杭政储出【2026】33号地块住宅兼商业商务项目',
+      calculator,
+      { enableLandParcelRule: true }
+    )
+
+    expect(result.isDefinitive).toBe(true)
+    expect(result.similarity).toBeGreaterThanOrEqual(0.9)
+    expect(result.features.rule?.type).toBe('projectAnchor')
+    expect(result.reason).toContain('项目强锚点')
+  })
+
+  it('应该通过控规编号冲突识别不同项目', () => {
+    const result = calculateEnhancedSimilarity(
+      '双桥XH020104-22安置房',
+      '双桥单元XH020104-21地块安置房项目',
+      calculator,
+      { enableLandParcelRule: true }
+    )
+
+    expect(result.isDefinitive).toBe(true)
+    expect(result.similarity).toBeLessThanOrEqual(0.54)
+    expect(result.features.rule?.type).toBe('projectAnchor')
+  })
+
   it('应该提供预处理结果', () => {
     const result = calculateEnhancedSimilarity(
       '项目管理系统v1.0',

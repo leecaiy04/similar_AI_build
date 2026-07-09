@@ -5,6 +5,8 @@ import {
   isSameLandParcel,
   parseRoadSection,
   isSameRoadSection,
+  extractProjectAnchors,
+  compareProjectAnchors,
   removeNoiseWords,
   applyRulePreprocessing,
 } from '../advancedPreprocessing'
@@ -258,5 +260,69 @@ describe('applyRulePreprocessing', () => {
 
     expect(result.definitive?.reason).toContain('地块')
     expect(result.features.isLandParcel).toBe(true)
+  })
+})
+
+describe('project name anchors', () => {
+  it('应该提取杭政储出地块号和项目代码锚点', () => {
+    const anchors = extractProjectAnchors('2607-330106-04-01-886176 杭政储出【2026】33号地块住宅兼商业商务项目')
+
+    expect(anchors.map(anchor => anchor.value)).toContain('2607-330106-04-01-886176')
+    expect(anchors.map(anchor => anchor.value)).toContain('杭政储出202633号')
+  })
+
+  it('应该识别杭政储出地块号为同一项目强锚点', () => {
+    const result = compareProjectAnchors(
+      '杭政储出2026 33号住宅商业',
+      '杭政储出【2026】33号地块住宅兼商业商务项目'
+    )
+
+    expect(result.isSame).toBe(true)
+    expect(result.score).toBeGreaterThanOrEqual(0.9)
+    expect(result.sharedAnchors.map(anchor => anchor.value)).toContain('杭政储出202633号')
+  })
+
+  it('应该识别控规地块编号冲突并降低分数', () => {
+    const result = compareProjectAnchors(
+      '双桥XH020104-22安置房',
+      '双桥单元XH020104-21地块安置房项目'
+    )
+
+    expect(result.isSame).toBe(false)
+    expect(result.score).toBeLessThanOrEqual(0.54)
+    expect(result.conflictingAnchors.map(anchor => anchor.value)).toEqual(
+      expect.arrayContaining(['XH020104-22', 'XH020104-21'])
+    )
+  })
+
+  it('应该用道路起止点锚点区分相邻道路项目', () => {
+    const same = compareProjectAnchors(
+      '云河环路云创路云洪路',
+      '云河环路（云创路—云洪路）道路工程'
+    )
+    const other = compareProjectAnchors(
+      '云河环路云创路云洪路',
+      '云河环路（塘河路—莲池南路）道路工程'
+    )
+
+    expect(same.isSame).toBe(true)
+    expect(same.score).toBeGreaterThanOrEqual(0.9)
+    expect(same.sharedAnchors.map(anchor => anchor.value)).toEqual(
+      expect.arrayContaining(['云创路', '云洪路'])
+    )
+    expect(other.score).toBeLessThan(same.score)
+  })
+
+  it('应该在规则预处理中优先应用项目名称锚点', () => {
+    const result = applyRulePreprocessing(
+      '关于杭政储出2026 33号住宅商业项目备案的批复',
+      '杭政储出【2026】33号地块住宅兼商业商务项目',
+      { enableLandParcelRule: true }
+    )
+
+    expect(result.definitive?.isSame).toBe(true)
+    expect(result.definitive?.score).toBeGreaterThanOrEqual(0.9)
+    expect(result.features.isProjectAnchor).toBe(true)
+    expect(result.features.sharedAnchors?.map(anchor => anchor.value)).toContain('杭政储出202633号')
   })
 })

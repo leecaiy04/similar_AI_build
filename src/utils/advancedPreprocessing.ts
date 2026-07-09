@@ -72,12 +72,12 @@ export function parseLandParcel(text: string): LandParcelInfo | null {
     const match = text.match(pattern)
     if (match) {
       // 检查是否是类型代码（字母开头+数字）
-      const isTypeCode = match.length === 4 && /^[A-Z]\d+$/i.test(match[2])
+      const isTypeCode = match.length === 4 && /^[A-Z]\d+$/i.test(match[2] || '')
 
       return {
-        prefix: match[1],
+        prefix: match[1] || '',
         type: isTypeCode ? match[2] : undefined,
-        suffix: isTypeCode ? match[3] : match[2],
+        suffix: isTypeCode ? (match[3] || '') : (match[2] || ''),
         raw: text
       }
     }
@@ -124,9 +124,9 @@ export function parseRoadSection(text: string): RoadSection | null {
 
   if (match) {
     return {
-      roadName: match[1],
-      startPile: match[2],
-      endPile: match[3],
+      roadName: match[1] || '',
+      startPile: match[2] || '',
+      endPile: match[3] || '',
       raw: text
     }
   }
@@ -148,6 +148,235 @@ export function isSameRoadSection(text1: string, text2: string): boolean | null 
   return section1.roadName === section2.roadName &&
          section1.startPile === section2.startPile &&
          section1.endPile === section2.endPile
+}
+
+/**
+ * 项目名称锚点
+ *
+ * 用于识别项目名称中比普通字符相似度更可靠的结构化信息。
+ */
+export interface ProjectAnchor {
+  type: 'projectCode' | 'landParcel' | 'planningPlot' | 'plotNumber' | 'road' | 'entity'
+  value: string
+  weight: number
+}
+
+export interface ProjectAnchorComparison {
+  isSame: boolean | null
+  score: number
+  reason: string
+  sharedAnchors: ProjectAnchor[]
+  conflictingAnchors: ProjectAnchor[]
+}
+
+const PROJECT_ANCHOR_STRONG_TYPES: ProjectAnchor['type'][] = [
+  'projectCode',
+  'landParcel',
+  'planningPlot',
+]
+
+const PROJECT_ENTITY_SUFFIXES = [
+  '幼儿园',
+  '泵站',
+  '学校',
+  '医院',
+  '地块',
+  '道路',
+  '公园',
+  '桥梁',
+  '隧道',
+  '路',
+  '街',
+  '巷',
+  '河',
+  '港',
+  '桥',
+]
+
+function normalizeProjectName(text: string): string {
+  return (text || '')
+    .normalize('NFKC')
+    .toUpperCase()
+    .replace(/[‐‑‒–—―－]+/g, '-')
+    .replace(/[()（）[\]【】{}｛｝<>《》]/g, '')
+    .replace(/[〔〕]/g, '')
+    .replace(/\s+/g, '')
+}
+
+function compactProjectName(text: string): string {
+  return normalizeProjectName(text)
+    .replace(/[^\w一-鿿-]+/g, '')
+    .replace(/可行性研究报告|项目建议书|初步设计|建设工程|建设项目|道路工程|改造提升|综合整治|企业投资项目备案|政府投资项目审批|关于|批复|复函|审批|备案|核准|调整|工程|项目|建设|新建|改建|扩建|改造|提升|的/g, '')
+}
+
+function appendAnchor(anchors: ProjectAnchor[], seen: Set<string>, anchor: ProjectAnchor): void {
+  const key = `${anchor.type}:${anchor.value}`
+  if (!anchor.value || seen.has(key)) return
+  seen.add(key)
+  anchors.push(anchor)
+}
+
+/**
+ * 提取项目名称中的结构化锚点。
+ */
+export function extractProjectAnchors(text: string): ProjectAnchor[] {
+  const normalized = normalizeProjectName(text)
+  const anchors: ProjectAnchor[] = []
+  const seen = new Set<string>()
+
+  for (const match of normalized.matchAll(/\d{4}-\d{6}-\d{2}-\d{2}-\d{6}/g)) {
+    appendAnchor(anchors, seen, { type: 'projectCode', value: match[0], weight: 1.0 })
+  }
+
+  for (const match of normalized.matchAll(/[一-鿿]{0,6}政储出\d{4}\d+号/g)) {
+    appendAnchor(anchors, seen, { type: 'landParcel', value: normalizeLandParcelAnchor(match[0]), weight: 0.98 })
+  }
+
+  for (const match of normalized.matchAll(/[A-Z]{1,8}\d{4,}(?:-[A-Z0-9]+)+/g)) {
+    appendAnchor(anchors, seen, { type: 'planningPlot', value: match[0], weight: 0.96 })
+  }
+
+  for (const match of normalized.matchAll(/\d+号地块/g)) {
+    appendAnchor(anchors, seen, { type: 'plotNumber', value: match[0], weight: 0.75 })
+  }
+
+  const suffixPattern = PROJECT_ENTITY_SUFFIXES
+    .sort((left, right) => right.length - left.length)
+    .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')
+  const entityPattern = new RegExp(`[一-鿿A-Z0-9]{1,14}(?:${suffixPattern})`, 'g')
+  for (const match of normalized.matchAll(entityPattern)) {
+    const value = compactProjectName(match[0])
+    if (isWeakProjectEntity(value)) continue
+    appendAnchor(anchors, seen, {
+      type: /(?:道路|路|街|巷)$/.test(value) ? 'road' : 'entity',
+      value,
+      weight: 0.72,
+    })
+  }
+
+  for (const value of extractRoadSegments(normalized)) {
+    appendAnchor(anchors, seen, { type: 'road', value, weight: 0.68 })
+  }
+
+  return anchors
+}
+
+/**
+ * 使用结构化锚点判断项目名称是否明显相同或冲突。
+ */
+export function compareProjectAnchors(text1: string, text2: string): ProjectAnchorComparison {
+  const anchors1 = extractProjectAnchors(text1)
+  const anchors2 = extractProjectAnchors(text2)
+  const sharedAnchors = anchors1
+    .filter(anchor => anchors2.some(candidate => candidate.type === anchor.type && candidate.value === anchor.value))
+    .sort((left, right) => right.weight - left.weight || left.value.localeCompare(right.value))
+  const conflictingAnchors = findConflictingProjectAnchors(anchors1, anchors2)
+
+  if (conflictingAnchors.length > 0) {
+    return {
+      isSame: false,
+      score: 0.54,
+      reason: '项目强锚点冲突，判断为不同项目',
+      sharedAnchors,
+      conflictingAnchors,
+    }
+  }
+
+  const strongShared = sharedAnchors.filter(anchor => PROJECT_ANCHOR_STRONG_TYPES.includes(anchor.type))
+  if (strongShared.length > 0) {
+    return {
+      isSame: true,
+      score: Math.min(1, Math.max(...strongShared.map(anchor => anchor.weight))),
+      reason: '项目强锚点一致',
+      sharedAnchors,
+      conflictingAnchors,
+    }
+  }
+
+  const sharedRoadAnchors = sharedAnchors.filter(anchor => anchor.type === 'road')
+  if (sharedRoadAnchors.length >= 2) {
+    return {
+      isSame: true,
+      score: 0.9,
+      reason: '道路起止点锚点一致',
+      sharedAnchors,
+      conflictingAnchors,
+    }
+  }
+
+  if (sharedAnchors.length > 0) {
+    return {
+      isSame: null,
+      score: 0.65,
+      reason: '存在弱锚点重合，需继续算法判断',
+      sharedAnchors,
+      conflictingAnchors,
+    }
+  }
+
+  return {
+    isSame: null,
+    score: 0,
+    reason: '未发现可确定项目关系的锚点',
+    sharedAnchors,
+    conflictingAnchors,
+  }
+}
+
+function findConflictingProjectAnchors(anchors1: ProjectAnchor[], anchors2: ProjectAnchor[]): ProjectAnchor[] {
+  const conflicts: ProjectAnchor[] = []
+  for (const type of PROJECT_ANCHOR_STRONG_TYPES) {
+    const values1 = anchors1.filter(anchor => anchor.type === type).map(anchor => anchor.value)
+    const values2 = anchors2.filter(anchor => anchor.type === type).map(anchor => anchor.value)
+    if (values1.length === 0 || values2.length === 0) continue
+    if (values1.some(value => values2.includes(value))) continue
+    for (const value of [...values1, ...values2].sort()) {
+      appendAnchor(conflicts, new Set(conflicts.map(anchor => `${anchor.type}:${anchor.value}`)), {
+        type,
+        value,
+        weight: 1,
+      })
+    }
+  }
+  return conflicts
+}
+
+function extractRoadSegments(text: string): string[] {
+  const segments: string[] = []
+  let start = 0
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index]
+    if (char && /[-/、,，至到]/.test(char)) {
+      start = index + 1
+      continue
+    }
+    if (!char || !/[路街巷]/.test(char)) continue
+    const value = compactProjectName(text.slice(start, index + 1))
+    start = index + 1
+    if (isWeakProjectEntity(value)) continue
+    if (value.length >= 3 && value.length <= 10) {
+      segments.push(value)
+    }
+  }
+  return segments
+}
+
+function normalizeLandParcelAnchor(value: string): string {
+  const marker = '政储出'
+  const markerIndex = value.indexOf(marker)
+  if (markerIndex <= 0) return value
+  const prefix = value
+    .slice(0, markerIndex)
+    .replace(/^(关于|对|同意|核准|批复)+/, '')
+    .slice(-3)
+  return `${prefix}${value.slice(markerIndex)}`
+}
+
+function isWeakProjectEntity(value: string): boolean {
+  if (!value) return true
+  if (/^[一-鿿A-Z0-9]{0,1}[路街巷河港桥]$/.test(value)) return true
+  return ['道路', '地块', '学校', '医院', '公园', '桥梁'].includes(value)
 }
 
 /**
@@ -216,6 +445,9 @@ export interface RuleProcessingResult {
     hasVersion?: boolean
     isLandParcel?: boolean
     isRoadSection?: boolean
+    isProjectAnchor?: boolean
+    sharedAnchors?: ProjectAnchor[]
+    conflictingAnchors?: ProjectAnchor[]
     coreName1?: string
     coreName2?: string
   }
@@ -272,7 +504,25 @@ export function applyRulePreprocessing(
     }
   }
 
-  // 3. 版本号标准化
+  // 3. 项目名称结构化锚点规则
+  const projectAnchorMatch = compareProjectAnchors(text1, text2)
+  if (projectAnchorMatch.isSame !== null) {
+    result.features.isProjectAnchor = true
+    result.features.sharedAnchors = projectAnchorMatch.sharedAnchors
+    result.features.conflictingAnchors = projectAnchorMatch.conflictingAnchors
+    result.definitive = {
+      isSame: projectAnchorMatch.isSame,
+      score: projectAnchorMatch.score,
+      reason: projectAnchorMatch.reason,
+    }
+    return result
+  }
+  if (projectAnchorMatch.sharedAnchors.length > 0 || projectAnchorMatch.conflictingAnchors.length > 0) {
+    result.features.sharedAnchors = projectAnchorMatch.sharedAnchors
+    result.features.conflictingAnchors = projectAnchorMatch.conflictingAnchors
+  }
+
+  // 4. 版本号标准化
   if (options.enableVersionNormalization !== false) {
     const core1 = extractCoreName(text1)
     const core2 = extractCoreName(text2)
@@ -298,7 +548,7 @@ export function applyRulePreprocessing(
     }
   }
 
-  // 4. 移除附属词语
+  // 5. 移除附属词语
   if (options.noiseWordAggressiveness) {
     result.processed1 = removeNoiseWords(result.processed1, options.noiseWordAggressiveness)
     result.processed2 = removeNoiseWords(result.processed2, options.noiseWordAggressiveness)

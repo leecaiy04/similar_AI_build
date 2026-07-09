@@ -50,7 +50,7 @@ export interface AdvancedSimilarityOptions extends SimilarityOptions {
 export interface SimilarityFeatures {
   /** 规则层特征（确定性判断） */
   rule?: {
-    type: 'coreName' | 'landParcel' | 'roadSection'
+    type: 'coreName' | 'landParcel' | 'roadSection' | 'projectAnchor'
     score: number
     reason: string
   }
