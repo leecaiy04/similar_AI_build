@@ -9,8 +9,43 @@ import { useSharedAIConfig } from '../../../composables/useSharedAIConfig'
 import { createLlmInvoke } from '../../../infra/llm'
 
 type JoinMode = 'left' | 'right' | 'inner' | 'outer'
+type NoiseWordAggressiveness = 'low' | 'medium' | 'high'
+
+export interface WorkspacePreprocessOptions {
+  enableVersionNormalization: boolean
+  enableLandParcelRule: boolean
+  enableRoadSectionRule: boolean
+  noiseWordAggressiveness: NoiseWordAggressiveness
+}
 
 const STORAGE_KEY = 'premium_similarity_app_cache_v2'
+
+const DEFAULT_PREPROCESS_OPTIONS: WorkspacePreprocessOptions = {
+  enableVersionNormalization: false,
+  enableLandParcelRule: true,
+  enableRoadSectionRule: true,
+  noiseWordAggressiveness: 'medium',
+}
+
+export function normalizePreprocessOptions(
+  options?: Partial<WorkspacePreprocessOptions> | Record<string, unknown>,
+): WorkspacePreprocessOptions {
+  const noiseWordAggressiveness =
+    options?.noiseWordAggressiveness === 'low' ||
+    options?.noiseWordAggressiveness === 'medium' ||
+    options?.noiseWordAggressiveness === 'high'
+      ? options.noiseWordAggressiveness
+      : DEFAULT_PREPROCESS_OPTIONS.noiseWordAggressiveness
+
+  return {
+    ...DEFAULT_PREPROCESS_OPTIONS,
+    ...options,
+    enableVersionNormalization: false,
+    enableLandParcelRule: true,
+    enableRoadSectionRule: true,
+    noiseWordAggressiveness,
+  }
+}
 
 function getTimestamp() {
   const now = new Date()
@@ -80,12 +115,7 @@ export function useSimilarityWorkspace() {
 
   const activeCollapse = ref<string[]>(['preprocess'])
   const preprocessEnabled = ref(true)
-  const preprocessOptions = ref({
-    enableVersionNormalization: false,
-    enableLandParcelRule: true,
-    enableRoadSectionRule: true,
-    noiseWordAggressiveness: 'medium' as 'low' | 'medium' | 'high',
-  })
+  const preprocessOptions = ref<WorkspacePreprocessOptions>(normalizePreprocessOptions())
 
   const sourceCount = computed(() => splitExcelLines(sourceText.value).filter((line) => line.trim()).length)
   const targetCount = computed(() => splitExcelLines(targetText.value).filter((line) => line.trim()).length)
@@ -190,7 +220,7 @@ export function useSimilarityWorkspace() {
           ignoreText: ignoreText.value,
           preprocessOptions: {
             enabled: preprocessEnabled.value,
-            ...preprocessOptions.value,
+            ...normalizePreprocessOptions(preprocessOptions.value),
           },
           onProgress: (current, total) => {
             currentProcessingIndex.value = current
@@ -299,11 +329,7 @@ export function useSimilarityWorkspace() {
       joinMode.value = data.joinMode || 'left'
       if (typeof data.preprocessEnabled === 'boolean') preprocessEnabled.value = data.preprocessEnabled
       if (data.preprocessOptions && typeof data.preprocessOptions === 'object') {
-        preprocessOptions.value = {
-          ...preprocessOptions.value,
-          ...data.preprocessOptions,
-          enableVersionNormalization: false,
-        }
+        preprocessOptions.value = normalizePreprocessOptions(data.preprocessOptions as Record<string, unknown>)
       }
       if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse
       if (data.lockedItems) lockedItems.value = new Map(data.lockedItems)
@@ -373,11 +399,7 @@ export function useSimilarityWorkspace() {
           data.joinMode === 'right' || data.joinMode === 'inner' || data.joinMode === 'outer' ? data.joinMode : 'left'
         if (typeof data.preprocessEnabled === 'boolean') preprocessEnabled.value = data.preprocessEnabled
         if (data.preprocessOptions && typeof data.preprocessOptions === 'object') {
-          preprocessOptions.value = {
-            ...preprocessOptions.value,
-            ...(data.preprocessOptions as typeof preprocessOptions.value),
-            enableVersionNormalization: false,
-          }
+          preprocessOptions.value = normalizePreprocessOptions(data.preprocessOptions as Record<string, unknown>)
         }
         if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse as string[]
         if (Array.isArray(data.lockedItems)) {
@@ -757,13 +779,13 @@ ${matchesText}
    - 同类强锚点编号冲突（如XH020104-22 vs XH020104-21）时，应优先判定为不同项目
    - 道路工程要同时关注道路名称和起止点，起止点一致才可强匹配
 
-2. 地块名识别：
+2. 项目强锚点子规则：地块名
    - 地块编号格式如"XXX-R21-YY"、"XXX-YY"等，其中核心标识是"XXX"和"YY"
    - "XXX-R21-YY"和"XXX-YY"应视为同一地块（中间的R21等为地块类型代码，可忽略）
    - 不同地块名（如"A地块"vs"B地块"、"XX-01"vs"XX-02"）必定是不同项目
    - 同一地块名大概率是同一项目
 
-3. 道路/工程项目起止点：
+3. 项目强锚点子规则：道路/工程项目起止点
    - 必须检查桩号起止点是否一致（如K1+000~K2+000）
    - 路名相同但起止点不同应判定为不同项目
    - 起止点信息缺失或明显不同的不应匹配

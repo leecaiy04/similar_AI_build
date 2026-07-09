@@ -93,16 +93,8 @@
                   <el-tag size="small" :type="preprocessEnabled ? 'success' : 'info'">{{ preprocessEnabled ? '启用' : '关闭' }}</el-tag>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="text-gray-500">地块名识别:</span>
-                  <el-tag size="small" :type="preprocessOptions.enableLandParcelRule ? 'success' : 'info'">{{ preprocessOptions.enableLandParcelRule ? '启用' : '关闭' }}</el-tag>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-gray-500">路段识别:</span>
-                  <el-tag size="small" :type="preprocessOptions.enableRoadSectionRule ? 'success' : 'info'">{{ preprocessOptions.enableRoadSectionRule ? '启用' : '关闭' }}</el-tag>
-                </div>
-                <div class="flex items-center gap-2">
                   <span class="text-gray-500">项目强锚点:</span>
-                  <el-tag size="small" type="success">自动启用</el-tag>
+                  <el-tag size="small" type="success">含地块/路段</el-tag>
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="text-gray-500">附属词过滤:</span>
@@ -233,25 +225,13 @@
                     <!-- Preprocessing Options -->
                     <div v-if="preprocessEnabled" class="space-y-3">
                       <div class="space-y-2">
-                        <div class="flex items-center gap-2 p-2 hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg transition-colors cursor-pointer" @click="preprocessOptions.enableLandParcelRule = !preprocessOptions.enableLandParcelRule">
-                          <el-checkbox v-model="preprocessOptions.enableLandParcelRule" size="small" @click.stop />
-                          <span class="text-sm text-gray-700 dark:text-gray-300">地块名识别</span>
-                          <el-tag size="small" type="success" effect="plain" class="ml-auto text-xs">滨江-01</el-tag>
-                        </div>
-
-                        <div class="flex items-center gap-2 p-2 hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg transition-colors cursor-pointer" @click="preprocessOptions.enableRoadSectionRule = !preprocessOptions.enableRoadSectionRule">
-                          <el-checkbox v-model="preprocessOptions.enableRoadSectionRule" size="small" @click.stop />
-                          <span class="text-sm text-gray-700 dark:text-gray-300">路段识别</span>
-                          <el-tag size="small" type="success" effect="plain" class="ml-auto text-xs">K1+000</el-tag>
-                        </div>
-
                         <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 shadow-sm dark:border-amber-700/60 dark:bg-amber-950/20 dark:text-amber-100">
                           <div class="mb-2 flex items-center justify-between gap-2">
                             <span class="font-bold">项目强锚点</span>
-                            <el-tag size="small" type="warning" effect="dark" class="!text-[10px]">自动参与</el-tag>
+                            <el-tag size="small" type="warning" effect="dark" class="!text-[10px]">含地块/路段</el-tag>
                           </div>
                           <p class="leading-relaxed">
-                            自动捕捉项目代码、杭政储出编号、控规单元地块号、学校医院主体、道路起止点等关键线索；强锚点一致会优先抬高分数，强锚点冲突会压低候选。
+                            自动捕捉项目代码、杭政储出编号、控规单元地块号、地块名、路段名/道路起止点、学校医院主体等关键线索；强锚点一致会优先抬高分数，强锚点冲突会压低候选。
                           </p>
                           <div class="mt-2 flex flex-wrap gap-1">
                             <span class="rounded-full bg-white/70 px-2 py-0.5 font-mono text-[10px] text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">杭政储出2026 33号</span>
@@ -847,7 +827,7 @@ function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?
 
   if (match.ruleType === 'landParcel') {
     return {
-      label: '地块规则命中',
+      label: '项目强锚点 · 地块',
       type: 'success' as const,
       detail: match.reason || '地块编号或地块名称一致，建议结合事项清单复核。',
     }
@@ -855,7 +835,7 @@ function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?
 
   if (match.ruleType === 'roadSection') {
     return {
-      label: '路段规则命中',
+      label: '项目强锚点 · 路段',
       type: 'success' as const,
       detail: match.reason || '道路名称及起止点高度一致，适合优先锁定。',
     }
