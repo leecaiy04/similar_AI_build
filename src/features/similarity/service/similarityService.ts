@@ -107,6 +107,8 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
                 ruleType: enhanced.features.rule?.type,
                 reason: enhanced.reason,
                 explanation: enhanced.explanation,
+                anchors: enhanced.preprocessing?.features.sharedAnchors,
+                conflictingAnchors: enhanced.preprocessing?.features.conflictingAnchors,
               }
             })
             .filter((match) => match.similarity >= 0.01)

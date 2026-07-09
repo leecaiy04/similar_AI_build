@@ -75,5 +75,13 @@ describe('similarityService', () => {
     expect(results[0]?.matches[0]?.similarity).toBeGreaterThanOrEqual(0.9)
     expect(results[0]?.matches[0]?.ruleType).toBe('projectAnchor')
     expect(results[0]?.matches[0]?.reason).toContain('项目')
+    expect(results[0]?.matches[0]?.anchors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'landParcel',
+          value: expect.stringContaining('政储出202633号'),
+        }),
+      ]),
+    )
   })
 })

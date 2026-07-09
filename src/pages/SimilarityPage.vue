@@ -655,6 +655,30 @@
                                     <div v-if="getMatchSignal(item.matches[0])" class="mb-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs leading-relaxed text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-200">
                                         {{ getMatchSignal(item.matches[0])!.detail }}
                                     </div>
+                                    <div v-if="getAnchorDetails(item.matches[0]).length > 0" class="mb-3 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 dark:border-amber-800/60 dark:bg-amber-950/20">
+                                        <div class="mb-2 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300">命中锚点</div>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <span
+                                              v-for="anchor in getAnchorDetails(item.matches[0])"
+                                              :key="`${anchor.type}:${anchor.value}`"
+                                              class="rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold text-amber-800 shadow-sm ring-1 ring-amber-200 dark:bg-amber-900/40 dark:text-amber-100 dark:ring-amber-700/60"
+                                            >
+                                              {{ getAnchorTypeLabel(anchor.type) }}：{{ anchor.value }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div v-if="getConflictingAnchorDetails(item.matches[0]).length > 0" class="mb-3 rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-2 dark:border-rose-800/60 dark:bg-rose-950/20">
+                                        <div class="mb-2 text-[10px] font-black uppercase tracking-widest text-rose-700 dark:text-rose-300">冲突锚点</div>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <span
+                                              v-for="anchor in getConflictingAnchorDetails(item.matches[0])"
+                                              :key="`${anchor.type}:${anchor.value}`"
+                                              class="rounded-full bg-white/80 px-2 py-1 text-[10px] font-bold text-rose-800 shadow-sm ring-1 ring-rose-200 dark:bg-rose-900/40 dark:text-rose-100 dark:ring-rose-700/60"
+                                            >
+                                              {{ getAnchorTypeLabel(anchor.type) }}：{{ anchor.value }}
+                                            </span>
+                                        </div>
+                                    </div>
                                     <div class="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800/80 break-all text-sm leading-relaxed overflow-hidden">
                                         <div class="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-tighter opacity-50">Visual Check</div>
                                         <span v-html="renderDiffHTML(item.source, item.matches[0]!.text)"></span>
@@ -677,29 +701,37 @@
                                        </div>
                                    </div>
 
-                                   <!-- Note Section -->
-                                   <div v-if="isLocked(item)" class="mt-4 pt-4 border-t border-dashed border-emerald-200 dark:border-emerald-800">
-                                       <div class="flex items-center justify-between mb-2">
-                                          <div class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                                             <span>📝</span>
-                                             <span>备注</span>
-                                          </div>
-                                          <span class="text-[9px] text-gray-400">已锁定 ✓</span>
-                                       </div>
-                                       <el-input
-                                          :model-value="getNote(item)"
-                                          @input="(val: string) => updateNote(item, val)"
-                                          type="textarea"
-                                          :rows="2"
-                                          placeholder="记录对比过程、判断依据或特殊说明..."
-                                          size="small"
-                                          class="note-textarea"
-                                       />
-                                   </div>
                                </div>
                                <div v-else class="h-full flex flex-col items-center justify-center py-8 opacity-30 select-none">
                                    <div class="text-2xl mb-2">💡</div>
                                    <div class="text-[10px] font-black uppercase tracking-widest">No Strong Matches</div>
+                               </div>
+
+                               <!-- Note Section -->
+                               <div class="mt-4 pt-4 border-t border-dashed border-sky-200 dark:border-sky-900/70">
+                                   <div class="flex items-center justify-between mb-2">
+                                      <div class="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest flex items-center gap-1">
+                                         <span>📝</span>
+                                         <span>备注</span>
+                                         <el-tag v-if="getNote(item)" size="small" type="success" effect="plain" class="!text-[9px]">已记录</el-tag>
+                                      </div>
+                                      <el-button type="primary" size="small" link @click="toggleNoteEditor(item)" class="!text-[10px] font-bold">
+                                        {{ getNoteButtonText(item) }}
+                                      </el-button>
+                                   </div>
+                                   <div v-if="!isNoteEditorOpen(item) && getNote(item)" class="rounded-lg bg-sky-50/80 px-3 py-2 text-xs leading-relaxed text-sky-800 ring-1 ring-sky-100 dark:bg-sky-950/20 dark:text-sky-100 dark:ring-sky-900/60">
+                                      {{ getNote(item) }}
+                                   </div>
+                                   <el-input
+                                      v-if="isNoteEditorOpen(item)"
+                                      :model-value="getNote(item)"
+                                      @input="(val: string) => updateNote(item, val)"
+                                      type="textarea"
+                                      :rows="3"
+                                      placeholder="记录判断依据、需要人工复核的点，或该源位置的说明..."
+                                      size="small"
+                                      class="note-textarea"
+                                   />
                                </div>
                             </div>
                          </div>
@@ -739,6 +771,9 @@ const aiEndpointPresets = AI_ENDPOINT_PRESETS
 const aiConfigVisible = ref(false)
 const preprocessDialogVisible = ref(false)
 const similarityUiVersion = 'v0.3.0'
+const activeNoteKeys = ref<Set<string>>(new Set())
+
+type AnchorDetail = { type?: string; value: string; weight?: number }
 
 const {
   displayResults,
@@ -814,14 +849,74 @@ function saveAIConfig() {
   ElMessage.success('AI 配置已保存')
 }
 
-function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?: string }) {
+function getAnchorTypeLabel(type?: string) {
+  const labels: Record<string, string> = {
+    projectCode: '项目代码',
+    landParcel: '出让/地块',
+    planningPlot: '控规地块',
+    plotNumber: '地块号',
+    road: '道路',
+    entity: '主体',
+  }
+  return labels[type || ''] || '锚点'
+}
+
+function getAnchorDetails(match?: { anchors?: AnchorDetail[] }) {
+  return match?.anchors?.filter((anchor) => anchor.value) || []
+}
+
+function getConflictingAnchorDetails(match?: { conflictingAnchors?: AnchorDetail[] }) {
+  return match?.conflictingAnchors?.filter((anchor) => anchor.value) || []
+}
+
+function formatAnchorSummary(match?: { anchors?: AnchorDetail[]; conflictingAnchors?: AnchorDetail[] }) {
+  const anchors = getAnchorDetails(match)
+  if (anchors.length > 0) {
+    return `命中锚点：${anchors.map((anchor) => `${getAnchorTypeLabel(anchor.type)}=${anchor.value}`).join('，')}`
+  }
+
+  const conflicts = getConflictingAnchorDetails(match)
+  if (conflicts.length > 0) {
+    return `冲突锚点：${conflicts.map((anchor) => `${getAnchorTypeLabel(anchor.type)}=${anchor.value}`).join('，')}`
+  }
+
+  return ''
+}
+
+function getNoteUiKey(item: { source: string; isRight?: boolean }) {
+  return `${item.isRight ? 'right' : 'left'}:${item.source}`
+}
+
+function isNoteEditorOpen(item: { source: string; isRight?: boolean }) {
+  return activeNoteKeys.value.has(getNoteUiKey(item))
+}
+
+function toggleNoteEditor(item: { source: string; isRight?: boolean }) {
+  const key = getNoteUiKey(item)
+  const next = new Set(activeNoteKeys.value)
+  if (next.has(key)) {
+    next.delete(key)
+  } else {
+    next.add(key)
+  }
+  activeNoteKeys.value = next
+}
+
+function getNoteButtonText(item: Parameters<typeof getNote>[0]) {
+  if (isNoteEditorOpen(item)) return '收起'
+  return getNote(item) ? '编辑备注' : '添加备注'
+}
+
+function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?: string; anchors?: AnchorDetail[]; conflictingAnchors?: AnchorDetail[] }) {
   if (!match) return null
+  const anchorSummary = formatAnchorSummary(match)
+  const detailSuffix = anchorSummary ? `；${anchorSummary}` : ''
 
   if (match.ruleType === 'projectAnchor') {
     return {
       label: '项目强锚点',
       type: 'success' as const,
-      detail: match.reason || '项目代码、地块号、道路起止点等关键线索高度一致，可作为优先候选。',
+      detail: `${match.reason || '项目代码、地块号、道路起止点等关键线索高度一致，可作为优先候选。'}${detailSuffix}`,
     }
   }
 
@@ -829,7 +924,7 @@ function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?
     return {
       label: '项目强锚点 · 地块',
       type: 'success' as const,
-      detail: match.reason || '地块编号或地块名称一致，建议结合事项清单复核。',
+      detail: `${match.reason || '地块编号或地块名称一致，建议结合事项清单复核。'}${detailSuffix}`,
     }
   }
 
@@ -837,7 +932,7 @@ function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?
     return {
       label: '项目强锚点 · 路段',
       type: 'success' as const,
-      detail: match.reason || '道路名称及起止点高度一致，适合优先锁定。',
+      detail: `${match.reason || '道路名称及起止点高度一致，适合优先锁定。'}${detailSuffix}`,
     }
   }
 

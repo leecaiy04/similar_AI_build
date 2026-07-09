@@ -18,6 +18,8 @@ export interface WorkspacePreprocessOptions {
   noiseWordAggressiveness: NoiseWordAggressiveness
 }
 
+type LockedSummary = { text: string; similarity: number } | undefined
+
 const STORAGE_KEY = 'premium_similarity_app_cache_v2'
 
 const DEFAULT_PREPROCESS_OPTIONS: WorkspacePreprocessOptions = {
@@ -45,6 +47,38 @@ export function normalizePreprocessOptions(
     enableRoadSectionRule: true,
     noiseWordAggressiveness,
   }
+}
+
+export function buildDetailedExportHeader(maxMatches = 10): string[] {
+  const header = ['源项', '是否锁定', '锁定匹配', '锁定相似度']
+  for (let index = 1; index <= maxMatches; index++) {
+    header.push(`第${index}相似值`, `第${index}相似度`)
+  }
+  header.push('备注')
+  return header
+}
+
+export function buildDetailedExportRow(
+  row: BatchResult,
+  locked: LockedSummary,
+  isLockedRow: boolean,
+  note: string,
+  maxMatches = 10,
+): string[] {
+  const values = [
+    row.source,
+    isLockedRow ? '是' : '否',
+    locked?.text ?? '',
+    locked ? `${(locked.similarity * 100).toFixed(2)}%` : '',
+  ]
+
+  for (let index = 0; index < maxMatches; index++) {
+    values.push(row.matches[index]?.text ?? '')
+    values.push(row.matches[index] ? `${(row.matches[index]!.similarity * 100).toFixed(2)}%` : '')
+  }
+
+  values.push(note)
+  return values
 }
 
 function getTimestamp() {
@@ -98,6 +132,7 @@ export function useSimilarityWorkspace() {
   const editWeight = ref(60)
   const jaroWeight = computed(() => 100 - editWeight.value)
   const lockedItems = ref<Map<string, LockedItem>>(new Map())
+  const rowNotes = ref<Map<string, string>>(new Map())
   const importJsonRef = ref<HTMLInputElement | null>(null)
   const importRef = ref<HTMLInputElement | null>(null)
 
@@ -134,6 +169,8 @@ export function useSimilarityWorkspace() {
     const locked = lockedItems.value.get(item.source)
     return locked ? { text: locked.text, similarity: locked.similarity } : undefined
   }
+
+  const getNoteKey = (item: BatchResult) => `${item.isRight ? 'right' : 'left'}:${item.source}`
 
   const isLocked = (item: BatchResult) => {
     if (joinMode.value === 'right') {
@@ -295,6 +332,7 @@ export function useSimilarityWorkspace() {
   }
 
   const saveState = () => {
+    if (typeof localStorage === 'undefined') return
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -310,6 +348,7 @@ export function useSimilarityWorkspace() {
         preprocessOptions: preprocessOptions.value,
         activeCollapse: activeCollapse.value,
         lockedItems: Array.from(lockedItems.value.entries()),
+        rowNotes: Array.from(rowNotes.value.entries()),
       }),
     )
   }
@@ -333,6 +372,7 @@ export function useSimilarityWorkspace() {
       }
       if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse
       if (data.lockedItems) lockedItems.value = new Map(data.lockedItems)
+      if (Array.isArray(data.rowNotes)) rowNotes.value = new Map(data.rowNotes)
       return true
     } catch (error) {
       console.error('Failed to load state', error)
@@ -366,6 +406,7 @@ export function useSimilarityWorkspace() {
       preprocessOptions: preprocessOptions.value,
       activeCollapse: activeCollapse.value,
       lockedItems: Array.from(lockedItems.value.entries()),
+      rowNotes: Array.from(rowNotes.value.entries()),
       results: results.value,
     })
 
@@ -404,6 +445,9 @@ export function useSimilarityWorkspace() {
         if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse as string[]
         if (Array.isArray(data.lockedItems)) {
           lockedItems.value = new Map(data.lockedItems as Array<[string, LockedItem]>)
+        }
+        if (Array.isArray(data.rowNotes)) {
+          rowNotes.value = new Map(data.rowNotes as Array<[string, string]>)
         }
         if (Array.isArray(data.results)) {
           results.value = data.results as BatchResult[]
@@ -550,23 +594,12 @@ export function useSimilarityWorkspace() {
     }
 
     const maxMatches = 10
-    const header = ['源项', '是否锁定', '锁定匹配', '锁定相似度', '备注']
-    for (let index = 1; index <= maxMatches; index++) {
-      header.push(`第${index}相似值`, `第${index}相似度`)
-    }
+    const header = buildDetailedExportHeader(maxMatches)
 
     const rows = displayResults.value.map((row) => {
       const locked = getLockedItem(row)
       const note = getNote(row)
-      const lockStatus = isLocked(row) ? '是' : '否'
-      const values = [row.source, lockStatus, locked?.text ?? '', locked ? `${(locked.similarity * 100).toFixed(2)}%` : '', note]
-
-      for (let index = 0; index < maxMatches; index++) {
-        values.push(row.matches[index]?.text ?? '')
-        values.push(row.matches[index] ? `${(row.matches[index]!.similarity * 100).toFixed(2)}%` : '')
-      }
-
-      return values
+      return buildDetailedExportRow(row, locked, isLocked(row), note, maxMatches)
     })
 
     downloadContent(
@@ -603,7 +636,8 @@ export function useSimilarityWorkspace() {
           const source = parts[0]!.replace(/^"|"$/g, '').trim()
           const match = parts[1]!.replace(/^"|"$/g, '').trim()
           const similarity = parts[2] ? parseFloat(parts[2].replace(/[%"\s]/g, '')) / 100 : 1
-          const note = parts[5] ? parts[5].replace(/^"|"$/g, '').trim() : ''
+          const lastPart = parts[parts.length - 1]
+          const note = parts.length > 5 ? (lastPart || '').replace(/^"|"$/g, '').trim() : ''
 
           if (source && match) {
             lockedItems.value.set(source, {
@@ -612,6 +646,7 @@ export function useSimilarityWorkspace() {
               similarity,
               note,
             })
+            if (note) rowNotes.value.set(`left:${source}`, note)
             importCount++
           }
         }
@@ -658,29 +693,12 @@ export function useSimilarityWorkspace() {
 
     try {
       const maxMatches = 10
-      const header = ['源项', '是否锁定', '锁定匹配', '锁定相似度', '备注']
-      for (let index = 1; index <= maxMatches; index++) {
-        header.push(`第${index}相似值`, `第${index}相似度`)
-      }
+      const header = buildDetailedExportHeader(maxMatches)
 
       const rows = displayResults.value.map((row) => {
         const locked = getLockedItem(row)
         const note = getNote(row)
-        const lockStatus = isLocked(row) ? '是' : '否'
-        const values = [
-          row.source,
-          lockStatus,
-          locked?.text ?? '',
-          locked ? `${(locked.similarity * 100).toFixed(2)}%` : '',
-          note
-        ]
-
-        for (let index = 0; index < maxMatches; index++) {
-          values.push(row.matches[index]?.text ?? '')
-          values.push(row.matches[index] ? `${(row.matches[index]!.similarity * 100).toFixed(2)}%` : '')
-        }
-
-        return values
+        return buildDetailedExportRow(row, locked, isLocked(row), note, maxMatches)
       })
 
       // Build TSV content (Tab-Separated Values for Excel)
@@ -721,6 +739,13 @@ export function useSimilarityWorkspace() {
   }
 
   const updateNote = (item: BatchResult, note: string) => {
+    const noteKey = getNoteKey(item)
+    if (note.trim()) {
+      rowNotes.value.set(noteKey, note)
+    } else {
+      rowNotes.value.delete(noteKey)
+    }
+
     if (joinMode.value === 'right') {
       for (const [source, match] of lockedItems.value.entries()) {
         if (match.text === item.source) {
@@ -738,6 +763,9 @@ export function useSimilarityWorkspace() {
   }
 
   const getNote = (item: BatchResult): string => {
+    const directNote = rowNotes.value.get(getNoteKey(item))
+    if (directNote !== undefined) return directNote
+
     if (joinMode.value === 'right') {
       for (const [, match] of lockedItems.value.entries()) {
         if (match.text === item.source) {

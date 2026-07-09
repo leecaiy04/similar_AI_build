@@ -40,6 +40,10 @@ export interface MatchResult {
     reason?: string;
     /** 详细解释，供后续展开查看 */
     explanation?: string[];
+    /** 命中的强锚点详情，用于界面说明“为什么一致” */
+    anchors?: Array<{ type: string; value: string; weight?: number }>;
+    /** 冲突的强锚点详情，用于界面说明“为什么不像同一项目” */
+    conflictingAnchors?: Array<{ type: string; value: string; weight?: number }>;
 }
 
 /**
