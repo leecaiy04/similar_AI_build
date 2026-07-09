@@ -10,6 +10,41 @@ import { createLlmInvoke } from '../../../infra/llm'
 
 type JoinMode = 'left' | 'right' | 'inner' | 'outer'
 type NoiseWordAggressiveness = 'low' | 'medium' | 'high'
+type LockFeedbackAction = 'manual-lock' | 'ai-accepted-lock'
+
+type AnchorDetail = { type?: string; value: string; weight?: number }
+
+export interface LockFeedbackLog {
+  id: string
+  action: LockFeedbackAction
+  timestamp: string
+  joinMode: JoinMode
+  rowSide: 'left' | 'right'
+  source: string
+  sourceIndex: number
+  matchedText: string
+  matchedIndex: number
+  similarity: number
+  rank: number
+  thresholdPercent: number
+  selectedAlgorithm: 'hybrid' | 'edit' | 'jaro'
+  preprocessEnabled: boolean
+  preprocessOptions?: WorkspacePreprocessOptions
+  ruleType?: MatchResult['ruleType']
+  reason?: string
+  anchors: AnchorDetail[]
+  conflictingAnchors: AnchorDetail[]
+  alternatives?: Array<{
+    rank: number
+    text: string
+    index: number
+    similarity: number
+    ruleType?: MatchResult['ruleType']
+    anchors?: AnchorDetail[]
+    conflictingAnchors?: AnchorDetail[]
+  }>
+  note: string
+}
 
 export interface WorkspacePreprocessOptions {
   enableVersionNormalization: boolean
@@ -81,6 +116,62 @@ export function buildDetailedExportRow(
   return values
 }
 
+export function buildLockFeedbackLogExportHeader(): string[] {
+  return [
+    '日志ID',
+    '时间',
+    '动作',
+    '模式',
+    '视图侧',
+    '源项',
+    '源位置',
+    '锁定目标',
+    '目标位置',
+    '候选排名',
+    '相似度',
+    '阈值',
+    '算法',
+    '预处理',
+    '附属词过滤',
+    '规则类型',
+    '判断原因',
+    '命中锚点',
+    '冲突锚点',
+    '备注',
+  ]
+}
+
+function formatAnchorForExport(anchor: AnchorDetail) {
+  const type = anchor.type || 'anchor'
+  const weight = typeof anchor.weight === 'number' ? `(${anchor.weight})` : ''
+  return `${type}:${anchor.value}${weight}`
+}
+
+export function buildLockFeedbackLogExportRow(log: LockFeedbackLog): string[] {
+  return [
+    log.id,
+    log.timestamp,
+    log.action,
+    log.joinMode,
+    log.rowSide,
+    log.source,
+    String(log.sourceIndex + 1),
+    log.matchedText,
+    log.matchedIndex >= 0 ? String(log.matchedIndex + 1) : '',
+    log.rank > 0 ? String(log.rank) : '',
+    `${(log.similarity * 100).toFixed(2)}%`,
+    `${log.thresholdPercent}%`,
+    log.selectedAlgorithm,
+    log.preprocessEnabled ? '启用' : '关闭',
+    log.preprocessOptions?.noiseWordAggressiveness ?? '',
+    log.ruleType ?? '',
+    log.reason ?? '',
+    log.anchors.map(formatAnchorForExport).join('; '),
+    log.conflictingAnchors.map(formatAnchorForExport).join('; '),
+    log.note,
+  ]
+}
+
 function getTimestamp() {
   const now = new Date()
   const year = now.getFullYear()
@@ -133,6 +224,7 @@ export function useSimilarityWorkspace() {
   const jaroWeight = computed(() => 100 - editWeight.value)
   const lockedItems = ref<Map<string, LockedItem>>(new Map())
   const rowNotes = ref<Map<string, string>>(new Map())
+  const lockFeedbackLogs = ref<LockFeedbackLog[]>([])
   const importJsonRef = ref<HTMLInputElement | null>(null)
   const importRef = ref<HTMLInputElement | null>(null)
 
@@ -298,7 +390,63 @@ export function useSimilarityWorkspace() {
 
   const renderDiffHTML = (source: string, match: string) => service.renderDiffHTML(source, match)
 
-  const lockMatch = (item: BatchResult, match: MatchResult) => {
+  const cloneAnchors = (anchors?: AnchorDetail[]) =>
+    (anchors || []).filter((anchor) => anchor.value).map((anchor) => ({ ...anchor }))
+
+  const getMatchRank = (item: BatchResult, match: MatchResult) => {
+    const matchIndex = item.matches.findIndex((candidate) => candidate.index === match.index && candidate.text === match.text)
+    return matchIndex >= 0 ? matchIndex + 1 : -1
+  }
+
+  const recordLockFeedback = (item: BatchResult, match: MatchResult, action: LockFeedbackAction) => {
+    const timestamp = new Date().toISOString()
+    const rowSide = item.isRight ? 'right' : 'left'
+
+    lockFeedbackLogs.value.push({
+      id: `lock-${timestamp}-${lockFeedbackLogs.value.length + 1}`,
+      action,
+      timestamp,
+      joinMode: joinMode.value,
+      rowSide,
+      source: item.source,
+      sourceIndex: item.index,
+      matchedText: match.text,
+      matchedIndex: match.index,
+      similarity: match.similarity,
+      rank: getMatchRank(item, match),
+      thresholdPercent: options.value.threshold,
+      selectedAlgorithm: selectedAlgorithm.value,
+      preprocessEnabled: preprocessEnabled.value,
+      preprocessOptions: normalizePreprocessOptions(preprocessOptions.value),
+      ruleType: match.ruleType,
+      reason: match.reason,
+      anchors: cloneAnchors(match.anchors),
+      conflictingAnchors: cloneAnchors(match.conflictingAnchors),
+      alternatives: item.matches.slice(0, 5).map((candidate, index) => ({
+        rank: index + 1,
+        text: candidate.text,
+        index: candidate.index,
+        similarity: candidate.similarity,
+        ruleType: candidate.ruleType,
+        anchors: cloneAnchors(candidate.anchors),
+        conflictingAnchors: cloneAnchors(candidate.conflictingAnchors),
+      })),
+      note: getNote(item),
+    })
+  }
+
+  const syncLatestLockFeedbackNote = (item: BatchResult, note: string) => {
+    const rowSide = item.isRight ? 'right' : 'left'
+    for (let index = lockFeedbackLogs.value.length - 1; index >= 0; index--) {
+      const log = lockFeedbackLogs.value[index]
+      if (log?.source === item.source && log.rowSide === rowSide) {
+        lockFeedbackLogs.value[index] = { ...log, note }
+        return
+      }
+    }
+  }
+
+  const lockMatch = (item: BatchResult, match: MatchResult, action: LockFeedbackAction = 'manual-lock') => {
     if (joinMode.value === 'right') {
       lockedItems.value.set(match.text, {
         matchIndex: item.index,
@@ -312,6 +460,7 @@ export function useSimilarityWorkspace() {
         similarity: match.similarity,
       })
     }
+    recordLockFeedback(item, match, action)
     saveState()
     ElMessage.success('匹配项已锁定')
   }
@@ -349,6 +498,7 @@ export function useSimilarityWorkspace() {
         activeCollapse: activeCollapse.value,
         lockedItems: Array.from(lockedItems.value.entries()),
         rowNotes: Array.from(rowNotes.value.entries()),
+        lockFeedbackLogs: lockFeedbackLogs.value,
       }),
     )
   }
@@ -373,6 +523,7 @@ export function useSimilarityWorkspace() {
       if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse
       if (data.lockedItems) lockedItems.value = new Map(data.lockedItems)
       if (Array.isArray(data.rowNotes)) rowNotes.value = new Map(data.rowNotes)
+      if (Array.isArray(data.lockFeedbackLogs)) lockFeedbackLogs.value = data.lockFeedbackLogs as LockFeedbackLog[]
       return true
     } catch (error) {
       console.error('Failed to load state', error)
@@ -407,6 +558,7 @@ export function useSimilarityWorkspace() {
       activeCollapse: activeCollapse.value,
       lockedItems: Array.from(lockedItems.value.entries()),
       rowNotes: Array.from(rowNotes.value.entries()),
+      lockFeedbackLogs: lockFeedbackLogs.value,
       results: results.value,
     })
 
@@ -448,6 +600,9 @@ export function useSimilarityWorkspace() {
         }
         if (Array.isArray(data.rowNotes)) {
           rowNotes.value = new Map(data.rowNotes as Array<[string, string]>)
+        }
+        if (Array.isArray(data.lockFeedbackLogs)) {
+          lockFeedbackLogs.value = data.lockFeedbackLogs as LockFeedbackLog[]
         }
         if (Array.isArray(data.results)) {
           results.value = data.results as BatchResult[]
@@ -611,6 +766,22 @@ export function useSimilarityWorkspace() {
     ElMessage.success(`已导出 ${rows.length} 行数据`)
   }
 
+  const exportLockFeedbackLogs = () => {
+    if (lockFeedbackLogs.value.length === 0) {
+      ElMessage.warning('暂无人工锁定日志可导出')
+      return
+    }
+
+    const rows = lockFeedbackLogs.value.map(buildLockFeedbackLogExportRow)
+    downloadContent(
+      buildCsvRows([buildLockFeedbackLogExportHeader(), ...rows]),
+      `锁定反馈日志_${getTimestamp()}.csv`,
+      'text/csv;charset=utf-8',
+    )
+
+    ElMessage.success(`已导出 ${rows.length} 条锁定日志`)
+  }
+
   const triggerImport = () => importRef.value?.click()
 
   const handleImport = (event: Event) => {
@@ -759,6 +930,7 @@ export function useSimilarityWorkspace() {
         lockedItems.value.set(item.source, { ...existing, note })
       }
     }
+    syncLatestLockFeedbackNote(item, note)
     saveState()
   }
 
@@ -955,7 +1127,7 @@ ${matchesText}
     // 锁定 AI 建议的匹配项
     const match = item.matches.find(m => m.index === suggestion.matchIndex)
     if (match) {
-      lockMatch(item, match)
+      lockMatch(item, match, 'ai-accepted-lock')
       // 自动添加 AI 理由到备注
       updateNote(item, `AI建议: ${suggestion.reason}`)
       // 移除建议
@@ -1001,6 +1173,7 @@ ${matchesText}
     activeCollapse,
     editWeight,
     exportComplex,
+    exportLockFeedbackLogs,
     exportSimple,
     exportStateJson,
     filterOptions,
@@ -1016,6 +1189,7 @@ ${matchesText}
     jaroWeight,
     joinMode,
     loadSample,
+    lockFeedbackLogs,
     lockMatch,
     lockedItems,
     options,

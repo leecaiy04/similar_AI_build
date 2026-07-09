@@ -10,6 +10,9 @@
           <el-button @click="showGuide" link class="!text-white/80 hover:!text-white" size="small">使用指南</el-button>
           <el-button @click="loadSample" link class="!text-white/80 hover:!text-white" size="small">加载示例</el-button>
           <el-button @click="exportStateJson" link class="!text-white/80 hover:!text-white" size="small">导出工作区</el-button>
+          <el-button @click="exportLockFeedbackLogs" link class="!text-white/80 hover:!text-white" size="small">
+            导出锁定日志<span v-if="lockFeedbackLogs.length">({{ lockFeedbackLogs.length }})</span>
+          </el-button>
           <el-button @click="triggerImportJson" link class="!text-white/80 hover:!text-white" size="small">导入工作区</el-button>
           <input type="file" ref="importJsonRef" class="hidden" accept=".json" @change="handleImportJson" />
           <el-button @click="resetAll" link class="!text-red-200 hover:!text-white" size="small">清除缓存</el-button>
@@ -770,7 +773,7 @@ const { config: aiConfig } = useSharedAIConfig()
 const aiEndpointPresets = AI_ENDPOINT_PRESETS
 const aiConfigVisible = ref(false)
 const preprocessDialogVisible = ref(false)
-const similarityUiVersion = 'v0.3.0'
+const similarityUiVersion = 'v0.4.0'
 const activeNoteKeys = ref<Set<string>>(new Set())
 
 type AnchorDetail = { type?: string; value: string; weight?: number }
@@ -781,6 +784,7 @@ const {
   activeCollapse,
   editWeight,
   exportComplex,
+  exportLockFeedbackLogs,
   exportSimple,
   exportStateJson,
   filterOptions,
@@ -796,6 +800,7 @@ const {
   jaroWeight,
   joinMode,
   loadSample,
+  lockFeedbackLogs,
   lockMatch,
   options,
   preprocessEnabled,
