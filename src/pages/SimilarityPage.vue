@@ -93,10 +93,6 @@
                   <el-tag size="small" :type="preprocessEnabled ? 'success' : 'info'">{{ preprocessEnabled ? '启用' : '关闭' }}</el-tag>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="text-gray-500">版本号归一化:</span>
-                  <el-tag size="small" :type="preprocessOptions.enableVersionNormalization ? 'success' : 'info'">{{ preprocessOptions.enableVersionNormalization ? '启用' : '关闭' }}</el-tag>
-                </div>
-                <div class="flex items-center gap-2">
                   <span class="text-gray-500">地块名识别:</span>
                   <el-tag size="small" :type="preprocessOptions.enableLandParcelRule ? 'success' : 'info'">{{ preprocessOptions.enableLandParcelRule ? '启用' : '关闭' }}</el-tag>
                 </div>
@@ -237,12 +233,6 @@
                     <!-- Preprocessing Options -->
                     <div v-if="preprocessEnabled" class="space-y-3">
                       <div class="space-y-2">
-                        <div class="flex items-center gap-2 p-2 hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg transition-colors cursor-pointer" @click="preprocessOptions.enableVersionNormalization = !preprocessOptions.enableVersionNormalization">
-                          <el-checkbox v-model="preprocessOptions.enableVersionNormalization" size="small" @click.stop />
-                          <span class="text-sm text-gray-700 dark:text-gray-300">版本号归一化</span>
-                          <el-tag size="small" type="success" effect="plain" class="ml-auto text-xs">v1.0 ≈ v2.0</el-tag>
-                        </div>
-
                         <div class="flex items-center gap-2 p-2 hover:bg-white/50 dark:hover:bg-gray-900/50 rounded-lg transition-colors cursor-pointer" @click="preprocessOptions.enableLandParcelRule = !preprocessOptions.enableLandParcelRule">
                           <el-checkbox v-model="preprocessOptions.enableLandParcelRule" size="small" @click.stop />
                           <span class="text-sm text-gray-700 dark:text-gray-300">地块名识别</span>

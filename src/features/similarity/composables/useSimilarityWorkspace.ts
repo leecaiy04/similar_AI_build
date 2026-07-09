@@ -81,7 +81,7 @@ export function useSimilarityWorkspace() {
   const activeCollapse = ref<string[]>(['preprocess'])
   const preprocessEnabled = ref(true)
   const preprocessOptions = ref({
-    enableVersionNormalization: true,
+    enableVersionNormalization: false,
     enableLandParcelRule: true,
     enableRoadSectionRule: true,
     noiseWordAggressiveness: 'medium' as 'low' | 'medium' | 'high',
@@ -299,7 +299,11 @@ export function useSimilarityWorkspace() {
       joinMode.value = data.joinMode || 'left'
       if (typeof data.preprocessEnabled === 'boolean') preprocessEnabled.value = data.preprocessEnabled
       if (data.preprocessOptions && typeof data.preprocessOptions === 'object') {
-        preprocessOptions.value = { ...preprocessOptions.value, ...data.preprocessOptions }
+        preprocessOptions.value = {
+          ...preprocessOptions.value,
+          ...data.preprocessOptions,
+          enableVersionNormalization: false,
+        }
       }
       if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse
       if (data.lockedItems) lockedItems.value = new Map(data.lockedItems)
@@ -369,7 +373,11 @@ export function useSimilarityWorkspace() {
           data.joinMode === 'right' || data.joinMode === 'inner' || data.joinMode === 'outer' ? data.joinMode : 'left'
         if (typeof data.preprocessEnabled === 'boolean') preprocessEnabled.value = data.preprocessEnabled
         if (data.preprocessOptions && typeof data.preprocessOptions === 'object') {
-          preprocessOptions.value = { ...preprocessOptions.value, ...(data.preprocessOptions as typeof preprocessOptions.value) }
+          preprocessOptions.value = {
+            ...preprocessOptions.value,
+            ...(data.preprocessOptions as typeof preprocessOptions.value),
+            enableVersionNormalization: false,
+          }
         }
         if (Array.isArray(data.activeCollapse)) activeCollapse.value = data.activeCollapse as string[]
         if (Array.isArray(data.lockedItems)) {
