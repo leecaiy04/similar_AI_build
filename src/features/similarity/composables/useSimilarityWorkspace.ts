@@ -13,6 +13,7 @@ type NoiseWordAggressiveness = 'low' | 'medium' | 'high'
 type LockFeedbackAction = 'manual-lock' | 'ai-accepted-lock'
 
 type AnchorDetail = { type?: string; value: string; weight?: number }
+type LockRecommendationLevel = NonNullable<MatchResult['recommendation']>['level']
 
 export interface LockFeedbackLog {
   id: string
@@ -30,6 +31,9 @@ export interface LockFeedbackLog {
   selectedAlgorithm: 'hybrid' | 'edit' | 'jaro'
   preprocessEnabled: boolean
   preprocessOptions?: WorkspacePreprocessOptions
+  recommendationLevel?: LockRecommendationLevel
+  recommendationLabel?: string
+  recommendationReason?: string
   ruleType?: MatchResult['ruleType']
   reason?: string
   anchors: AnchorDetail[]
@@ -39,6 +43,8 @@ export interface LockFeedbackLog {
     text: string
     index: number
     similarity: number
+    recommendationLevel?: LockRecommendationLevel
+    recommendationLabel?: string
     ruleType?: MatchResult['ruleType']
     anchors?: AnchorDetail[]
     conflictingAnchors?: AnchorDetail[]
@@ -133,6 +139,9 @@ export function buildLockFeedbackLogExportHeader(): string[] {
     '算法',
     '预处理',
     '附属词过滤',
+    '建议层级',
+    '建议结论',
+    '建议原因',
     '规则类型',
     '判断原因',
     '命中锚点',
@@ -164,6 +173,9 @@ export function buildLockFeedbackLogExportRow(log: LockFeedbackLog): string[] {
     log.selectedAlgorithm,
     log.preprocessEnabled ? '启用' : '关闭',
     log.preprocessOptions?.noiseWordAggressiveness ?? '',
+    log.recommendationLevel ?? '',
+    log.recommendationLabel ?? '',
+    log.recommendationReason ?? '',
     log.ruleType ?? '',
     log.reason ?? '',
     log.anchors.map(formatAnchorForExport).join('; '),
@@ -418,6 +430,9 @@ export function useSimilarityWorkspace() {
       selectedAlgorithm: selectedAlgorithm.value,
       preprocessEnabled: preprocessEnabled.value,
       preprocessOptions: normalizePreprocessOptions(preprocessOptions.value),
+      recommendationLevel: match.recommendation?.level,
+      recommendationLabel: match.recommendation?.label,
+      recommendationReason: match.recommendation?.reason,
       ruleType: match.ruleType,
       reason: match.reason,
       anchors: cloneAnchors(match.anchors),
@@ -427,6 +442,8 @@ export function useSimilarityWorkspace() {
         text: candidate.text,
         index: candidate.index,
         similarity: candidate.similarity,
+        recommendationLevel: candidate.recommendation?.level,
+        recommendationLabel: candidate.recommendation?.label,
         ruleType: candidate.ruleType,
         anchors: cloneAnchors(candidate.anchors),
         conflictingAnchors: cloneAnchors(candidate.conflictingAnchors),

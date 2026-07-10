@@ -78,6 +78,13 @@ describe('useSimilarityWorkspace', () => {
           ruleType: 'projectAnchor' as const,
           reason: '杭政储出编号一致',
           anchors: [{ type: 'landParcel', value: '杭政储出2026 33号', weight: 1.2 }],
+          recommendation: {
+            level: 'anchor' as const,
+            label: '锚点大概率相同',
+            shouldSuggestLock: true,
+            reason: '命中强锚点：杭政储出2026 33号',
+            priority: 2,
+          },
         },
       ],
     }
@@ -94,6 +101,8 @@ describe('useSimilarityWorkspace', () => {
       ruleType: 'projectAnchor',
       reason: '杭政储出编号一致',
       anchors: [{ type: 'landParcel', value: '杭政储出2026 33号', weight: 1.2 }],
+      recommendationLevel: 'anchor',
+      recommendationLabel: '锚点大概率相同',
     })
   })
 
@@ -128,6 +137,9 @@ describe('useSimilarityWorkspace', () => {
       thresholdPercent: 70,
       selectedAlgorithm: 'edit',
       preprocessEnabled: true,
+      recommendationLevel: 'threshold',
+      recommendationLabel: '相似度达标',
+      recommendationReason: '相似度达到阈值',
       anchors: [{ type: 'road', value: '云创路-云洪路' }],
       conflictingAnchors: [],
       note: '后续用于路段规则优化',

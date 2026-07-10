@@ -1,4 +1,4 @@
-import { SimilarityCalculator, type BatchResult, type JoinMode, type MatchResult, type SimilarityOptions } from '../../../utils/similarity'
+import { SimilarityCalculator, type BatchResult, type JoinMode, type LockRecommendation, type MatchResult, type SimilarityOptions } from '../../../utils/similarity'
 import { calculateEnhancedSimilarity } from '../../../utils/enhancedSimilarityService'
 import type { AdvancedSimilarityOptions } from '../../../utils/advancedSimilarity'
 
@@ -52,6 +52,76 @@ function buildWeights(selectedAlgorithm: SimilarityCompareInput['selectedAlgorit
   return { edit: editWeight / 100, jaro: (100 - editWeight) / 100 }
 }
 
+function normalizeThresholdRatio(threshold?: number) {
+  if (typeof threshold !== 'number' || Number.isNaN(threshold)) return 0.7
+  if (threshold > 1) return Math.min(1, threshold / 100)
+  return Math.max(0, threshold)
+}
+
+function formatAnchorValues(anchors?: MatchResult['anchors']) {
+  return (anchors || []).map((anchor) => anchor.value).filter(Boolean).join('、')
+}
+
+function buildLockRecommendation(input: {
+  similarity: number
+  thresholdRatio: number
+  isDefinitive?: boolean
+  ruleType?: MatchResult['ruleType']
+  reason?: string
+  anchors?: MatchResult['anchors']
+  conflictingAnchors?: MatchResult['conflictingAnchors']
+}): LockRecommendation {
+  const conflictSummary = formatAnchorValues(input.conflictingAnchors)
+  if ((input.conflictingAnchors?.length || 0) > 0) {
+    return {
+      level: 'none',
+      label: '不建议自动锁定',
+      shouldSuggestLock: false,
+      reason: conflictSummary ? `强锚点冲突：${conflictSummary}` : '强锚点冲突',
+      priority: 0,
+    }
+  }
+
+  if (input.isDefinitive && input.ruleType && input.ruleType !== 'projectAnchor' && input.similarity >= 0.9) {
+    return {
+      level: 'rule',
+      label: '规则判定相同',
+      shouldSuggestLock: true,
+      reason: input.reason || '确定性规则判定为同一项目',
+      priority: 3,
+    }
+  }
+
+  if ((input.anchors?.length || 0) > 0 && input.similarity >= 0.85) {
+    const anchorSummary = formatAnchorValues(input.anchors)
+    return {
+      level: 'anchor',
+      label: '锚点大概率相同',
+      shouldSuggestLock: true,
+      reason: anchorSummary ? `命中强锚点：${anchorSummary}` : input.reason || '项目强锚点一致',
+      priority: 2,
+    }
+  }
+
+  if (input.similarity >= input.thresholdRatio) {
+    return {
+      level: 'threshold',
+      label: '相似度达标',
+      shouldSuggestLock: true,
+      reason: `相似度 ${(input.similarity * 100).toFixed(1)}% 达到阈值 ${(input.thresholdRatio * 100).toFixed(0)}%`,
+      priority: 1,
+    }
+  }
+
+  return {
+    level: 'none',
+    label: '不建议自动锁定',
+    shouldSuggestLock: false,
+    reason: `相似度 ${(input.similarity * 100).toFixed(1)}% 低于阈值 ${(input.thresholdRatio * 100).toFixed(0)}%`,
+    priority: 0,
+  }
+}
+
 function isLocked(item: BatchResult, joinMode: JoinMode, lockedItems: Map<string, LockedItem>) {
   if (joinMode === 'right') {
     for (const [, match] of lockedItems.entries()) {
@@ -81,6 +151,7 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
     compare(input: SimilarityCompareInput): BatchResult[] {
       calculator.setSynonymGroups(input.synonymText)
       calculator.setIgnoreTerms(input.ignoreText)
+      const thresholdRatio = normalizeThresholdRatio(input.options.threshold)
 
       if (input.preprocessOptions?.enabled) {
         const weights = buildWeights(input.selectedAlgorithm, input.editWeight)
@@ -100,15 +171,27 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
           const matches = input.targetList
             .map((target, targetIndex) => {
               const enhanced = calculateEnhancedSimilarity(source, target, calculator, advancedOptions)
+              const anchors = enhanced.preprocessing?.features.sharedAnchors
+              const conflictingAnchors = enhanced.preprocessing?.features.conflictingAnchors
+              const ruleType = enhanced.features.rule?.type
               return {
                 text: target,
                 similarity: enhanced.similarity,
                 index: targetIndex,
-                ruleType: enhanced.features.rule?.type,
+                ruleType,
                 reason: enhanced.reason,
                 explanation: enhanced.explanation,
-                anchors: enhanced.preprocessing?.features.sharedAnchors,
-                conflictingAnchors: enhanced.preprocessing?.features.conflictingAnchors,
+                anchors,
+                conflictingAnchors,
+                recommendation: buildLockRecommendation({
+                  similarity: enhanced.similarity,
+                  thresholdRatio,
+                  isDefinitive: enhanced.isDefinitive,
+                  ruleType,
+                  reason: enhanced.reason,
+                  anchors,
+                  conflictingAnchors,
+                }),
               }
             })
             .filter((match) => match.similarity >= 0.01)
@@ -140,7 +223,13 @@ export function createSimilarityService(calculator = new SimilarityCalculator())
       // 性能优化：每个源项只保留前10个最相似的匹配项
       return results.map((result) => ({
         ...result,
-        matches: result.matches.slice(0, 10),
+        matches: result.matches.slice(0, 10).map((match) => ({
+          ...match,
+          recommendation: buildLockRecommendation({
+            similarity: match.similarity,
+            thresholdRatio,
+          }),
+        })),
       }))
     },
     buildDisplayResults(input: BuildDisplayResultsInput): BatchResult[] {

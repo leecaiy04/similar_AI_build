@@ -84,4 +84,108 @@ describe('similarityService', () => {
       ]),
     )
   })
+
+  it('classifies deterministic same rules as level 1 lock recommendations', () => {
+    const service = createSimilarityService()
+    const results = service.compare({
+      sourceList: ['滨江-R21-01地块'],
+      targetList: ['滨江-01地块'],
+      options: { threshold: 0.01 },
+      selectedAlgorithm: 'edit',
+      editWeight: 60,
+      synonymText: '',
+      ignoreText: '',
+      preprocessOptions: {
+        enabled: true,
+        enableVersionNormalization: false,
+        enableLandParcelRule: true,
+        enableRoadSectionRule: true,
+        noiseWordAggressiveness: 'medium',
+      },
+    })
+
+    expect(results[0]?.matches[0]?.recommendation).toMatchObject({
+      level: 'rule',
+      label: '规则判定相同',
+      shouldSuggestLock: true,
+    })
+  })
+
+  it('classifies strong project anchors as level 2 probable lock recommendations', () => {
+    const service = createSimilarityService()
+    const results = service.compare({
+      sourceList: ['关于杭政储出2026 33号地块住宅商业项目的批复'],
+      targetList: ['杭政储出【2026】33号地块住宅兼商业商务项目'],
+      options: { threshold: 0.01 },
+      selectedAlgorithm: 'edit',
+      editWeight: 60,
+      synonymText: '',
+      ignoreText: '',
+      preprocessOptions: {
+        enabled: true,
+        enableVersionNormalization: false,
+        enableLandParcelRule: true,
+        enableRoadSectionRule: true,
+        noiseWordAggressiveness: 'medium',
+      },
+    })
+
+    expect(results[0]?.matches[0]?.recommendation).toMatchObject({
+      level: 'anchor',
+      label: '锚点大概率相同',
+      shouldSuggestLock: true,
+    })
+  })
+
+  it('classifies threshold-only candidates as level 3 lock recommendations', () => {
+    const service = createSimilarityService()
+    const results = service.compare({
+      sourceList: ['三墩北单元幼儿园新建项目'],
+      targetList: ['三墩北单元幼儿园建设工程'],
+      options: { threshold: 0.01 },
+      selectedAlgorithm: 'edit',
+      editWeight: 60,
+      synonymText: '建设工程, 新建项目',
+      ignoreText: '',
+      preprocessOptions: {
+        enabled: true,
+        enableVersionNormalization: false,
+        enableLandParcelRule: true,
+        enableRoadSectionRule: true,
+        noiseWordAggressiveness: 'medium',
+      },
+    })
+
+    expect(results[0]?.matches[0]?.recommendation).toMatchObject({
+      level: 'threshold',
+      label: '相似度达标',
+      shouldSuggestLock: true,
+    })
+  })
+
+  it('does not suggest locking when strong anchors conflict even if names are similar', () => {
+    const service = createSimilarityService()
+    const results = service.compare({
+      sourceList: ['双桥XH020104-22安置房'],
+      targetList: ['双桥单元XH020104-21地块安置房项目'],
+      options: { threshold: 0.01 },
+      selectedAlgorithm: 'edit',
+      editWeight: 60,
+      synonymText: '',
+      ignoreText: '',
+      preprocessOptions: {
+        enabled: true,
+        enableVersionNormalization: false,
+        enableLandParcelRule: true,
+        enableRoadSectionRule: true,
+        noiseWordAggressiveness: 'medium',
+      },
+    })
+
+    expect(results[0]?.matches[0]?.recommendation).toMatchObject({
+      level: 'none',
+      label: '不建议自动锁定',
+      shouldSuggestLock: false,
+    })
+  })
 })

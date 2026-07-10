@@ -22,7 +22,7 @@
             {{ similarityUiVersion }}
           </span>
           <span class="rounded-full border border-emerald-200/40 bg-emerald-400/15 px-3 py-1 font-bold">
-            项目锚点增强
+            三级锁定建议
           </span>
         </div>
       </div>
@@ -634,7 +634,7 @@
                                                 type="primary" size="small" text
                                                 class="!bg-blue-50 dark:!bg-blue-900/30 !font-black !text-[10px]"
                                                 @click="lockMatch(item, item.matches[0]!)">
-                                       锁定建议
+                                       {{ getLockActionText(item.matches[0]) }}
                                      </el-button>
                                   </div>
                                </div>
@@ -773,10 +773,17 @@ const { config: aiConfig } = useSharedAIConfig()
 const aiEndpointPresets = AI_ENDPOINT_PRESETS
 const aiConfigVisible = ref(false)
 const preprocessDialogVisible = ref(false)
-const similarityUiVersion = 'v0.4.0'
+const similarityUiVersion = 'v0.5.0'
 const activeNoteKeys = ref<Set<string>>(new Set())
 
 type AnchorDetail = { type?: string; value: string; weight?: number }
+type LockRecommendationDetail = {
+  level?: 'rule' | 'anchor' | 'threshold' | 'none'
+  label?: string
+  shouldSuggestLock?: boolean
+  reason?: string
+  priority?: number
+}
 
 const {
   displayResults,
@@ -912,8 +919,61 @@ function getNoteButtonText(item: Parameters<typeof getNote>[0]) {
   return getNote(item) ? '编辑备注' : '添加备注'
 }
 
-function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?: string; anchors?: AnchorDetail[]; conflictingAnchors?: AnchorDetail[] }) {
+function getLockActionText(match?: { recommendation?: LockRecommendationDetail }) {
+  if (match?.recommendation?.level === 'rule') return '一级锁定'
+  if (match?.recommendation?.level === 'anchor') return '二级锁定'
+  if (match?.recommendation?.level === 'threshold') return '三级锁定'
+  return '人工锁定'
+}
+
+function getRecommendationSignal(match: {
+  similarity: number
+  recommendation?: LockRecommendationDetail
+  anchors?: AnchorDetail[]
+  conflictingAnchors?: AnchorDetail[]
+}) {
+  const recommendation = match.recommendation
+  if (!recommendation) return null
+
+  const anchorSummary = formatAnchorSummary(match)
+  const detailSuffix = anchorSummary ? `；${anchorSummary}` : ''
+
+  if (recommendation.level === 'rule') {
+    return {
+      label: `一级 · ${recommendation.label || '规则判定相同'}`,
+      type: 'success' as const,
+      detail: `${recommendation.reason || '确定性规则已经判定为同一项目，可优先锁定。'}${detailSuffix}`,
+    }
+  }
+
+  if (recommendation.level === 'anchor') {
+    return {
+      label: `二级 · ${recommendation.label || '锚点大概率相同'}`,
+      type: 'warning' as const,
+      detail: `${recommendation.reason || '项目强锚点支持同一项目，建议人工确认后锁定。'}${detailSuffix}`,
+    }
+  }
+
+  if (recommendation.level === 'threshold') {
+    return {
+      label: `三级 · ${recommendation.label || '相似度达标'}`,
+      type: 'info' as const,
+      detail: `${recommendation.reason || '未命中确定性规则或强锚点，但综合相似度达到当前阈值。'}${detailSuffix}`,
+    }
+  }
+
+  return {
+    label: recommendation.label || '不建议自动锁定',
+    type: 'danger' as const,
+    detail: `${recommendation.reason || '未达到建议锁定条件，建议仅作为人工排查线索。'}${detailSuffix}`,
+  }
+}
+
+function getMatchSignal(match?: { similarity: number; ruleType?: string; reason?: string; anchors?: AnchorDetail[]; conflictingAnchors?: AnchorDetail[]; recommendation?: LockRecommendationDetail }) {
   if (!match) return null
+  const recommendationSignal = getRecommendationSignal(match)
+  if (recommendationSignal) return recommendationSignal
+
   const anchorSummary = formatAnchorSummary(match)
   const detailSuffix = anchorSummary ? `；${anchorSummary}` : ''
 

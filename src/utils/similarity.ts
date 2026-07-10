@@ -24,6 +24,21 @@ export interface SimilarityOptions {
     weights?: { edit: number; jaro: number };
 }
 
+export type LockRecommendationLevel = 'rule' | 'anchor' | 'threshold' | 'none';
+
+export interface LockRecommendation {
+    /** 锁定建议层级：规则相同、锚点大概率相同、相似度达标或不建议 */
+    level: LockRecommendationLevel;
+    /** 界面展示的简短标签 */
+    label: string;
+    /** 是否应作为“建议锁定”候选 */
+    shouldSuggestLock: boolean;
+    /** 触发该层级的原因 */
+    reason: string;
+    /** 排序/展示优先级，数值越高越强 */
+    priority: number;
+}
+
 /**
  * 单个匹配结果接口
  */
@@ -44,6 +59,8 @@ export interface MatchResult {
     anchors?: Array<{ type: string; value: string; weight?: number }>;
     /** 冲突的强锚点详情，用于界面说明“为什么不像同一项目” */
     conflictingAnchors?: Array<{ type: string; value: string; weight?: number }>;
+    /** 建议锁定分层，用于区分规则相同、锚点大概率相同和相似度达标 */
+    recommendation?: LockRecommendation;
 }
 
 /**
