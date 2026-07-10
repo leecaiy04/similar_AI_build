@@ -12,6 +12,14 @@ dist
 dist-ssr
 dist-single
 *.local
+.env
+.env.*
+!.env.example
+
+# Local runtime state and credentials
+.codex/
+data/*.sqlite
+data/*.sqlite-*
 
 # Editor directories and files
 .vscode/*

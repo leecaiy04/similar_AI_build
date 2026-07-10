@@ -10,8 +10,22 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    chunkSizeWarningLimit: 850,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('/element-plus/')) return 'vendor-element-plus'
+          if (id.includes('/@vue/') || id.includes('/vue/') || id.includes('/vue-router/')) return 'vendor-vue'
+          if (id.includes('/read-excel-file/') || id.includes('/fflate/') || id.includes('/unzipper-esm/') || id.includes('/@xmldom/')) return 'vendor-excel'
+          return 'vendor'
+        },
+      },
+    },
   },
   server: {
+    host: '0.0.0.0',
+    port: 56600,
     proxy: {
       '/api/cc-vibe': {
         target: 'https://cc-vibe.com',
