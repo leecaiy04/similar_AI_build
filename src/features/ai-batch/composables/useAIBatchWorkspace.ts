@@ -6,6 +6,7 @@ import { createBatchInferenceService } from '../service/batchInferenceService'
 import { createLlmInvoke, type LlmInvoke } from '../../../infra/llm'
 import { splitTextData } from '../../../utils/textParser'
 import { useSharedAIConfig } from '../../../composables/useSharedAIConfig'
+import { AI_ENDPOINT_PRESETS, DEFAULT_AI_API_KEY, DEFAULT_AI_MODEL, getAIPresetDisplayName } from '../../../config/aiProviders'
 
 export interface AIPreset {
   name?: string
@@ -39,29 +40,23 @@ export interface AIBatchRunner {
 }
 
 const STORAGE_KEY = 'premium_ai_batch_v1'
+const STORAGE_VERSION = '2026-07-02-gpt-claude-short-presets'
 const MAX_CONCURRENT_COUNT = 3
 
+const defaultPromptTemplate = '帮忙处理以下文本到英文，只需返回结果：\n{{input}}'
+
 const defaultPresets: AIPreset[] = [
+  ...AI_ENDPOINT_PRESETS.map((preset) => ({
+    name: getAIPresetDisplayName(preset),
+    mode: preset.provider,
+    baseUrl: preset.baseUrl,
+    apiKey: preset.apiKey || DEFAULT_AI_API_KEY,
+    model: preset.model,
+    systemPrompt: preset.provider === 'claude' ? '你是强大的分析助手。' : '你是一个得力的数据处理助手。',
+    promptTemplate: defaultPromptTemplate,
+  })),
   {
-    name: 'OpenAI',
-    mode: 'openai',
-    baseUrl: 'https://api.openai.com/v1',
-    apiKey: '',
-    model: 'gpt-4o-mini',
-    systemPrompt: '你是一个得力的数据处理助手。',
-    promptTemplate: '帮忙处理以下文本到英文，只需返回结果：\n{{input}}',
-  },
-  {
-    name: 'Claude',
-    mode: 'claude',
-    baseUrl: 'http://118.89.81.103:8081',
-    apiKey: '',
-    model: 'claude-opus-4-8',
-    systemPrompt: '你是强大的分析助手。',
-    promptTemplate: '分析下列内容并提取关键词，以逗号分隔：\n{{input}}',
-  },
-  {
-    name: '本地测试',
+    name: '测试',
     mode: 'test',
     baseUrl: 'http://localhost/test',
     apiKey: 'test-key',
@@ -119,7 +114,7 @@ function clampConcurrentCount(value: unknown) {
 
 export function useAIBatchWorkspace(runner?: AIBatchRunner) {
   const presets = ref<AIPreset[]>(JSON.parse(JSON.stringify(defaultPresets)))
-  const activePresetIndex = ref(1) // 默认选择 Claude
+  const activePresetIndex = ref(0) // 默认选择 GPT-CC1
   const currentPreset = computed(() => presets.value[activePresetIndex.value]!)
   const textData = ref<Record<string, string>>({})
   const splitMode = ref<'newline' | 'blankline'>('newline')
@@ -147,8 +142,8 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
     }
   }, { deep: true })
 
-  // 从共享配置初始化Claude预设
-  if (sharedConfig.value.mode === 'claude' && currentPreset.value.mode === 'claude') {
+  // 从共享配置初始化当前 OpenAI-compatible 预设
+  if (sharedConfig.value.mode === currentPreset.value.mode) {
     currentPreset.value.baseUrl = sharedConfig.value.baseUrl
     currentPreset.value.apiKey = sharedConfig.value.apiKey
     currentPreset.value.model = sharedConfig.value.model
@@ -209,13 +204,15 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
           ElMessage.warning('需先填写 Base URL 和 API Key')
           return
         }
-        const url = config.baseUrl.endsWith('/') ? `${config.baseUrl}models` : `${config.baseUrl}/models`
-        const response = await fetch(url, {
-          headers: { Authorization: `Bearer ${config.apiKey}` },
+        const response = await fetch('/api/openai-proxy/models', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseUrl: config.baseUrl, apiKey: config.apiKey }),
         })
         if (!response.ok) throw new Error(response.statusText || `HTTP ${response.status}`)
         const json = await response.json()
-        modelList.value = Array.isArray(json.data) ? json.data.map((item: { id: string }) => item.id).sort() : []
+        modelList.value = Array.isArray(json.data) ? json.data.map((item: { id: string }) => item.id).sort() : [DEFAULT_AI_MODEL]
+        if (!modelList.value.includes(DEFAULT_AI_MODEL)) modelList.value.unshift(DEFAULT_AI_MODEL)
       } else if (config.mode === 'gemini') {
         if (!config.apiKey || !config.baseUrl) {
           ElMessage.warning('需先填写 Base URL 和 API Key')
@@ -375,6 +372,7 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
+        version: STORAGE_VERSION,
         presets: presets.value,
         activePresetIndex: activePresetIndex.value,
         concurrentCount: concurrentCount.value,
@@ -390,14 +388,14 @@ export function useAIBatchWorkspace(runner?: AIBatchRunner) {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (!stored) return
       const parsed = JSON.parse(stored)
-      if (parsed.presets && Array.isArray(parsed.presets)) {
+      if (parsed.version === STORAGE_VERSION && parsed.presets && Array.isArray(parsed.presets)) {
         parsed.presets.forEach((preset: Partial<AIPreset>, index: number) => {
           if (index < presets.value.length) {
             presets.value[index] = { ...presets.value[index]!, ...preset }
           }
         })
       }
-      if (parsed.activePresetIndex !== undefined && parsed.activePresetIndex < presets.value.length) {
+      if (parsed.version === STORAGE_VERSION && parsed.activePresetIndex !== undefined && parsed.activePresetIndex < presets.value.length) {
         activePresetIndex.value = parsed.activePresetIndex
       }
       if (parsed.concurrentCount !== undefined) concurrentCount.value = clampConcurrentCount(parsed.concurrentCount)

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <!-- Header -->
     <div class="app-header-gradient px-6 py-3 flex justify-between items-center shrink-0">
@@ -36,12 +36,13 @@
                   class="relative cursor-pointer group"
                 >
                   <div
-                    class="p-4 rounded-xl border-2 transition-all duration-200 h-14 flex items-center justify-center shadow-sm hover:shadow-md"
+                    :title="`${p.mode === 'claude' ? 'Claude' : p.mode === 'openai' ? 'GPT' : '测试'} · ${p.baseUrl}`"
+                    class="p-2 rounded-xl border-2 transition-all duration-200 h-12 flex items-center justify-center shadow-sm hover:shadow-md overflow-hidden"
                     :class="activePresetIndex === n
                       ? 'bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600 shadow-lg shadow-blue-500/30 scale-105'
                       : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:scale-105'"
                   >
-                    <div class="text-sm font-bold text-center" :class="activePresetIndex === n ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
+                    <div class="text-xs font-bold text-center truncate w-full" :class="activePresetIndex === n ? 'text-white' : 'text-gray-700 dark:text-gray-300'">
                       {{ p.name || `P${n+1}` }}
                     </div>
                     <div v-if="activePresetIndex === n" class="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
@@ -77,11 +78,11 @@
                  </el-select>
               </div>
 
-              <div class="space-y-1" v-if="currentPreset.mode === 'claude'">
+              <div class="space-y-1" v-if="currentPreset.mode === 'openai' || currentPreset.mode === 'claude'">
                  <div class="flex items-center justify-between">
                    <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
                      <span>🌐</span>
-                     <span>API 服务器</span>
+                     <span>线路预设</span>
                    </label>
                    <el-button
                       size="small"
@@ -99,7 +100,7 @@
                  </div>
                  <el-select v-model="currentPreset.baseUrl" size="default" class="w-full">
                     <el-option
-                      v-for="server in claudeServers"
+                      v-for="server in currentEndpointServers"
                       :key="server.url"
                       :label="getServerLabel(server)"
                       :value="server.url"
@@ -121,12 +122,12 @@
                  </div>
               </div>
 
-              <div class="space-y-1" v-if="currentPreset.mode === 'openai'">
+              <div class="space-y-1" v-if="currentPreset.mode === 'openai' || currentPreset.mode === 'claude'">
                  <label class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase flex items-center gap-2">
                    <span>🔗</span>
-                   <span>API 地址</span>
+                   <span>API 地址（可手动覆盖）</span>
                  </label>
-                 <el-input v-model="currentPreset.baseUrl" size="default" placeholder="https://api.openai.com/v1" />
+                 <el-input v-model="currentPreset.baseUrl" size="default" placeholder="https://cc-vibe.com/v1" />
               </div>
 
               <div class="space-y-1" v-if="currentPreset.mode !== 'claude-code' && currentPreset.mode !== 'test'">
@@ -135,9 +136,9 @@
                    <span>API Key</span>
                  </label>
                  <el-input v-model="currentPreset.apiKey" size="default" type="password" show-password placeholder="sk-..." @input="saveApiKey" />
-                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1" v-if="currentPreset.mode === 'claude'">
+                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1" v-if="currentPreset.mode === 'openai' || currentPreset.mode === 'claude'">
                     <span>💾</span>
-                    <span>API Key 会自动保存到浏览器</span>
+                    <span>默认 API Key 已预设，也会自动保存到浏览器</span>
                  </div>
               </div>
 
@@ -159,13 +160,13 @@
                       <el-option v-for="m in modelList" :key="m" :label="m" :value="m" />
                    </el-select>
                    <el-button
-                      v-if="currentPreset.mode === 'claude-code' || currentPreset.mode === 'claude'"
+                      v-if="currentPreset.mode === 'claude-code' || currentPreset.mode === 'claude' || currentPreset.mode === 'openai'"
                       size="default"
                       type="primary"
                       @click="fetchModels"
                       :loading="fetchingModels"
                    >
-                     {{ currentPreset.mode === 'claude' ? '获取' : '刷新' }}
+                     {{ currentPreset.mode === 'claude-code' ? '刷新' : '获取' }}
                    </el-button>
                  </div>
                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1" v-if="currentPreset.mode === 'claude-code'">
@@ -293,8 +294,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAIBatchWorkspace } from '../features/ai-batch/composables/useAIBatchWorkspace'
+import { AI_ENDPOINT_PRESETS, DEFAULT_AI_API_KEY, DEFAULT_AI_MODEL, getAIPresetDetailLabel, normalizeOpenAIBaseUrl } from '../config/aiProviders'
 
-interface ClaudeServer {
+interface OpenAIServer {
   name: string
   url: string
   latency: number | null
@@ -302,23 +304,26 @@ interface ClaudeServer {
 }
 
 const testingSpeed = ref(false)
-const claudeServers = ref<ClaudeServer[]>([
-  { name: '组1 (cc-vibe.com)', url: 'https://cc-vibe.com', latency: null, testing: false },
-  { name: '组2 (118.89.81.103:8081)', url: 'http://118.89.81.103:8081', latency: null, testing: false },
-  { name: '组3 (49.232.5.23:8081)', url: 'http://49.232.5.23:8081', latency: null, testing: false },
-  { name: '组4 (154.92.5.72:8080)', url: 'http://154.92.5.72:8080', latency: null, testing: false },
-  { name: '组5 (154.12.179.181:8080)', url: 'http://154.12.179.181:8080', latency: null, testing: false },
-])
+const endpointServers = ref<OpenAIServer[]>(AI_ENDPOINT_PRESETS.map((preset) => ({
+  name: getAIPresetDetailLabel(preset),
+  url: preset.baseUrl,
+  latency: null,
+  testing: false,
+})))
+
+const currentEndpointServers = computed(() => endpointServers.value.filter((server) =>
+  currentPreset.value.mode === 'claude' ? server.name.startsWith('Claude-') : server.name.startsWith('GPT-')
+))
 
 const recommendedServer = computed(() => {
-  const tested = claudeServers.value.filter(s => s.latency !== null)
+  const tested = currentEndpointServers.value.filter(s => s.latency !== null)
   if (tested.length === 0) return null
   return tested.reduce((fastest, current) =>
     (current.latency! < fastest.latency!) ? current : fastest
   )
 })
 
-const CLAUDE_API_KEY_STORAGE = 'claude-api-key'
+const AI_API_KEY_STORAGE='similar_ai_api_storage'
 
 const {
   activePresetIndex,
@@ -344,41 +349,41 @@ const {
 } = useAIBatchWorkspace()
 
 onMounted(() => {
-  // 恢复保存的 Claude API Key
-  const savedKey = localStorage.getItem(CLAUDE_API_KEY_STORAGE)
-  if (savedKey && currentPreset.value.mode === 'claude' && !currentPreset.value.apiKey) {
+  // 恢复保存的 OpenAI-compatible API Key
+  const savedKey = localStorage.getItem(AI_API_KEY_STORAGE)
+  if (savedKey && currentPreset.value.mode === 'openai' && !currentPreset.value.apiKey) {
     currentPreset.value.apiKey = savedKey
   }
 })
 
 function handleModeChange() {
-  if (currentPreset.value.mode === 'claude') {
-    // 设置默认服务器为组1
-    if (!currentPreset.value.baseUrl || !isClaudeServer(currentPreset.value.baseUrl)) {
-      currentPreset.value.baseUrl = 'https://cc-vibe.com'
+  if (currentPreset.value.mode === 'openai' || currentPreset.value.mode === 'claude') {
+    // 设置默认服务器为当前模式的第一条线路
+    if (!currentPreset.value.baseUrl || !isOpenAIServer(currentPreset.value.baseUrl)) {
+      currentPreset.value.baseUrl = AI_ENDPOINT_PRESETS.find((preset) => preset.provider === currentPreset.value.mode)!.baseUrl
     }
 
-    // 恢复保存的 API Key
-    const savedKey = localStorage.getItem(CLAUDE_API_KEY_STORAGE)
-    if (savedKey) {
-      currentPreset.value.apiKey = savedKey
-    }
+    // 恢复保存的 API Key，否则使用本次预设 Key
+    const savedKey = localStorage.getItem(AI_API_KEY_STORAGE)
+    currentPreset.value.apiKey = savedKey || currentPreset.value.apiKey || DEFAULT_AI_API_KEY
+    currentPreset.value.model = currentPreset.value.model || DEFAULT_AI_MODEL
 
     fetchModels()
   }
 }
 
-function isClaudeServer(url: string): boolean {
-  return claudeServers.value.some(s => s.url === url)
+function isOpenAIServer(url: string): boolean {
+  const normalized = normalizeOpenAIBaseUrl(url)
+  return endpointServers.value.some(s => normalizeOpenAIBaseUrl(s.url) === normalized)
 }
 
 function saveApiKey() {
-  if (currentPreset.value.mode === 'claude' && currentPreset.value.apiKey) {
-    localStorage.setItem(CLAUDE_API_KEY_STORAGE, currentPreset.value.apiKey)
+  if ((currentPreset.value.mode === 'openai' || currentPreset.value.mode === 'claude') && currentPreset.value.apiKey) {
+    localStorage.setItem(AI_API_KEY_STORAGE, currentPreset.value.apiKey)
   }
 }
 
-function getServerLabel(server: ClaudeServer): string {
+function getServerLabel(server: OpenAIServer): string {
   if (server.latency !== null) {
     return `${server.name} (${server.latency}ms)`
   }
@@ -391,7 +396,7 @@ function getLatencyColor(latency: number): string {
   return 'text-red-600 dark:text-red-400'
 }
 
-async function testSingleServer(server: ClaudeServer): Promise<void> {
+async function testSingleServer(server: OpenAIServer): Promise<void> {
   server.testing = true
   server.latency = null
 
@@ -426,7 +431,7 @@ async function testAllServers() {
 
   try {
     // 并行测试所有服务器
-    await Promise.all(claudeServers.value.map(server => testSingleServer(server)))
+    await Promise.all(currentEndpointServers.value.map(server => testSingleServer(server)))
 
     const fastest = recommendedServer.value
     if (fastest) {

@@ -29,6 +29,7 @@
           </nav>
         </div>
         <div class="flex items-center gap-2">
+          <span class="text-[10px] text-gray-400 font-mono">v{{ version }}</span>
           <el-button circle @click="toggleTheme" class="!bg-transparent border-gray-200 dark:border-gray-700 hover:!bg-gray-100 dark:hover:!bg-gray-700" size="small">
              {{ isDark ? '🌞' : '🌙' }}
           </el-button>
@@ -52,6 +53,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { version } from '../package.json'
 
 const isDark = ref(false)
 

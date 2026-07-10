@@ -171,14 +171,25 @@
         <div>
           <label class="text-sm font-medium mb-2 block">接口模式</label>
           <el-select v-model="config.mode" class="w-full">
+            <el-option label="OpenAI 兼容" value="openai" />
             <el-option label="Claude" value="claude" />
-            <el-option label="OpenAI" value="openai" />
             <el-option label="Claude Code (本地)" value="claude-code" />
+          </el-select>
+        </div>
+        <div v-if="config.mode === 'openai' || config.mode === 'claude'">
+          <label class="text-sm font-medium mb-2 block">线路预设</label>
+          <el-select v-model="config.baseUrl" class="w-full" filterable>
+            <el-option
+              v-for="preset in aiEndpointPresets.filter((preset) => preset.provider === config.mode)"
+              :key="preset.id"
+              :label="getAIPresetDetailLabel(preset)"
+              :value="preset.baseUrl"
+            />
           </el-select>
         </div>
         <div v-if="config.mode !== 'claude-code'">
           <label class="text-sm font-medium mb-2 block">API 地址</label>
-          <el-input v-model="config.baseUrl" placeholder="http://118.89.81.103:8081" />
+          <el-input v-model="config.baseUrl" placeholder="https://cc-vibe.com/v1" />
         </div>
         <div v-if="config.mode !== 'claude-code'">
           <label class="text-sm font-medium mb-2 block">API Key</label>
@@ -187,6 +198,7 @@
         <div>
           <label class="text-sm font-medium mb-2 block">模型</label>
           <el-select v-model="config.model" class="w-full" filterable allow-create>
+            <el-option label="gpt-5.5" value="gpt-5.5" />
             <el-option label="claude-fable-5" value="claude-fable-5" />
             <el-option label="claude-opus-4-8" value="claude-opus-4-8" />
             <el-option label="claude-opus-4-7" value="claude-opus-4-7" />
@@ -208,6 +220,7 @@ import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { createLlmInvoke } from '../infra/llm'
 import { useSharedAIConfig } from '../composables/useSharedAIConfig'
+import { AI_ENDPOINT_PRESETS, getAIPresetDetailLabel } from '../config/aiProviders'
 
 interface Message {
   id: string
@@ -236,6 +249,7 @@ let messageCounter = 0
 
 // 使用共享配置
 const { config } = useSharedAIConfig()
+const aiEndpointPresets = AI_ENDPOINT_PRESETS
 
 const currentTab = computed(() => {
   return tabs.value.find(t => t.id === activeTabId.value) || tabs.value[0]
