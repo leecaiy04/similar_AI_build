@@ -1,56 +1,124 @@
-﻿# Guide - Task 2: Build Core Text and IO Modules
+# Task 2 Guide: Version Routing and Shell Split
+
+## Purpose
+
+Introduce stable V1/V2 route mapping, a remembered version switch, and route-level shells without changing V1 URLs.
+
+Use `@test-driven-development`.
 
 ## Files
 
-- Create: `src/core/text/split.ts`
-- Create: `src/core/text/normalize.ts`
-- Create: `src/core/io/csv.ts`
-- Create: `src/core/io/json.ts`
-- Create: `src/core/text/__tests__/split.spec.ts`
-- Create: `src/core/io/__tests__/csv.spec.ts`
-- Modify: `src/utils/textParser.ts`
+- Create: `src/navigation/tools.ts`
+- Create: `src/routing/uiVersion.ts`
+- Create: `src/routing/__tests__/uiVersion.spec.ts`
+- Create: `src/composables/useUiVersion.ts`
+- Create: `src/components/VersionSwitch.vue`
+- Create: `src/shell/V1Shell.vue`
+- Create: `src/v2/shell/V2Shell.vue`
+- Create: `src/v2/pages/V2PlaceholderPage.vue`
+- Modify: `src/App.vue`
+- Modify: `src/App.no-ai.vue`
+- Modify: `src/components/AppShell.vue`
+- Modify: `src/router/index.ts`
+- Modify: `src/router/index.no-ai.ts`
 
-## Step 1: Write failing tests for split and CSV stability
+## Steps
 
-Create tests that lock down newline-in-quote behavior and UTF-8 BOM export behavior.
+### Step 1: Write failing route-mapping tests
+
+Create `src/routing/__tests__/uiVersion.spec.ts` with these assertions:
 
 ```ts
-it('preserves newline inside quoted excel cell', () => {
-  const lines = splitExcelLines('"a\nb"\nnext')
-  expect(lines).toEqual(['a\nb', 'next'])
-})
+import { describe, expect, it } from 'vitest'
+import { detectUiVersion, mapToolPathToVersion } from '../uiVersion'
 
-it('exports csv with BOM', () => {
-  const csv = buildCsv(['a,b'])
-  expect(csv.charCodeAt(0)).toBe(0xfeff)
+describe('uiVersion routes', () => {
+  it('maps equivalent tool routes in both directions', () => {
+    expect(mapToolPathToVersion('/diff', 'v2')).toBe('/v2/diff')
+    expect(mapToolPathToVersion('/v2/diff', 'v1')).toBe('/diff')
+    expect(mapToolPathToVersion('/', 'v2')).toBe('/v2')
+    expect(mapToolPathToVersion('/v2', 'v1')).toBe('/')
+  })
+
+  it('detects version from the route path', () => {
+    expect(detectUiVersion('/process')).toBe('v1')
+    expect(detectUiVersion('/v2/process')).toBe('v2')
+  })
 })
 ```
 
-## Step 2: Run tests to confirm failure
+Run `npx vitest run src/routing/__tests__/uiVersion.spec.ts` and expect FAIL because the module does not exist.
 
-Run: `npm test -- src/core/text/__tests__/split.spec.ts src/core/io/__tests__/csv.spec.ts`
-Expected: FAIL because modules are missing.
+### Step 2: Implement the pure routing contract
 
-## Step 3: Implement minimal core modules
+Create `src/routing/uiVersion.ts` with:
 
-1. Move split logic from page-level utility into `src/core/text/split.ts`.
-2. Add reusable normalizer for trim/case/whitespace.
-3. Add CSV/JSON serializers with explicit escape behavior.
-4. Keep `src/utils/textParser.ts` as compatibility wrapper that re-exports core functions.
+```ts
+export type UiVersion = 'v1' | 'v2'
 
-## Step 4: Re-run tests
+const toolPaths = ['/', '/diff', '/process', '/merge', '/ai-batch', '/chat'] as const
 
-Run: `npm test -- src/core/text/__tests__/split.spec.ts src/core/io/__tests__/csv.spec.ts`
-Expected: PASS.
+export function detectUiVersion(path: string): UiVersion {
+  return path === '/v2' || path.startsWith('/v2/') ? 'v2' : 'v1'
+}
 
-## Step 5: Commit
+export function mapToolPathToVersion(path: string, target: UiVersion): string {
+  const v1Path = detectUiVersion(path) === 'v2'
+    ? path.replace(/^\/v2(?=\/|$)/, '') || '/'
+    : path
+  const normalized = toolPaths.includes(v1Path as (typeof toolPaths)[number]) ? v1Path : '/'
+  return target === 'v2' ? (normalized === '/' ? '/v2' : `/v2${normalized}`) : normalized
+}
+```
+
+Re-run the focused test and expect PASS.
+
+### Step 3: Centralize tool definitions
+
+Create `src/navigation/tools.ts` with typed tool IDs, labels, short labels, paths, and Element Plus icon keys. Export `fullTools` and `noAiTools`; do not store emoji in route metadata.
+
+### Step 4: Add the version composable
+
+`useUiVersion.ts` must:
+
+- derive the current version from `route.path`;
+- save `similar-ui-version` only when the switch is used;
+- call `await nextTick()` before `router.push(...)`;
+- map the current tool via `mapToolPathToVersion`;
+- honor direct URLs instead of redirecting them automatically.
+
+Add a happy-dom unit test with a mocked router that verifies preference storage and mapped navigation.
+
+### Step 5: Split root application and V1 shell
+
+- `App.vue` and `App.no-ai.vue` retain only `el-config-provider` plus root `<router-view />`.
+- `V1Shell.vue` renders the existing `AppShell` with the correct tool set and package version.
+- `AppShell.vue` receives the shared `VersionSwitch` in its footer/topbar without changing existing tool page URLs.
+
+### Step 6: Add temporary V2 shell routing
+
+Create a minimal `V2Shell.vue` and `V2PlaceholderPage.vue` so every `/v2` route is navigable before the final pages exist. The placeholder is temporary and must be removed in Tasks 6-8.
+
+Use nested routes for both shells. Give route names stable prefixes such as `v1-similarity` and `v2-similarity`.
+
+### Step 7: Verify routing and builds
+
+Run:
 
 ```bash
-git add src/core/text src/core/io src/utils/textParser.ts
-git commit -m "refactor(core): extract shared text and io modules"
+npx vitest run src/routing/__tests__/uiVersion.spec.ts
+npm test
+npm run build
 ```
 
-## Step 6: Run full core test subset (optional)
+Expected: all commands pass; V1 paths remain unchanged; V2 paths resolve to the placeholder.
 
-Run: `npm test -- src/core`
-Expected: PASS for task-1 and task-2 tests.
+### Step 8: Commit
+
+```bash
+git add src/App.vue src/App.no-ai.vue src/navigation src/routing src/composables/useUiVersion.ts src/components/VersionSwitch.vue src/components/AppShell.vue src/shell src/v2/shell src/v2/pages/V2PlaceholderPage.vue src/router
+git commit -m "feat: add dual-version routing shells"
+```
+
+---
+*Last Updated: 2026-07-17 17:00 UTC*
